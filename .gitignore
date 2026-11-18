@@ -1,0 +1,23 @@
+# 依存関係・ビルド成果物
+node_modules/
+dist/
+build/
+coverage/
+cdk.out/
+.aws-sam/
+
+# 環境変数・秘密情報
+.env
+.env.*
+!.env.example
+*.pem
+
+# OS・エディター
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ローカル実行時のデータ
+.local/
+*.log
