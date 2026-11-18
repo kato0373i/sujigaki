@@ -888,7 +888,7 @@ stateDiagram-v2
 
 | # | 論点 | 担当 | 期限 |
 |---|---|---|---|
-| 1 | RDRA の関連データ形式の列の仕様を、公式資料かサンプルで確認する（[Issue #3](https://github.com/kato0373i/sujigaki/issues/3)） | 開発 | 設計の開始前 |
+| 1 | RDRA の関連データ形式の列の仕様を、公式資料かサンプルで確認する（[Issue #3](https://github.com/kato0373i/sujigaki/issues/3)。[調査メモ](../research/rdra-related-data-format.md)にまとめた） | 開発 | 解決済み |
 | 2 | RDRA 2.0 の要素の一覧と表示名の対応を、公式資料と照合して確定する。alder の「活動」をアクティビティに当てる案を、架空の業務のサンプルで確かめる（[Issue #4](https://github.com/kato0373i/sujigaki/issues/4)） | 開発 | 設計の開始前 |
 | 3 | 「内容の編集」（FR-013）とみなす変更の範囲。特に、つながりを追加・削除したとき、両端の要素を未レビューに戻すか（[Issue #5](https://github.com/kato0373i/sujigaki/issues/5)） | 業務責任者・開発 | 設計中 |
 | 4 | サーバーモードのデータベース（RDS for PostgreSQL か DynamoDB か）（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)） | 開発 | 設計中 |
@@ -905,3 +905,4 @@ stateDiagram-v2
 | 2026-11-19 | 初版を作成 | 開発 |
 | 2026-11-19 | 未解決事項 #7（ライセンス）を MIT に決定 | 開発 |
 | 2026-11-19 | YAML を読み込むときの確認状態の扱いを、復元と取り込みに分けた（FR-050、FR-081、7.1 節） | 開発 |
+| 2026-11-19 | 関連データ形式の調査結果を FR-051・FR-052 に反映し、未解決事項 #1 を解決済みにした | 開発 |
