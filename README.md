@@ -8,3 +8,7 @@
 ## ドキュメント
 
 - 要件定義書: [docs/requirements/business-design-ssot.md](docs/requirements/business-design-ssot.md)
+
+## ライセンス
+
+[MIT](LICENSE)
