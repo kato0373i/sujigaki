@@ -1,0 +1,69 @@
+# 形式のバージョン1で書き出したファイル。古いバージョンを読み込めることを確かめるために残す（NFR-015）
+format: sujigaki
+version: 1
+project:
+  name: 申込管理
+  systemName: 申込システム
+elements:
+  - id: act1
+    kind: activity
+    name: 申込内容を確認する
+    attributes:
+      trigger: 申込書が届く
+      mode: system
+    reviewState: approved
+    authorType: human
+    relations:
+      - id: r1
+        type: activity-actor
+        to: actor1
+      - id: r2
+        type: activity-usecase
+        to: uc1
+    version: 3
+    createdAt: 2026-11-19T00:00:00.000Z
+    updatedAt: 2026-11-19T01:00:00.000Z
+  - id: actor1
+    kind: actor
+    name: 審査担当
+    reviewState: unreviewed
+    authorType: human
+    version: 1
+    createdAt: 2026-11-19T00:00:00.000Z
+    updatedAt: 2026-11-19T00:00:00.000Z
+  - id: uc1
+    kind: usecase
+    name: 申込を登録する
+    links:
+      - id: l1
+        kind: spec
+        url: https://example.com/spec
+    reviewState: needs_check
+    authorType: ai
+    source: AI 提案
+    version: 1
+    createdAt: 2026-11-19T00:00:00.000Z
+    updatedAt: 2026-11-19T00:00:00.000Z
+questions:
+  - id: q1
+    elementId: act1
+    body: 例外のときは誰に連絡しますか
+    state: open
+    authorType: human
+    createdAt: 2026-11-19T00:00:00.000Z
+decisions:
+  - id: d1
+    topic: 審査の担当
+    conclusion: 審査担当が確認する
+    reason: 申込の内容に詳しいため
+    elementIds:
+      - act1
+    decidedAt: 2026-11-19T00:00:00.000Z
+layouts:
+  - bucId: buc1
+    version: 1
+    updatedAt: 2026-11-19T00:00:00.000Z
+    positions:
+      act1:
+        x: 10
+        y: 20
