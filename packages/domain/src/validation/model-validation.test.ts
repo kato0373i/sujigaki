@@ -11,7 +11,7 @@ const at = AT.toISOString();
 
 const options = { summaryMaxLength: 10 };
 
-describe("モデルの検証：切れたつながりと要約の長さ", () => {
+describe("FR-040 切れたつながりと要約の長さ", () => {
   it("先の要素がないつながりと、先が削除済みのつながりを見つける", () => {
     const removed = element("removed", "information", { deletedAt: at });
     const missing = element("missing", "screen");
@@ -53,7 +53,7 @@ describe("モデルの検証：切れたつながりと要約の長さ", () => {
   });
 });
 
-describe("モデルの検証：つながりの抜け", () => {
+describe("FR-040 つながりの抜け", () => {
   const actor = element("actor", "actor");
   const screen = element("screen", "screen");
   const info = element("info", "information");

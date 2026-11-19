@@ -19,7 +19,7 @@ function withEditor(): ProjectMembers {
     .members;
 }
 
-describe("メンバー構成", () => {
+describe("FR-082 メンバー構成", () => {
   it("プロジェクトを作った人が最初の管理者になる", () => {
     expect(ProjectMembers.start("p1", "admin").roleOf("admin")).toBe("admin");
   });

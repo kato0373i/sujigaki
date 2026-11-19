@@ -34,7 +34,7 @@ function approvedActivityConnectedTo(target: string): Element {
   });
 }
 
-describe("削除と復元（FR-012）", () => {
+describe("FR-012 削除と復元", () => {
   it("削除済みにし、復元で戻す", () => {
     const deleted = activity().delete(editor, at);
     if (!deleted.ok) throw new Error();
@@ -64,7 +64,7 @@ describe("削除と復元（FR-012）", () => {
   });
 });
 
-describe("つながりの先が削除されたとき（FR-013）", () => {
+describe("FR-013 つながりの先が削除されたとき", () => {
   it("そのつながりを持つ元の要素を未レビューに戻す", () => {
     const { element, events } = approvedActivityConnectedTo(
       "u1",
@@ -91,7 +91,7 @@ describe("つながりの先が削除されたとき（FR-013）", () => {
   });
 });
 
-describe("削除済みの要素", () => {
+describe("FR-012 削除済みの要素", () => {
   function deleted(): Element {
     const result = approvedActivityConnectedTo("u1").delete(editor, at);
     if (!result.ok) throw new Error(result.error.message);

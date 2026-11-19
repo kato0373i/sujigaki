@@ -29,7 +29,7 @@ function approved(): Element {
   return Element.fromSnapshot(snapshot);
 }
 
-describe("要素を作る", () => {
+describe("FR-010 要素を作る", () => {
   it("未レビュー・バージョン1で作り、作成のイベントを出す", () => {
     const result = Element.create(
       {
@@ -91,7 +91,7 @@ describe("要素を作る", () => {
   });
 });
 
-describe("内容を編集する（FR-013）", () => {
+describe("FR-013 内容を編集する", () => {
   it("確認済みの要素を編集すると、未レビューに戻り、そのことをイベントに残す", () => {
     const result = approved().edit(
       { summary: "必須項目を確かめる" },
@@ -181,7 +181,7 @@ describe("属性を検査する（設計書 ADR-005）", () => {
   });
 });
 
-describe("外部リンクを変える", () => {
+describe("FR-004 外部リンクを変える", () => {
   it("確認状態は変えず、バージョンは上げる", () => {
     const result = approved().replaceLinks(
       [
@@ -219,7 +219,7 @@ describe("外部リンクを変える", () => {
   });
 });
 
-describe("名前を編集する", () => {
+describe("FR-010 名前を編集する", () => {
   it("名前を変え、前後の空白を除く", () => {
     const result = created().edit({ name: " 申込を確かめる " }, editor, later);
     expect(result.ok && result.value.element.toSnapshot().name).toBe(

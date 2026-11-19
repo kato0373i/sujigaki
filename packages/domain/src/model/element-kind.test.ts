@@ -5,7 +5,7 @@ import {
   isElementKind,
 } from "./element-kind.ts";
 
-describe("要素の種類", () => {
+describe("FR-001 要素の種類", () => {
   it("18種類ある", () => {
     expect(ELEMENT_KINDS).toHaveLength(18);
     expect(new Set(ELEMENT_KINDS).size).toBe(18);

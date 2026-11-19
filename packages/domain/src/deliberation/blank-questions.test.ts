@@ -19,7 +19,7 @@ const filled = {
   outcome: "審査待ちになる",
 };
 
-describe("空欄から作る問い", () => {
+describe("FR-035 空欄から作る問い", () => {
   it("担当者が空の活動に「担当者は誰ですか」と問う", () => {
     const activity = element("act", "activity", { attributes: filled });
     expect(blankQuestions([activity], [])).toEqual([

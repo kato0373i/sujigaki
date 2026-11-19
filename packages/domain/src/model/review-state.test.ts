@@ -8,7 +8,7 @@ import {
 const editor: Actor = { userId: "u1", role: "editor" };
 const owner: Actor = { userId: "u2", role: "owner" };
 
-describe("確認状態の遷移", () => {
+describe("FR-030 確認状態の遷移", () => {
   it("業務責任者は要確認を確認済みにできる", () => {
     expect(checkReviewTransition("needs_check", "approved", owner).ok).toBe(
       true,

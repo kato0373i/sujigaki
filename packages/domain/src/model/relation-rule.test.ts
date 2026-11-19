@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { connectableKinds, resolveRelation } from "./relation-rule.ts";
 
-describe("つながりの種類を求める", () => {
+describe("FR-001 つながりの種類を求める", () => {
   it("定義どおりの順で渡すと、そのまま見つかる", () => {
     const result = resolveRelation("activity", "usecase");
     expect(result).toMatchObject({
@@ -38,7 +38,7 @@ describe("つながりの種類を求める", () => {
   });
 });
 
-describe("つなげる種類", () => {
+describe("FR-001 つなげる種類", () => {
   it("元と先のどちらでも数える", () => {
     expect(connectableKinds("requirement")).toEqual(["actor", "business"]);
   });

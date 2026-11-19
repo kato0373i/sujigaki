@@ -15,7 +15,7 @@ const input: NewDecision = {
   elementIds: [elementId("a3"), elementId("a4"), elementId("a3")],
 };
 
-describe("決定を記録する（FR-032）", () => {
+describe("FR-032 決定を記録する", () => {
   it("業務責任者は記録でき、要素の重なりは除く", () => {
     const result = Decision.record(input, owner, at);
     expect(result.ok).toBe(true);

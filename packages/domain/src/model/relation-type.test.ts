@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isElementKind } from "./element-kind.ts";
 import { RELATION_TYPES } from "./relation-type.ts";
 
-describe("つながりの種類", () => {
+describe("FR-001 つながりの種類", () => {
   it("関連データの33種類と、要求のつながり2種類がある", () => {
     expect(RELATION_TYPES.filter((type) => type.tag !== null)).toHaveLength(33);
     expect(RELATION_TYPES.filter((type) => type.tag === null)).toHaveLength(2);
