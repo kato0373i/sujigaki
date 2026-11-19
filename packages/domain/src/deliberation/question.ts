@@ -1,6 +1,7 @@
 import { type Actor, hasRoleAtLeast } from "../access/role.ts";
 import type { ElementId } from "../model/element.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
+import { requiredText } from "../shared/text.ts";
 
 export type QuestionId = string & { readonly __brand: "QuestionId" };
 export const questionId = (value: string) => value as QuestionId;
@@ -66,13 +67,6 @@ export interface NewQuestion {
   readonly authorType: QuestionAuthorType;
 }
 
-function required(value: string, label: string): Result<string> {
-  const trimmed = value.trim();
-  if (trimmed.length === 0)
-    return fail("VALIDATION_FAILED", `${label}を入力してください。`);
-  return ok(trimmed);
-}
-
 /** 未解決の問いの集約（FR-031）。状態の遷移は要件定義書 7.2 節に従う */
 export class Question {
   private readonly state: QuestionSnapshot;
@@ -90,7 +84,7 @@ export class Question {
     actor: Actor,
     at: Date,
   ): Result<QuestionChange> {
-    const body = required(input.body, "問い");
+    const body = requiredText(input.body, "問い");
     if (!body.ok) return body;
     const recommendation = input.recommendation?.trim() || null;
     const question = new Question({
@@ -128,7 +122,7 @@ export class Question {
   answer(text: string, actor: Actor, at: Date): Result<QuestionChange> {
     const from = this.expectState("open", "回答");
     if (!from.ok) return from;
-    const answer = required(text, "回答");
+    const answer = requiredText(text, "回答");
     if (!answer.ok) return answer;
     const question = new Question({
       ...this.state,
