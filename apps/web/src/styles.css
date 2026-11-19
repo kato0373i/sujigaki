@@ -903,3 +903,56 @@ button.badge {
 .chain-link {
   font-size: 12px;
 }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.io .tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: none;
+}
+
+.io .tab.active {
+  border-color: var(--line);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.prompt-label {
+  display: block;
+  margin: 8px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.prompt {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.prompt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.problems.warning {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.ai-questions h2 {
+  font-size: 14px;
+  margin: 16px 0 8px;
+}

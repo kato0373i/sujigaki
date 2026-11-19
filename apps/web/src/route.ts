@@ -6,6 +6,7 @@ export type Route =
   | { readonly screen: "board" }
   | { readonly screen: "io" }
   | { readonly screen: "trace" }
+  | { readonly screen: "ai" }
   | { readonly screen: "flow"; readonly bucId: string }
   | { readonly screen: "chain"; readonly originId: string };
 
@@ -13,6 +14,7 @@ export function parseRoute(hash: string): Route {
   if (hash === "#/board") return { screen: "board" };
   if (hash === "#/io") return { screen: "io" };
   if (hash === "#/trace") return { screen: "trace" };
+  if (hash === "#/ai") return { screen: "ai" };
   const chain = /^#\/chain\/([A-Za-z0-9_-]+)$/.exec(hash);
   if (chain?.[1]) return { screen: "chain", originId: chain[1] };
   const match = /^#\/flows\/([A-Za-z0-9_-]+)$/.exec(hash);
@@ -26,6 +28,7 @@ export function hrefOf(route: Route): string {
   if (route.screen === "chain") return `#/chain/${route.originId}`;
   if (route.screen === "board") return "#/board";
   if (route.screen === "trace") return "#/trace";
+  if (route.screen === "ai") return "#/ai";
   return route.screen === "io" ? "#/io" : "#/";
 }
 
