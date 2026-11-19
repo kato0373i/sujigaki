@@ -109,6 +109,9 @@ export function BusinessFlow({
   onSelect: (elementId: string) => void;
   editing?: FlowEditing;
 }) {
+  // 編集の操作は描くたびに作り直されるため、編集できるかどうかだけで描き直しを決める。
+  // 描き直すとカードの位置が戻り、ドラッグの途中で動きが止まるためである
+  const editable = editing !== undefined;
   const initial = useMemo(() => {
     const right =
       Math.max(0, ...view.cards.map((c) => c.position.x)) + COLUMN_WIDTH + 80;
@@ -126,11 +129,11 @@ export function BusinessFlow({
       type: "activity",
       position: { x: card.position.x, y: card.position.y + 16 },
       data: { card },
-      draggable: editing !== undefined,
+      draggable: editable,
       selected: card.element.id === selectedId,
     }));
     return [...lanes, ...cards] as Node[];
-  }, [view, selectedId, editing]);
+  }, [view, selectedId, editable]);
   const [nodes, setNodes] = useState<Node[]>(initial);
   useEffect(() => setNodes(initial), [initial]);
 
