@@ -309,12 +309,32 @@ export function registerElementRoutes(app: Hono, deps: RouteDependencies) {
         "削除していない要素は完全に削除できません。先に削除してください。",
       );
     }
+    const at = deps.now();
+    // 復元できなくなるため、ほかの要素からのつながりも同じ保存で外す（設計書 5.1 節）
+    const dropped = stored.document.elements.flatMap((other) => {
+      if (other.id === element.id) return [];
+      const change = Element.fromSnapshot(other).dropRelationsTo(
+        element.id,
+        actor,
+        at,
+      );
+      if (change.events.length === 0) return [];
+      return [
+        {
+          versioned: {
+            value: change.element.toSnapshot(),
+            expectedVersion: other.version,
+          },
+          operations: operationsOf(other, change),
+        },
+      ];
+    });
     const operation: OperationRecord = {
       type: "ElementPurged",
       targetType: "element",
       targetId: element.id,
       actorId: actor.userId,
-      occurredAt: deps.now().toISOString(),
+      occurredAt: at.toISOString(),
       before: element,
       after: null,
     };
@@ -323,8 +343,9 @@ export function registerElementRoutes(app: Hono, deps: RouteDependencies) {
       projectId,
       {
         batchId: deps.newId(),
+        elements: dropped.map((d) => d.versioned),
         purgedElements: [{ id: element.id, expectedVersion: version }],
-        operations: [operation],
+        operations: [...dropped.flatMap((d) => d.operations), operation],
       },
       element.id,
     );
