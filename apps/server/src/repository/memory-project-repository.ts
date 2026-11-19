@@ -1,11 +1,13 @@
 import { fail, ok, type ProjectSettings, type Result } from "@sujigaki/domain";
 import { normalizeDocument } from "@sujigaki/interchange";
 import { applyChangeSet } from "./change-set.ts";
-import type {
-  ChangeSet,
-  OperationRecord,
-  ProjectRepository,
-  StoredProject,
+import {
+  type ChangeSet,
+  type ChangesAfter,
+  type OperationRecord,
+  type ProjectRepository,
+  type StoredProject,
+  sliceChanges,
 } from "./project-repository.ts";
 
 interface Entry {
@@ -61,6 +63,15 @@ export class MemoryProjectRepository implements ProjectRepository {
       revision: entry.operations.length,
     };
     return ok({ revision: entry.stored.revision });
+  }
+
+  async changesAfter(
+    projectId: string,
+    after: number,
+    limit: number,
+  ): Promise<ChangesAfter | null> {
+    const entry = this.projects.get(projectId);
+    return entry ? sliceChanges(entry.operations, after, limit) : null;
   }
 
   /** 記録した操作。テストで確かめるために使う */

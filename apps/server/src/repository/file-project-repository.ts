@@ -25,10 +25,13 @@ import {
   writeProjectFolder,
 } from "@sujigaki/interchange";
 import { applyChangeSet } from "./change-set.ts";
-import type {
-  ChangeSet,
-  ProjectRepository,
-  StoredProject,
+import {
+  type ChangeSet,
+  type ChangesAfter,
+  type OperationRecord,
+  type ProjectRepository,
+  type StoredProject,
+  sliceChanges,
 } from "./project-repository.ts";
 
 /** フォルダーのファイルが形式に合わず、読み込めない */
@@ -60,6 +63,8 @@ export interface FileProjectRepositoryOptions {
   readonly folder: string;
   /** ローカルモードで扱う、ただ1つのプロジェクトの ID */
   readonly projectId: string;
+  /** 外の変更を記録するときの日時。テストで差し替える */
+  readonly now?: () => Date;
 }
 
 /**
@@ -67,7 +72,8 @@ export interface FileProjectRepositoryOptions {
  * 外部のエディターや git pull でファイルが変わったことは、最後に読み書きしたときのファイルのハッシュと比べて見つける。
  * 見つけたら、内容が変わった要素と図の配置のバージョンを進め、プロジェクトのリビジョンも1つ進める。
  * 古いバージョンのまま保存しようとした画面には VERSION_CONFLICT を返し、リビジョンの変化で再読み込みを促す。
- * 操作の記録はファイルに書かない。変更履歴は Git の履歴を使う（FR-072）
+ * 操作の記録はファイルに書かない。変更履歴は Git の履歴を使う（FR-072）。
+ * 更新の通知（FR-071）のために、起動してからの操作と外の変更だけをメモリに持つ
  */
 export class FileProjectRepository implements ProjectRepository {
   private readonly folder: string;
@@ -79,13 +85,20 @@ export class FileProjectRepository implements ProjectRepository {
   } | null = null;
   /** 外で変わったために進めたバージョン。次に保存するときにファイルへ書く */
   private readonly bumps = new Map<string, number>();
-  private revision = 0;
+  /** 起動してからの操作。外の変更は ExternalChange の操作にする。位置がそのままリビジョンになる */
+  private readonly operations: OperationRecord[] = [];
+  private readonly now: () => Date;
   /** 保存を1件ずつ処理するための待ち行列 */
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(options: FileProjectRepositoryOptions) {
     this.folder = options.folder;
     this.projectId = options.projectId;
+    this.now = options.now ?? (() => new Date());
+  }
+
+  private get revision(): number {
+    return this.operations.length;
   }
 
   create(
@@ -139,8 +152,21 @@ export class FileProjectRepository implements ProjectRepository {
       if (!applied.ok) return applied;
       await this.writeFiles(current.files, applied.value);
       this.bumps.clear();
-      this.revision += changes.operations.length;
+      this.operations.push(...changes.operations);
       return ok({ revision: this.revision });
+    });
+  }
+
+  changesAfter(
+    projectId: string,
+    after: number,
+    limit: number,
+  ): Promise<ChangesAfter | null> {
+    return this.exclusive(async () => {
+      if (projectId !== this.projectId) return null;
+      // 外の変更を見つけるために、先にフォルダーを読む
+      if (!(await this.readCurrent())) return null;
+      return sliceChanges(this.operations, after, limit);
     });
   }
 
@@ -175,7 +201,15 @@ export class FileProjectRepository implements ProjectRepository {
           );
         }
       }
-      this.revision += 1;
+      this.operations.push({
+        type: "ExternalChange",
+        targetType: "project",
+        targetId: this.projectId,
+        actorId: null,
+        occurredAt: this.now().toISOString(),
+        before: null,
+        after: null,
+      });
     }
     const document: ProjectDocument = {
       ...onDisk,
