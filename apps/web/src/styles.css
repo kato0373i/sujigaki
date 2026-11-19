@@ -978,7 +978,8 @@ button.badge {
   margin: 0 0 16px;
 }
 
-.confirm button {
+.confirm button,
+.deleted button {
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 6px;
@@ -989,6 +990,7 @@ button.badge {
 }
 
 .confirm button.danger,
+.deleted button.danger,
 .panel button.delete-element {
   background: var(--red);
   border-color: var(--red);
@@ -999,3 +1001,32 @@ button.badge {
   opacity: 0.5;
 }
 
+.deleted button:disabled {
+  color: var(--gray);
+  cursor: not-allowed;
+}
+
+.deleted-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  margin-top: 12px;
+}
+
+.screen.deleted .deleted-table th,
+.screen.deleted .deleted-table td {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: normal;
+}
+
+.screen.deleted .deleted-table thead th {
+  background: var(--background);
+  font-weight: 700;
+}
+
+.deleted-actions {
+  display: flex;
+  gap: 8px;
+}
