@@ -11,6 +11,7 @@ describe("FR-081 権限の表", () => {
   it("閲覧者はコメントと回答ができ、要素は編集できない", () => {
     expect(can(viewer, "writeComment")).toBe(true);
     expect(can(viewer, "answerQuestion")).toBe(true);
+    expect(can(viewer, "askQuestion")).toBe(true);
     expect(can(viewer, "editElement")).toBe(false);
   });
 
