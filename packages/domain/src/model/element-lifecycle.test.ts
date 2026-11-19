@@ -34,7 +34,7 @@ function approvedActivityConnectedTo(target: string): Element {
   });
 }
 
-describe("削除と復元（FR-012）", () => {
+describe("FR-012 削除と復元", () => {
   it("削除済みにし、復元で戻す", () => {
     const deleted = activity().delete(editor, at);
     if (!deleted.ok) throw new Error();
@@ -64,7 +64,7 @@ describe("削除と復元（FR-012）", () => {
   });
 });
 
-describe("つながりの先が削除されたとき（FR-013）", () => {
+describe("FR-013 つながりの先が削除されたとき", () => {
   it("そのつながりを持つ元の要素を未レビューに戻す", () => {
     const { element, events } = approvedActivityConnectedTo(
       "u1",
@@ -88,5 +88,51 @@ describe("つながりの先が削除されたとき（FR-013）", () => {
     );
     expect(change.element).toBe(element);
     expect(change.events).toEqual([]);
+  });
+});
+
+describe("FR-012 削除済みの要素", () => {
+  function deleted(): Element {
+    const result = approvedActivityConnectedTo("u1").delete(editor, at);
+    if (!result.ok) throw new Error(result.error.message);
+    return result.value.element;
+  }
+
+  it("内容・外部リンク・つながり・確認状態のどれも変えられない", () => {
+    const element = deleted();
+    const results = [
+      element.edit({ name: "別の名前" }, editor, at),
+      element.replaceLinks([], editor, at),
+      element.addRelation(
+        relationId("r2"),
+        { id: elementId("s1"), kind: "screen" },
+        editor,
+        at,
+      ),
+      element.removeRelation(relationId("r1"), editor, at),
+      element.changeReviewState("needs_check", editor, at),
+    ];
+    for (const result of results) {
+      expect(result).toEqual({
+        ok: false,
+        error: {
+          code: "ELEMENT_DELETED",
+          message:
+            "削除済みの要素は編集できません。復元してから編集してください。",
+        },
+      });
+    }
+  });
+
+  it("もう一度削除しても、何も変えない", () => {
+    const element = deleted();
+    const again = element.delete(editor, at);
+    expect(again).toMatchObject({ ok: true, value: { events: [] } });
+    if (again.ok) expect(again.value.element.version).toBe(element.version);
+  });
+
+  it("削除していない要素を復元しても、何も変えない", () => {
+    const result = activity().restore(editor, at);
+    expect(result).toMatchObject({ ok: true, value: { events: [] } });
   });
 });

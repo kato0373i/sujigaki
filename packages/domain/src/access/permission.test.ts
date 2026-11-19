@@ -7,7 +7,7 @@ const editor: Actor = { userId: "u2", role: "editor" };
 const owner: Actor = { userId: "u3", role: "owner" };
 const admin: Actor = { userId: "u4", role: "admin" };
 
-describe("権限の表", () => {
+describe("FR-081 権限の表", () => {
   it("閲覧者はコメントと回答ができ、要素は編集できない", () => {
     expect(can(viewer, "writeComment")).toBe(true);
     expect(can(viewer, "answerQuestion")).toBe(true);

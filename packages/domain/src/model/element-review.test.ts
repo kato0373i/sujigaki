@@ -21,7 +21,7 @@ function activity(): Element {
   return result.value.element;
 }
 
-describe("確認状態を変える（FR-030）", () => {
+describe("FR-030 確認状態を変える", () => {
   it("確認を依頼し、業務責任者が確認済みにする", () => {
     const requested = activity().changeReviewState("needs_check", editor, at);
     if (!requested.ok) throw new Error(requested.error.message);

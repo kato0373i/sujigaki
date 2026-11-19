@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { unwrap } from "../testing/index.ts";
 import { invitationId, ProjectMembers } from "./project-members.ts";
 import type { Actor } from "./role.ts";
 
 const at = new Date("2026-11-19T00:00:00Z");
 const admin: Actor = { userId: "admin", role: "admin" };
-
-function unwrap<T>(result: { ok: true; value: T } | { ok: false }): T {
-  if (!result.ok) throw new Error("失敗した");
-  return result.value;
-}
 
 function withEditor(): ProjectMembers {
   const start = ProjectMembers.start("p1", "admin");
@@ -23,7 +19,7 @@ function withEditor(): ProjectMembers {
     .members;
 }
 
-describe("メンバー構成", () => {
+describe("FR-082 メンバー構成", () => {
   it("プロジェクトを作った人が最初の管理者になる", () => {
     expect(ProjectMembers.start("p1", "admin").roleOf("admin")).toBe("admin");
   });
@@ -154,5 +150,62 @@ describe("メンバー構成", () => {
       invited.acceptInvitation(invitationId("i2"), "editor", at),
     );
     expect(accepted.members.roleOf("editor")).toBe("editor");
+  });
+
+  it("ローカルモードではメンバーを管理できない", () => {
+    const local: Actor = { userId: null, role: "admin" };
+    const result = ProjectMembers.start("p1", "admin").invite(
+      { id: invitationId("i1"), email: "a@example.com", role: "viewer" },
+      local,
+      at,
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
+  });
+
+  it("メールアドレスが空なら招待しない", () => {
+    const result = ProjectMembers.start("p1", "admin").invite(
+      { id: invitationId("i1"), email: " ", role: "viewer" },
+      admin,
+      at,
+    );
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "メールアドレスを入力してください。",
+      },
+    });
+  });
+
+  it("ない招待は、取り消すことも受けることもできない", () => {
+    const members = ProjectMembers.start("p1", "admin");
+    const missing = invitationId("none");
+    const notFound = { ok: false, error: { code: "NOT_FOUND" } };
+    expect(members.cancelInvitation(missing, admin, at)).toMatchObject(
+      notFound,
+    );
+    expect(members.acceptInvitation(missing, "u1", at)).toMatchObject(notFound);
+  });
+
+  it("管理者でなければ、招待も取り消しも除外もできない", () => {
+    const owner: Actor = { userId: "owner", role: "owner" };
+    const members = withEditor();
+    const forbidden = { ok: false, error: { code: "FORBIDDEN" } };
+    expect(
+      members.invite(
+        { id: invitationId("i9"), email: "b@example.com", role: "viewer" },
+        owner,
+        at,
+      ),
+    ).toMatchObject(forbidden);
+    expect(
+      members.cancelInvitation(invitationId("i9"), owner, at),
+    ).toMatchObject(forbidden);
+    expect(members.remove("editor", owner, at)).toMatchObject(forbidden);
+  });
+
+  it("今と同じロールに変えても、イベントを出さない", () => {
+    const result = withEditor().changeRole("editor", "editor", admin, at);
+    expect(result).toMatchObject({ ok: true, value: { events: [] } });
   });
 });

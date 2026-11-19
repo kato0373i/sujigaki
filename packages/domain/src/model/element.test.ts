@@ -29,7 +29,7 @@ function approved(): Element {
   return Element.fromSnapshot(snapshot);
 }
 
-describe("要素を作る", () => {
+describe("FR-010 要素を作る", () => {
   it("未レビュー・バージョン1で作り、作成のイベントを出す", () => {
     const result = Element.create(
       {
@@ -72,9 +72,26 @@ describe("要素を作る", () => {
       error: { code: "VALIDATION_FAILED", message: "名前を入力してください。" },
     });
   });
+
+  it("名前は200文字まで受け付け、201文字からは作らない", () => {
+    const make = (name: string) =>
+      Element.create(
+        { id: elementId("e1"), kind: "activity", name, authorType: "human" },
+        editor,
+        at,
+      );
+    expect(make("あ".repeat(200)).ok).toBe(true);
+    expect(make("あ".repeat(201))).toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "名前は200文字以内にしてください。",
+      },
+    });
+  });
 });
 
-describe("内容を編集する（FR-013）", () => {
+describe("FR-013 内容を編集する", () => {
   it("確認済みの要素を編集すると、未レビューに戻り、そのことをイベントに残す", () => {
     const result = approved().edit(
       { summary: "必須項目を確かめる" },
@@ -164,7 +181,7 @@ describe("属性を検査する（設計書 ADR-005）", () => {
   });
 });
 
-describe("外部リンクを変える", () => {
+describe("FR-004 外部リンクを変える", () => {
   it("確認状態は変えず、バージョンは上げる", () => {
     const result = approved().replaceLinks(
       [
@@ -192,5 +209,29 @@ describe("外部リンクを変える", () => {
       later,
     );
     expect(result.ok).toBe(false);
+  });
+
+  it("今と同じリンクなら、バージョンを上げない", () => {
+    const element = created();
+    const result = element.replaceLinks([], editor, later);
+    expect(result).toMatchObject({ ok: true, value: { events: [] } });
+    if (result.ok) expect(result.value.element.version).toBe(element.version);
+  });
+});
+
+describe("FR-010 名前を編集する", () => {
+  it("名前を変え、前後の空白を除く", () => {
+    const result = created().edit({ name: " 申込を確かめる " }, editor, later);
+    expect(result.ok && result.value.element.toSnapshot().name).toBe(
+      "申込を確かめる",
+    );
+  });
+
+  it("空の名前には変えない", () => {
+    const result = created().edit({ name: " " }, editor, later);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_FAILED" },
+    });
   });
 });

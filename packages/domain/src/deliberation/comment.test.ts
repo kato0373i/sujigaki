@@ -9,7 +9,7 @@ const input = {
   body: "締め切りは毎月20日です",
 };
 
-describe("コメントを書く（US-009）", () => {
+describe("US-009 コメントを書く", () => {
   it("閲覧者も書ける", () => {
     const result = Comment.write(input, { userId: "v1", role: "viewer" }, at);
     expect(result.ok && result.value.toSnapshot()).toMatchObject({

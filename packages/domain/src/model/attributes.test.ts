@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ATTRIBUTE_SCHEMAS, parseAttributes } from "./attributes.ts";
 import { ELEMENT_KINDS } from "./element-kind.ts";
 
-describe("種類ごとの属性", () => {
+describe("FR-002 FR-003 種類ごとの属性", () => {
   it("すべての種類にスキーマがある", () => {
     for (const kind of ELEMENT_KINDS) {
       expect(ATTRIBUTE_SCHEMAS[kind]).toBeDefined();
@@ -47,5 +47,15 @@ describe("種類ごとの属性", () => {
     expect(result.ok === false && result.error.message).toBe(
       "「名前」の値が正しくありません。",
     );
+  });
+
+  it("属性がオブジェクトでなければ受け付けない", () => {
+    expect(parseAttributes("activity", "手作業")).toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "「属性」の値が正しくありません。",
+      },
+    });
   });
 });

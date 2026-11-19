@@ -14,7 +14,7 @@ function create(): Project {
   return result.value;
 }
 
-describe("プロジェクト", () => {
+describe("FR-005 FR-090 プロジェクト", () => {
   it("要約の上限を指定しなければ、既定の100字にする", () => {
     const project = create();
     expect(project.summaryMaxLength).toBe(100);

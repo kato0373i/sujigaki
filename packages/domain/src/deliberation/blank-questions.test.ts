@@ -1,56 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  type ElementSnapshot,
-  elementId,
-  relationId,
-} from "../model/element.ts";
-import type { ElementKind } from "../model/element-kind.ts";
+  AT,
+  elementSnapshot as element,
+  questionSnapshot,
+  relationTo,
+} from "../testing/index.ts";
 import { blankQuestions } from "./blank-questions.ts";
-import { type QuestionSnapshot, questionId } from "./question.ts";
 
-const at = "2026-11-19T00:00:00.000Z";
+const at = AT.toISOString();
 
-function element(
-  id: string,
-  kind: ElementKind,
-  overrides: Partial<ElementSnapshot> = {},
-): ElementSnapshot {
-  return {
-    id: elementId(id),
-    kind,
-    name: id,
-    summary: "",
-    attributes: {},
-    reviewState: "unreviewed",
-    authorType: "human",
-    source: null,
-    version: 1,
-    deletedAt: null,
-    deletedBy: null,
-    links: [],
-    relations: [],
-    createdAt: at,
-    createdBy: null,
-    updatedAt: at,
-    updatedBy: null,
-    ...overrides,
-  };
-}
-
-function saved(id: string, body: string): QuestionSnapshot {
-  return {
-    id: questionId(`q-${id}`),
-    elementId: elementId(id),
-    body,
-    recommendation: null,
-    state: "withdrawn",
-    answer: null,
-    answeredBy: null,
-    answeredAt: null,
-    authorType: "auto",
-    createdAt: at,
-    createdBy: null,
-  };
+function saved(id: string, body: string) {
+  return questionSnapshot(id, { body, state: "withdrawn" });
 }
 
 const filled = {
@@ -59,7 +19,7 @@ const filled = {
   outcome: "審査待ちになる",
 };
 
-describe("空欄から作る問い", () => {
+describe("FR-035 空欄から作る問い", () => {
   it("担当者が空の活動に「担当者は誰ですか」と問う", () => {
     const activity = element("act", "activity", { attributes: filled });
     expect(blankQuestions([activity], [])).toEqual([
@@ -76,14 +36,7 @@ describe("空欄から作る問い", () => {
     const actor = element("actor", "actor", { deletedAt: at });
     const activity = element("act", "activity", {
       attributes: filled,
-      relations: [
-        {
-          id: relationId("r1"),
-          typeId: "activity-actor",
-          to: actor.id,
-          toKind: "actor",
-        },
-      ],
+      relations: [relationTo(actor, "activity")],
     });
     expect(blankQuestions([activity, actor], []).map((q) => q.blank)).toEqual([
       "actor",

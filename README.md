@@ -10,6 +10,7 @@
 - 要件定義書: [docs/requirements/business-design-ssot.md](docs/requirements/business-design-ssot.md)
 - 設計書: [docs/design/business-design-ssot.md](docs/design/business-design-ssot.md)
 - 画面設計書: [docs/design/screens.md](docs/design/screens.md)
+- テスト戦略: [docs/design/test-strategy.md](docs/design/test-strategy.md)
 
 ## 開発
 
@@ -20,7 +21,7 @@ npm ci
 npm test
 ```
 
-依存パッケージを入れてテストを実行します。lint は `npm run lint`、型の検査は `npm run typecheck` で実行できます。
+依存パッケージを入れてテストを実行します。lint は `npm run lint`、型の検査は `npm run typecheck`、カバレッジの計測は `npm run test:coverage` で実行できます。
 
 ## ライセンス
 

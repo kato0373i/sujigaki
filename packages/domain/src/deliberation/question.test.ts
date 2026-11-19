@@ -30,7 +30,7 @@ function answeredBy(actor: Actor): Question {
   return result.value.question;
 }
 
-describe("問いを作る", () => {
+describe("FR-031 問いを作る", () => {
   it("未回答で作る", () => {
     expect(asked().questionState).toBe("open");
   });
@@ -52,7 +52,7 @@ describe("問いを作る", () => {
   });
 });
 
-describe("回答する（FR-031）", () => {
+describe("FR-031 回答する", () => {
   it("閲覧者も回答できる", () => {
     const question = answeredBy(viewer);
     expect(question.toSnapshot()).toMatchObject({
@@ -80,7 +80,7 @@ describe("回答する（FR-031）", () => {
   });
 });
 
-describe("回答を取り消す", () => {
+describe("FR-031 回答を取り消す", () => {
   it("回答した本人は取り消せる", () => {
     const result = answeredBy(viewer).retractAnswer(viewer, at);
     expect(result.ok && result.value.question.toSnapshot()).toMatchObject({
@@ -99,7 +99,7 @@ describe("回答を取り消す", () => {
   });
 });
 
-describe("解決と取り下げ", () => {
+describe("FR-031 解決と取り下げ", () => {
   it("編集者は回答済みの問いを解決にできる", () => {
     const result = answeredBy(viewer).resolve(editor, at);
     expect(result.ok && result.value.question.questionState).toBe("resolved");
