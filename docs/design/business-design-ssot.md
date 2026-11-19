@@ -510,6 +510,44 @@ API は `/api` の下に置き、JSON でやり取りする。ローカルモー
 - コメントと変更履歴は持たない。変更履歴は Git の履歴を使う（FR-072）。
 - 表示の設定（FR-022）はファイルに書かず、ブラウザに保存する。
 
+### 5.5 書き出す YAML の形式
+
+FR-050 の書き出しではモデル全体を1つの YAML ファイルにまとめる。形式は `packages/interchange` の Zod のスキーマで定義し、そこから作った JSON Schema を `packages/interchange/schema/project.schema.json` に置く。
+
+```yaml
+format: sujigaki
+version: 1            # 形式のバージョン（NFR-015）
+project:
+  name: 申込管理
+  systemName: 申込システム
+elements:
+  - id: act1
+    kind: activity
+    name: 申込内容を確認する
+    attributes:
+      mode: system
+    reviewState: approved
+    authorType: human
+    relations:
+      - id: r1
+        type: activity-usecase
+        to: uc1
+    version: 3
+    createdAt: 2026-11-19T00:00:00.000Z
+    updatedAt: 2026-11-19T01:00:00.000Z
+questions: []
+decisions: []
+layouts: []
+```
+
+- 既定の値と同じ項目（空の要約、空の属性、つながりのない要素の `relations` など）は書き出さず、読み込むときに既定の値で補う。
+- つながりは種類と先の要素の ID で書き、先の要素の種類は種類から求める。
+- 削除済みの要素も `deletedAt` を付けて書き出す。ローカルモードで、削除済みの一覧から復元できるようにするためである。
+- 読み込むときは、スキーマに加えて、ID の重なりと、元の要素の種類が持てないつながりを確かめる。合わない箇所は YAML の中の位置と行番号を付けてすべて返し、モデルは変えない。先の要素がないつながりは拒否せず、検証（FR-040）で知らせる。
+- 対応しているより新しいバージョンの形式は読み込まず、sujigaki の更新を促す。形式を変えるときはバージョンを上げ、古いバージョンを変換する処理を足す。古いバージョンのファイルはテストのデータとして `packages/interchange/fixtures/` に残す。
+
+ローカルモードのフォルダー（5.4 節）にも、要素は同じ書き方で置く。
+
 ## 6. 主要シーケンス
 
 ### 6.1 要素を編集して保存する（FR-010、FR-013、FR-070）
@@ -704,7 +742,7 @@ sequenceDiagram
 | FR-034 | §5 `change-sets`、§6.2 | |
 | FR-035 | §3 未解決の問いの自動作成 | |
 | FR-040 | §1.2 `packages/domain`、§5 ブラウザでの検証 | |
-| FR-050 | §5 `change-sets`・`restore`・`PROJECT_NOT_EMPTY`、§5.4 | |
+| FR-050 | §5 `change-sets`・`restore`・`PROJECT_NOT_EMPTY`、§5.4、§5.5 | |
 | FR-051 | §1.2 `packages/interchange`、§3 つながりの種類 | |
 | FR-052 | §5 `change-sets` | |
 | FR-060 | §1.1、§5 プロジェクトのエンドポイント、§6.4 | |
@@ -730,7 +768,7 @@ sequenceDiagram
 | NFR-012 | §4 保持期間（CloudWatch Logs） | |
 | NFR-013 | §1.1 開発環境 | |
 | NFR-014 | §6.4 最初の管理者の設定 | |
-| NFR-015 | §5.4 `sujigaki.yaml` の形式の版、ADR-005 | |
+| NFR-015 | §5.4 `sujigaki.yaml` の形式の版、§5.5、ADR-005 | |
 | NFR-016 | §3 要素の種類（表示名） | |
 | NFR-017 | §9 未解決事項 #3 | 画面の設計で扱う |
 | NFR-018 | ADR-001、ADR-002 | 費用の試算と目標値は未解決事項 #1 |
@@ -753,3 +791,4 @@ sequenceDiagram
 | 2026-11-19 | エラーコードに ELEMENT_DELETED を追加した | 開発 |
 | 2026-11-19 | 問いの回答を取り消すイベントと、決定記録の不変条件を追加した | 開発 |
 | 2026-11-19 | 言語の選定を ADR-007 として記録した | 開発 |
+| 2026-11-19 | 書き出す YAML の形式（5.5 節）を追加した | 開発 |
