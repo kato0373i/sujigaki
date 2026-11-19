@@ -42,6 +42,19 @@ export class ProjectFilesInvalidError extends Error {
   }
 }
 
+/** フォルダーに書き込めない（FR-061）。権限がない、ディスクがいっぱい、などのとき */
+export class ProjectFilesWriteError extends Error {
+  readonly path: string;
+
+  constructor(path: string, cause: unknown) {
+    super("フォルダーに書き込めませんでした。", { cause });
+    this.name = "ProjectFilesWriteError";
+    this.path = path;
+  }
+}
+
+const WRITE_ERRORS = new Set(["EACCES", "EPERM", "EROFS", "ENOSPC"]);
+
 export interface FileProjectRepositoryOptions {
   /** プロジェクトのフォルダー */
   readonly folder: string;
@@ -222,16 +235,29 @@ export class FileProjectRepository implements ProjectRepository {
     document: ProjectDocument,
   ): Promise<void> {
     const after = writeProjectFolder(document);
+    const attempt = async (path: string, write: () => Promise<void>) => {
+      try {
+        await write();
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code && WRITE_ERRORS.has(code))
+          throw new ProjectFilesWriteError(path, error);
+        throw error;
+      }
+    };
     for (const [path, text] of after) {
       if (before.get(path) === text) continue;
       const target = join(this.folder, path);
-      await mkdir(dirname(target), { recursive: true });
-      const temporary = `${target}.tmp`;
-      await writeFile(temporary, text, "utf8");
-      await rename(temporary, target);
+      await attempt(path, async () => {
+        await mkdir(dirname(target), { recursive: true });
+        const temporary = `${target}.tmp`;
+        await writeFile(temporary, text, "utf8");
+        await rename(temporary, target);
+      });
     }
     for (const path of before.keys()) {
-      if (!after.has(path)) await rm(join(this.folder, path));
+      if (!after.has(path))
+        await attempt(path, () => rm(join(this.folder, path)));
     }
     this.known = { hash: hashOf(after), document: this.parse(after) };
   }

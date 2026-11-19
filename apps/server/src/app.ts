@@ -3,6 +3,10 @@ import type { ActorResolver } from "./auth/actor-resolver.ts";
 import { requireRequestHeader } from "./http/csrf.ts";
 import { ApiError } from "./http/problem.ts";
 import { ulid } from "./infra/ulid.ts";
+import {
+  ProjectFilesInvalidError,
+  ProjectFilesWriteError,
+} from "./repository/file-project-repository.ts";
 import type { ProjectRepository } from "./repository/project-repository.ts";
 import { registerElementRoutes } from "./routes/elements.ts";
 
@@ -48,16 +52,8 @@ export function createApp(options: AppOptions) {
   });
 
   app.onError((error) => {
-    const apiError =
-      error instanceof ApiError
-        ? error
-        : new ApiError(
-            "INTERNAL",
-            "予期しないエラーが起きました。時間をおいてもう一度試してください。",
-          );
-    if (!(error instanceof ApiError)) {
-      logger.error("予期しないエラー", error);
-    }
+    const apiError = toApiError(error);
+    if (apiError.code === "INTERNAL") logger.error("予期しないエラー", error);
     const problem = apiError.toProblem();
     return new Response(JSON.stringify(problem), {
       status: problem.status,
@@ -66,4 +62,34 @@ export function createApp(options: AppOptions) {
   });
 
   return app;
+}
+
+/** 投げられたエラーを API のエラーにする。ローカルモードのファイルの誤りは、場所を付けて返す */
+function toApiError(error: unknown): ApiError {
+  if (error instanceof ApiError) return error;
+  if (error instanceof ProjectFilesInvalidError) {
+    return new ApiError(
+      "VALIDATION_FAILED",
+      "プロジェクトのファイルが形式に合わないため、読み込めません。ファイルを直してから読み込み直してください。",
+      {
+        errors: error.issues.map((issue) => ({
+          path: [issue.file ?? "", ...issue.path],
+          message:
+            issue.line === null
+              ? issue.message
+              : `${issue.line}行目: ${issue.message}`,
+        })),
+      },
+    );
+  }
+  if (error instanceof ProjectFilesWriteError) {
+    return new ApiError(
+      "INTERNAL",
+      `フォルダーに書き込めなかったため、保存できませんでした（${error.path}）。フォルダーの権限と空き容量を確かめてください。`,
+    );
+  }
+  return new ApiError(
+    "INTERNAL",
+    "予期しないエラーが起きました。時間をおいてもう一度試してください。",
+  );
 }
