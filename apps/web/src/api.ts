@@ -166,3 +166,50 @@ export function applyChangeSet(
     "反映できませんでした。",
   );
 }
+
+/** 要素を作る（FR-010） */
+export function createElement(
+  projectId: string,
+  element: { kind: string; name: string; attributes?: Record<string, unknown> },
+): Promise<ElementSnapshot> {
+  return post(
+    `/api/projects/${projectId}/elements`,
+    element,
+    "要素を作れませんでした。",
+  );
+}
+
+/** つながりを追加する。元の要素の読み込んだときのバージョンを付ける（FR-010） */
+export function addRelation(
+  projectId: string,
+  from: ElementSnapshot,
+  to: string,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "POST",
+    `/api/projects/${projectId}/elements/${from.id}/relations`,
+    from.version,
+    { to },
+  );
+}
+
+/** 図の配置を保存する（FR-020）。まだ保存していない配置のバージョンは 0 */
+export async function saveLayout(
+  projectId: string,
+  bucId: string,
+  version: number,
+  positions: Record<string, { x: number; y: number }>,
+): Promise<LayoutSnapshot> {
+  const response = await fetch(`/api/projects/${projectId}/layouts/${bucId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Sujigaki-Request": "1",
+      "If-Match": `"${version}"`,
+    },
+    body: JSON.stringify({ positions }),
+  });
+  if (!response.ok)
+    throw await problemOf(response, "図の配置を保存できませんでした。");
+  return (await response.json()) as LayoutSnapshot;
+}

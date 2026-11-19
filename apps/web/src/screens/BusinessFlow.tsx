@@ -1,15 +1,18 @@
 import {
+  applyNodeChanges,
   Background,
+  type Connection,
   Controls,
   type Edge,
   Handle,
   MarkerType,
   type Node,
+  type NodeChange,
   type NodeProps,
   Position,
   ReactFlow,
 } from "@xyflow/react";
-import { useMemo } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ModeMark,
   ReviewStateMark,
@@ -75,16 +78,38 @@ function ActivityView({ data, selected }: NodeProps<ActivityNode>) {
 const nodeTypes = { lane: LaneView, activity: ActivityView };
 
 /** S-04 業務フロー。担当者ごとのレーンに、活動を流れの順に並べる（FR-020） */
+/** 活動を分ける目安（FR-002）。活動を追加する入力欄の近くに出す */
+const SPLIT_HINTS = [
+  "担当者や判断する人が変わる所",
+  "待ちが発生する所",
+  "区分（手作業とシステム利用）が変わる所",
+];
+
+export interface FlowEditing {
+  /** 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null */
+  readonly onAdd: (actorId: string | null, name: string) => Promise<void>;
+  /** カードを横に動かした */
+  readonly onMove: (elementId: string, x: number) => void;
+  /** カードの端から別のカードへつないだ */
+  readonly onConnect: (from: string, to: string) => void;
+}
+
+/**
+ * S-04 業務フロー。担当者ごとのレーンに、活動を流れの順に並べる（FR-020）。
+ * editing を渡すと、活動の追加・カードの移動・流れの順のつなぎができる
+ */
 export function BusinessFlow({
   view,
   selectedId,
   onSelect,
+  editing,
 }: {
   view: BusinessFlowView;
   selectedId: string | null;
   onSelect: (elementId: string) => void;
+  editing?: FlowEditing;
 }) {
-  const { nodes, edges } = useMemo(() => {
+  const initial = useMemo(() => {
     const right =
       Math.max(0, ...view.cards.map((c) => c.position.x)) + COLUMN_WIDTH + 80;
     const lanes: LaneNode[] = view.lanes.map((lane, index) => ({
@@ -101,21 +126,47 @@ export function BusinessFlow({
       type: "activity",
       position: { x: card.position.x, y: card.position.y + 16 },
       data: { card },
-      draggable: false,
+      draggable: editing !== undefined,
       selected: card.element.id === selectedId,
     }));
-    const flowEdges: Edge[] = view.edges.map((e) => ({
-      id: `${e.from}-${e.to}`,
-      source: e.from,
-      target: e.to,
-      markerEnd: { type: MarkerType.ArrowClosed },
-    }));
-    return { nodes: [...lanes, ...cards] as Node[], edges: flowEdges };
-  }, [view, selectedId]);
+    return [...lanes, ...cards] as Node[];
+  }, [view, selectedId, editing]);
+  const [nodes, setNodes] = useState<Node[]>(initial);
+  useEffect(() => setNodes(initial), [initial]);
+
+  const edges: Edge[] = useMemo(
+    () =>
+      view.edges.map((e) => ({
+        id: `${e.from}-${e.to}`,
+        source: e.from,
+        target: e.to,
+        markerEnd: { type: MarkerType.ArrowClosed },
+      })),
+    [view],
+  );
+
+  // カードは横にだけ動かす。縦の位置は担当者のレーンで決まるため
+  const onNodesChange = (changes: NodeChange[]) =>
+    setNodes((current) =>
+      applyNodeChanges(
+        changes.map((change) => {
+          if (change.type !== "position" || !change.position) return change;
+          const node = current.find((n) => n.id === change.id);
+          return node
+            ? {
+                ...change,
+                position: { x: change.position.x, y: node.position.y },
+              }
+            : change;
+        }),
+        current,
+      ),
+    );
 
   return (
     <section className="screen screen-flow">
       <h1>業務フロー: {view.buc.name}</h1>
+      {editing && <AddActivityForm lanes={view.lanes} onAdd={editing.onAdd} />}
       {view.cards.length === 0 && (
         <p className="empty">活動がありません。活動を追加してください。</p>
       )}
@@ -127,7 +178,17 @@ export function BusinessFlow({
           edges={edges}
           nodeTypes={nodeTypes}
           fitView
-          nodesConnectable={false}
+          onNodesChange={onNodesChange}
+          nodesConnectable={editing !== undefined}
+          onConnect={(connection: Connection) => {
+            if (connection.source !== connection.target) {
+              editing?.onConnect(connection.source, connection.target);
+            }
+          }}
+          onNodeDragStop={(_, node) => {
+            if (node.type === "activity")
+              editing?.onMove(node.id, node.position.x);
+          }}
           onNodeClick={(_, node) => {
             if (node.type === "activity") onSelect(node.id);
           }}
@@ -138,5 +199,50 @@ export function BusinessFlow({
         </ReactFlow>
       </div>
     </section>
+  );
+}
+
+function AddActivityForm({
+  lanes,
+  onAdd,
+}: {
+  lanes: BusinessFlowView["lanes"];
+  onAdd: FlowEditing["onAdd"];
+}) {
+  const [lane, setLane] = useState("0");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (name.trim() === "") return;
+    setBusy(true);
+    try {
+      await onAdd(lanes[Number(lane)]?.actorId ?? null, name);
+      setName("");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="add-activity" onSubmit={submit} aria-label="活動を追加">
+      <label>
+        担当{" "}
+        <select value={lane} onChange={(e) => setLane(e.target.value)}>
+          {lanes.map((l, index) => (
+            <option key={l.actorId ?? "none"} value={String(index)}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        活動の名前{" "}
+        <input value={name} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <button type="submit" disabled={busy || name.trim() === ""}>
+        ＋ 活動を追加
+      </button>
+      <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>
+    </form>
   );
 }
