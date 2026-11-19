@@ -12,6 +12,11 @@ export const PERMISSIONS = {
   writeComment: "viewer",
   /** 問いに回答する */
   answerQuestion: "viewer",
+  /**
+   * 問いを作る。FR-081 の表にはないため、回答と同じ閲覧者以上とする。
+   * 空欄から計算した問い（FR-035）は、閲覧者が回答したときに保存するためである
+   */
+  askQuestion: "viewer",
   /** 要素の作成・編集・削除・復元、AI 提案と読み込みの採否 */
   editElement: "editor",
   /** 問いの解決と取り下げ、ほかの人の回答の取り消し（要件定義書 7.2 節） */

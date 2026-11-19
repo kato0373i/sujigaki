@@ -103,11 +103,11 @@ export async function commitOrThrow(
   deps: RouteDependencies,
   projectId: string,
   changes: ChangeSet,
-  conflicting: ElementId,
+  conflicting?: ElementId,
 ): Promise<number> {
   const result = await deps.projects.commit(projectId, changes);
   if (result.ok) return result.value.revision;
-  if (result.error.code === "VERSION_CONFLICT") {
+  if (result.error.code === "VERSION_CONFLICT" && conflicting) {
     const stored = await deps.projects.load(projectId);
     const current = stored?.document.elements.find((e) => e.id === conflicting);
     if (current) throw versionConflict(current);
