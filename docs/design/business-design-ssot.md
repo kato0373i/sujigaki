@@ -641,3 +641,71 @@ sequenceDiagram
 ### プロジェクトと RDRA の「システム」の対応
 
 1つのプロジェクトに、RDRA の「システム」を1つだけ対応させる。関連データの1行目のシステム名にはプロジェクトの `system_name` を書き出す。迷う点がなかったため、ADR にはしていない。
+
+## 8. 要件トレーサビリティ
+
+| 要件ID | 対応する設計項目 | 備考 |
+|---|---|---|
+| FR-001 | §3 要素の種類・つながりの種類・要素の集約、§5 `RELATION_NOT_ALLOWED` | |
+| FR-002 | §3 要素の集約（`activity` の属性）、ADR-005 | |
+| FR-003 | §4 `elements` の共通カラム、ADR-005 | |
+| FR-004 | §3 要素の集約（外部リンク）、§4 `external_links` | |
+| FR-005 | §4 `projects.summary_max_length`（既定は100字） | 上限を超えても保存できる |
+| FR-010 | §5 要素とつながりのエンドポイント | |
+| FR-011 | §5 要素とつながりのエンドポイント | 画面は Could。API は FR-010 と同じものを使う |
+| FR-012 | §3 先の要素を削除してもつながりは残す、§5 削除・復元・完全な削除 | |
+| FR-013 | §3 要素の集約、ADR-004、§6.1 | |
+| FR-020 | §3 図の配置、§4 `layouts`、§5 スナップショット | |
+| FR-021〜026 | §5 スナップショットと、ブラウザでの表示 | 描画は表示する範囲に絞る |
+| FR-030 | §5 `review-state` | |
+| FR-031 | §3 問い、§4 `questions`、§5 問いのエンドポイント | |
+| FR-032 | §3 決定記録、§4 `decisions` | |
+| FR-033 | §1.2 `packages/interchange`、§6.2 | |
+| FR-034 | §5 `change-sets`、§6.2 | |
+| FR-035 | §3 未解決の問いの自動作成 | |
+| FR-040 | §1.2 `packages/domain`、§5 ブラウザでの検証 | |
+| FR-050 | §5 `change-sets`・`restore`・`PROJECT_NOT_EMPTY`、§5.4 | |
+| FR-051 | §1.2 `packages/interchange`、§3 つながりの種類 | |
+| FR-052 | §5 `change-sets` | |
+| FR-060 | §1.1、§5 プロジェクトのエンドポイント、§6.4 | |
+| FR-061 | §5.4、ADR-003、ADR-006 | |
+| FR-070 | §4 `elements.version`、§5 `If-Match`・`VERSION_CONFLICT`、§6.1 | |
+| FR-071 | §5 `changes`、§6.3 | |
+| FR-072 | §4 `operations`、§5 `history` | ローカルモードは Git の履歴 |
+| FR-080 | §1.3 認証、§5 `/auth`、§6.4 | |
+| FR-081 | §5 権限の判定、§2 アプリケーション層 | |
+| FR-082 | §3 メンバー構成、§4 `memberships`・`invitations`、§5 メンバーのエンドポイント | |
+| FR-090 | §5 `POST /api/projects` | |
+| NFR-001 | §5 ページネーション方針、§4 インデックス | |
+| NFR-002 | §1.3 React Flow・elkjs | 表示する範囲に絞って描画する |
+| NFR-003 | §5 ページネーション方針（`?businessId=`） | |
+| NFR-004 | §4 `operations`、§3 ドメインイベント | |
+| NFR-005 | §4 `elements.version`、§5 `change-sets` | |
+| NFR-006 | §1.1 CloudFront（HTTPS）、§5 権限の判定 | |
+| NFR-007 | §1.1 SSM Parameter Store | |
+| NFR-008 | §4 `operations`、保持期間 | |
+| NFR-009 | ADR-001、ADR-002 | |
+| NFR-010 | §4 保持期間（自動バックアップ） | |
+| NFR-011 | §1.3 AWS CDK | |
+| NFR-012 | §4 保持期間（CloudWatch Logs） | |
+| NFR-013 | §1.1 開発環境 | |
+| NFR-014 | §6.4 最初の管理者の設定 | |
+| NFR-015 | §5.4 `sujigaki.yaml` の形式の版、ADR-005 | |
+| NFR-016 | §3 要素の種類（表示名） | |
+| NFR-017 | §9 未解決事項 #3 | 画面の設計で扱う |
+| NFR-018 | ADR-001、ADR-002 | 費用の試算と目標値は未解決事項 #1 |
+
+## 9. 未解決事項
+
+| # | 論点 | 担当 | 期限 |
+|---|---|---|---|
+| 1 | 月額費用の試算と、NFR-018 の目標値（[Issue #7](https://github.com/kato0373i/sujigaki/issues/7)） | 開発 | プロトタイプの後 |
+| 2 | 関連データの形式を、定義・分析シートの実データで確かめる（[Issue #10](https://github.com/kato0373i/sujigaki/issues/10)） | 開発 | FR-051・FR-052 の実装時 |
+| 3 | 画面の設計（レイアウト、操作の流れ、NFR-017 の表現） | 開発 | 実装の開始前 |
+| 4 | Cognito と Keycloak の違い（トークンの項目、ログアウトの方法）を、AWS の検証環境で確かめる | 開発 | サーバーモードの公開前 |
+
+## 10. 変更履歴
+
+| 日付 | 変更内容 | 変更者 |
+|---|---|---|
+| 2026-11-19 | 初版を作成 | 開発 |
