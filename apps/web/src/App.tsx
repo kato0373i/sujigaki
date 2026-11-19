@@ -17,6 +17,7 @@ import { BusinessFlow, type FlowEditing } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
+import { TraceTable } from "./screens/TraceTable.tsx";
 
 /** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
 const LOCAL_ACTOR: Actor = { userId: null, role: "admin" };
@@ -43,7 +44,9 @@ export function App() {
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
   const selected =
-    route.screen === "flow" || route.screen === "board"
+    route.screen === "flow" ||
+    route.screen === "board" ||
+    route.screen === "trace"
       ? snapshot?.elements.find(
           (e) => e.id === selectedId && e.deletedAt === null,
         )
@@ -83,6 +86,13 @@ export function App() {
           aria-current={route.screen === "board" ? "page" : undefined}
         >
           確認ボード
+        </a>
+        <a
+          href={hrefOf({ screen: "trace" })}
+          className="nav-top"
+          aria-current={route.screen === "trace" ? "page" : undefined}
+        >
+          トレース表
         </a>
         <a
           href={hrefOf({ screen: "io" })}
@@ -138,6 +148,9 @@ export function App() {
             onSelect={setSelectedId}
             onChanged={reload}
           />
+        )}
+        {snapshot && route.screen === "trace" && (
+          <TraceTable elements={snapshot.elements} onSelect={setSelectedId} />
         )}
         {snapshot && route.screen === "io" && (
           <ImportExport
