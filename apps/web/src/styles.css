@@ -1,0 +1,321 @@
+:root {
+  --text: #1f2328;
+  --muted: #59636e;
+  --line: #d1d9e0;
+  --surface: #ffffff;
+  --background: #f6f8fa;
+  --accent: #0969da;
+  --gray: #6e7781;
+  --yellow: #9a6700;
+  --red: #cf222e;
+  --green: #1a7f37;
+  --orange: #bc4c00;
+  --blue: #0550ae;
+  color: var(--text);
+  background: var(--background);
+  font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 48px 1fr;
+  height: 100vh;
+}
+
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.project-name {
+  font-weight: 700;
+}
+
+.nav {
+  overflow: auto;
+  padding: 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+
+.nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav ul ul {
+  padding-left: 12px;
+  margin: 4px 0 12px;
+}
+
+.nav a {
+  display: block;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav a:hover,
+.nav a[aria-current="page"] {
+  background: #ddf4ff;
+}
+
+.nav-top {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.nav-business {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.main {
+  overflow: auto;
+}
+
+.screen {
+  padding: 16px 24px;
+}
+
+.screen h1 {
+  font-size: 18px;
+  margin: 0 0 16px;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--red);
+  padding: 16px 24px;
+}
+
+.business-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.business-row {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.business-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.business-head h2 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.counts,
+.flows {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.flows {
+  margin-top: 8px;
+}
+
+.counts li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.review {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.review svg {
+  stroke: currentColor;
+  fill: currentColor;
+}
+
+.review svg text {
+  fill: var(--surface);
+  stroke: none;
+}
+
+.review-unreviewed {
+  color: var(--gray);
+}
+
+.review-needs_check {
+  color: var(--yellow);
+}
+
+.review-needs_fix {
+  color: var(--red);
+}
+
+.review-approved {
+  color: var(--green);
+}
+
+.review-approved svg path {
+  stroke: var(--surface);
+}
+
+.review-text {
+  font-size: 12px;
+}
+
+.mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mode svg {
+  stroke: currentColor;
+}
+
+.mode-manual {
+  color: var(--orange);
+}
+
+.mode-system {
+  color: var(--blue);
+}
+
+.violation {
+  color: var(--yellow);
+  display: inline-flex;
+}
+
+.violation svg {
+  fill: currentColor;
+}
+
+.violation svg text {
+  fill: var(--surface);
+}
+
+.screen-flow {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.flow-canvas {
+  flex: 1;
+  min-height: 400px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.lane {
+  border-bottom: 1px solid var(--line);
+  pointer-events: none;
+}
+
+.lane-name {
+  height: 100%;
+  padding: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  border-right: 1px solid var(--line);
+  background: var(--background);
+}
+
+.activity {
+  background: var(--surface);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* 区分は色に加えて、枠の形でも区別する（画面設計書 5章） */
+.activity-system {
+  border: 2px solid var(--blue);
+  border-radius: 2px;
+}
+
+.activity-manual {
+  border: 2px dashed var(--orange);
+  border-radius: 10px;
+}
+
+.activity-unknown {
+  border: 2px solid var(--line);
+  border-radius: 6px;
+}
+
+.activity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 16px;
+}
+
+.activity-marks {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.activity-name {
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.activity-usecases {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.activity-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.badge {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
