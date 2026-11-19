@@ -782,3 +782,35 @@ button.link:hover {
   color: var(--muted);
   font-size: 12px;
 }
+
+.relations li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel button.link {
+  border: none;
+  padding: 0;
+  color: var(--accent);
+}
+
+.panel button.link.danger {
+  color: var(--red);
+  font-size: 12px;
+}
+
+.relation-search {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.relation-search input {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}

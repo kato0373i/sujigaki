@@ -25,6 +25,7 @@ import {
   resetsReview,
 } from "../model/element-editor.ts";
 import { ConflictDialog } from "./ConflictDialog.tsx";
+import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
 
 const AUTHOR_TAGS = { ai: "AI", import: "読み込み" } as const;
@@ -56,7 +57,6 @@ export function ElementPanel({
   } | null>(null);
   const changes = changesOf(element, draft);
   const canEdit = can(actor, "editElement");
-  const byId = new Map(snapshot.elements.map((e) => [e.id as string, e]));
 
   const save = async (version: number, content: ContentChanges) => {
     setError(null);
@@ -232,24 +232,14 @@ export function ElementPanel({
         </div>
       </section>
 
-      <section aria-labelledby="relations-heading">
-        <h3 id="relations-heading">つながり</h3>
-        {element.relations.length === 0 ? (
-          <p className="muted">つながりはありません。</p>
-        ) : (
-          <ul className="plain">
-            {element.relations.map((r) => {
-              const target = byId.get(r.to);
-              return (
-                <li key={r.id}>
-                  <span className="muted">{ELEMENT_KIND_LABELS[r.toKind]}</span>{" "}
-                  {target?.name ?? "（見つからない要素）"}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <RelationEditor
+        projectId={projectId}
+        element={element}
+        elements={snapshot.elements}
+        canEdit={canEdit}
+        onChanged={onChanged}
+        onError={setError}
+      />
 
       <section aria-labelledby="links-heading">
         <h3 id="links-heading">外部リンク</h3>

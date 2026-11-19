@@ -49,10 +49,10 @@ async function problemOf(
 
 /** 要素を変える API を呼ぶ。CSRF 対策のヘッダーと、読み込んだときのバージョンを付ける */
 async function mutateElement(
-  method: "PATCH" | "POST",
+  method: "PATCH" | "POST" | "DELETE",
   path: string,
   version: number,
-  body: unknown,
+  body?: unknown,
 ): Promise<ElementSnapshot> {
   const response = await fetch(path, {
     method,
@@ -61,7 +61,7 @@ async function mutateElement(
       "X-Sujigaki-Request": "1",
       "If-Match": `"${version}"`,
     },
-    body: JSON.stringify(body),
+    ...(body !== undefined && { body: JSON.stringify(body) }),
   });
   if (!response.ok) throw await problemOf(response, "保存できませんでした。");
   return (await response.json()) as ElementSnapshot;
@@ -212,4 +212,17 @@ export async function saveLayout(
   if (!response.ok)
     throw await problemOf(response, "図の配置を保存できませんでした。");
   return (await response.json()) as LayoutSnapshot;
+}
+
+/** つながりを外す。つながりを持つ要素の、読み込んだときのバージョンを付ける（FR-010） */
+export function removeRelation(
+  projectId: string,
+  owner: ElementSnapshot,
+  relationId: string,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "DELETE",
+    `/api/projects/${projectId}/elements/${owner.id}/relations/${relationId}`,
+    owner.version,
+  );
 }
