@@ -32,7 +32,7 @@ export const RDRA_KIND_NAMES: Readonly<
 };
 
 /** 要約を #comment の行に書く種類。調査メモの関係の一覧の順 */
-const COMMENT_KINDS = [
+export const COMMENT_KINDS = [
   "activity",
   "usecase",
   "information",
