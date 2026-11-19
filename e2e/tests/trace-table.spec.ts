@@ -26,6 +26,8 @@ test.describe("FR-025 トレース表", () => {
   test("途切れている行だけに絞り込み、列で並べ替えられる", async ({ page }) => {
     await page.goto("/#/trace");
     const rows = page.locator("tbody tr");
+    // 行を読み込む前に数えると0件になるため、先に表が出るのを待つ
+    await expect(rows.first()).toBeVisible();
     const total = await rows.count();
     await page.getByLabel("途切れている行だけ").check();
     // 絞り込んだあとは、途切れたセルのない行が残らない
