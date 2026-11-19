@@ -10,6 +10,7 @@ import {
 import type { ProjectRepository } from "./repository/project-repository.ts";
 import { registerDeliberationRoutes } from "./routes/deliberation.ts";
 import { registerElementRoutes } from "./routes/elements.ts";
+import { registerProjectRoutes } from "./routes/project.ts";
 
 /** サーバーのログ。詳細はログにだけ残し、レスポンスには出さない（設計書 5.2 節の INTERNAL） */
 export interface Logger {
@@ -49,6 +50,7 @@ export function createApp(options: AppOptions) {
   };
   registerElementRoutes(app, deps);
   registerDeliberationRoutes(app, deps);
+  registerProjectRoutes(app, deps);
 
   app.notFound(() => {
     throw new ApiError("NOT_FOUND", "API が見つかりません。");
