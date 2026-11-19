@@ -29,7 +29,7 @@ export function App() {
         setLoaded({ state: "failed", message: error.message }),
       );
   }, []);
-  useEffect(reload, []);
+  useEffect(reload, [reload]);
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
   const selected =
