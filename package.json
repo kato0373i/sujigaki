@@ -14,9 +14,11 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
     "lint": "biome check",
     "format": "biome check --write",
-    "local": "node apps/cli/src/main.ts"
+    "local": "node apps/cli/src/main.ts",
+    "build": "npm run build -w @sujigaki/web"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
@@ -24,6 +26,14 @@
     "@vitest/coverage-v8": "^5.1.1",
     "fast-check": "^4.10.2",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "@playwright/test": "1.64.1",
+    "@axe-core/playwright": "4.14.0"
+  },
+  "overrides": {
+    "react": "19.1.10",
+    "react-dom": "19.1.10",
+    "vite": "8.3.5",
+    "axe-core": "4.14.0"
   }
 }

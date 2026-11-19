@@ -1,11 +1,13 @@
 import type { AddressInfo } from "node:net";
 import { basename, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import {
   createApp,
   FileProjectRepository,
   localActorResolver,
 } from "@sujigaki/server";
+import { staticFiles } from "./static-files.ts";
 
 /** ローカルモードで扱う、ただ1つのプロジェクトの ID。API のパスに使う */
 export const LOCAL_PROJECT_ID = "local";
@@ -27,7 +29,13 @@ export interface LocalServer {
 export async function startLocalServer(options: {
   readonly folder: string;
   readonly port: number;
+  /** 画面のファイルのフォルダー。既定は apps/web をビルドした dist */
+  readonly webRoot?: string;
 }): Promise<LocalServer> {
+  const web = staticFiles(
+    options.webRoot ??
+      fileURLToPath(new URL("../../web/dist", import.meta.url)),
+  );
   const folder = resolve(options.folder);
   const projects = new FileProjectRepository({
     folder,
@@ -56,7 +64,11 @@ export async function startLocalServer(options: {
           if (!isAllowedHost(request.headers.get("Host"), port)) {
             return forbiddenHost();
           }
-          return app.fetch(request);
+          const { pathname } = new URL(request.url);
+          if (pathname.startsWith("/api/") || pathname.startsWith("/auth/")) {
+            return app.fetch(request);
+          }
+          return web(pathname);
         },
       },
       (info: AddressInfo) => {
