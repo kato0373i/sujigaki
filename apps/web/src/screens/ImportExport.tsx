@@ -14,6 +14,8 @@ import {
   type Snapshot,
 } from "../api.ts";
 import { ImportDiffView } from "../components/ImportDiffView.tsx";
+import { RelatedDataExport } from "../components/RelatedDataExport.tsx";
+import { downloadText } from "../download.ts";
 import { changeSetBody, restoreNotice } from "../model/import-review.ts";
 
 type Loaded =
@@ -30,7 +32,7 @@ type Loaded =
       readonly diff: ImportDiff;
     };
 
-/** S-09 読み込みと書き出しのうち、このツールの YAML の部分（FR-050） */
+/** S-09 読み込みと書き出し。このツールの YAML（FR-050）と、RDRA の関連データの書き出し（FR-051） */
 export function ImportExport({
   projectId,
   snapshot,
@@ -54,17 +56,12 @@ export function ImportExport({
       snapshot.layouts.length ===
     0;
 
-  const exportYaml = () => {
-    const yaml = writeProjectYaml(snapshot);
-    const url = URL.createObjectURL(
-      new Blob([yaml], { type: "application/yaml" }),
+  const exportYaml = () =>
+    downloadText(
+      `${snapshot.project.name}.sujigaki.yaml`,
+      writeProjectYaml(snapshot),
+      "application/yaml",
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${snapshot.project.name}.sujigaki.yaml`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
 
   const readFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -122,6 +119,8 @@ export function ImportExport({
           YAML を書き出す
         </button>
       </section>
+
+      <RelatedDataExport snapshot={snapshot} />
 
       <section className="io-section" aria-labelledby="import-heading">
         <h2 id="import-heading">YAML の読み込み</h2>

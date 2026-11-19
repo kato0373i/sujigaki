@@ -1135,3 +1135,9 @@ button.badge {
   font: inherit;
   cursor: pointer;
 }
+
+.io-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
