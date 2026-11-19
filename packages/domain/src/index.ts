@@ -8,6 +8,7 @@ export * from "./model/attributes.ts";
 export * from "./model/element.ts";
 export * from "./model/element-event.ts";
 export * from "./model/element-kind.ts";
+export * from "./model/project.ts";
 export * from "./model/relation-rule.ts";
 export * from "./model/relation-type.ts";
 export * from "./model/review-state.ts";
