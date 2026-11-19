@@ -49,6 +49,8 @@ export function checkPermission(
   subject: string,
 ): Result<void> {
   if (can(actor, permission)) return ok(undefined);
-  const label = ROLE_LABELS[PERMISSIONS[permission]];
-  return fail("FORBIDDEN", `${subject}のは、${label}以上です。`);
+  const minimum = PERMISSIONS[permission];
+  const who =
+    minimum === "admin" ? "管理者だけ" : `${ROLE_LABELS[minimum]}以上`;
+  return fail("FORBIDDEN", `${subject}のは、${who}です。`);
 }
