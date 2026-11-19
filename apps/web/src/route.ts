@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 export type Route =
   | { readonly screen: "businesses" }
   | { readonly screen: "board" }
+  | { readonly screen: "io" }
   | { readonly screen: "flow"; readonly bucId: string };
 
 export function parseRoute(hash: string): Route {
   if (hash === "#/board") return { screen: "board" };
+  if (hash === "#/io") return { screen: "io" };
   const match = /^#\/flows\/([A-Za-z0-9_-]+)$/.exec(hash);
   return match?.[1]
     ? { screen: "flow", bucId: match[1] }
@@ -16,7 +18,8 @@ export function parseRoute(hash: string): Route {
 
 export function hrefOf(route: Route): string {
   if (route.screen === "flow") return `#/flows/${route.bucId}`;
-  return route.screen === "board" ? "#/board" : "#/";
+  if (route.screen === "board") return "#/board";
+  return route.screen === "io" ? "#/io" : "#/";
 }
 
 export function useRoute(): Route {

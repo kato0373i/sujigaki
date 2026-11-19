@@ -142,3 +142,27 @@ export function answerQuestion(
     "回答を保存できませんでした。",
   );
 }
+
+/** 空のプロジェクトに YAML を復元する（FR-050） */
+export function restoreProject(
+  projectId: string,
+  yaml: string,
+): Promise<{ readonly elements: number }> {
+  return post(
+    `/api/projects/${projectId}/restore`,
+    { yaml },
+    "復元できませんでした。",
+  );
+}
+
+/** 採用した取り込みの変更を、1つのトランザクションで反映する（FR-034、FR-050） */
+export function applyChangeSet(
+  projectId: string,
+  body: unknown,
+): Promise<{ readonly elements: readonly ElementSnapshot[] }> {
+  return post(
+    `/api/projects/${projectId}/change-sets`,
+    body,
+    "反映できませんでした。",
+  );
+}

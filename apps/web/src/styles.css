@@ -636,3 +636,111 @@ button.link:hover {
 .board-question-list {
   margin: 4px 0 0 12px;
 }
+
+.io-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.io-section h2 {
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+
+.io button,
+.diff button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.io button.primary,
+.diff button.primary {
+  background: #1f883d;
+  border-color: #1f883d;
+  color: #ffffff;
+  margin-top: 12px;
+}
+
+.io button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.success {
+  color: var(--green);
+}
+
+.problems {
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--red);
+  margin: 8px 0;
+}
+
+.problems p {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.diff-rows {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.diff-row {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.diff-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.diff-add .tag {
+  background: #dafbe1;
+  color: var(--green);
+}
+
+.diff-update .tag {
+  background: #fff8c5;
+  color: var(--yellow);
+}
+
+.diff-remove .tag {
+  background: #ffebe9;
+  color: var(--red);
+}
+
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.diff-row table.diff-table th,
+.diff-row table.diff-table td {
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+}
