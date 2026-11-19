@@ -8,6 +8,7 @@ import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
 import { BusinessFlow } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
+import { ImportExport } from "./screens/ImportExport.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 
 /** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
@@ -35,7 +36,7 @@ export function App() {
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
   const selected =
-    route.screen !== "businesses"
+    route.screen === "flow" || route.screen === "board"
       ? snapshot?.elements.find(
           (e) => e.id === selectedId && e.deletedAt === null,
         )
@@ -75,6 +76,13 @@ export function App() {
           aria-current={route.screen === "board" ? "page" : undefined}
         >
           確認ボード
+        </a>
+        <a
+          href={hrefOf({ screen: "io" })}
+          className="nav-top"
+          aria-current={route.screen === "io" ? "page" : undefined}
+        >
+          読み込みと書き出し
         </a>
         <ul>
           {rows.map((row) => (
@@ -121,6 +129,14 @@ export function App() {
             violations={violations}
             initialFilter={defaultFilter(LOCAL_ACTOR)}
             onSelect={setSelectedId}
+            onChanged={reload}
+          />
+        )}
+        {snapshot && route.screen === "io" && (
+          <ImportExport
+            projectId={LOCAL_PROJECT_ID}
+            snapshot={snapshot}
+            actor={LOCAL_ACTOR}
             onChanged={reload}
           />
         )}
