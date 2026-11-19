@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { requireRequestHeader } from "./http/csrf.ts";
 import { ApiError } from "./http/problem.ts";
 
 /** サーバーのログ。詳細はログにだけ残し、レスポンスには出さない（設計書 5.2 節の INTERNAL） */
@@ -21,6 +22,9 @@ export function createApp(options: AppOptions = {}) {
     error: (message, detail) => console.error(message, detail),
   };
   const app = new Hono();
+
+  app.use("/api/*", requireRequestHeader);
+  app.use("/auth/logout", requireRequestHeader);
 
   app.notFound(() => {
     throw new ApiError("NOT_FOUND", "API が見つかりません。");

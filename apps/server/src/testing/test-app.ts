@@ -1,6 +1,7 @@
 import { fail } from "@sujigaki/domain";
 import { z } from "zod";
 import { createApp, type Logger } from "../app.ts";
+import { REQUEST_HEADER } from "../http/csrf.ts";
 import { readBody, unwrapOrThrow } from "../http/validation.ts";
 
 /** 共通の処理を確かめるための、テスト用のルートを足したアプリ */
@@ -24,6 +25,6 @@ export function appWithTestRoutes(logger?: Logger) {
 }
 
 export const withHeader = {
-  "X-Sujigaki-Request": "1",
+  [REQUEST_HEADER]: "1",
   "Content-Type": "application/json",
 };
