@@ -119,7 +119,12 @@ async function post<T>(
 
 export function askQuestion(
   projectId: string,
-  question: { elementId: string; body: string; authorType: "human" | "auto" },
+  question: {
+    elementId: string;
+    body: string;
+    authorType: "human" | "ai" | "auto";
+    recommendation?: string | null;
+  },
 ): Promise<QuestionSnapshot> {
   return post(
     `/api/projects/${projectId}/questions`,

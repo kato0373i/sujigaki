@@ -13,6 +13,7 @@ import { businessFlowView, positionsAfterMove } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
 import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
+import { AiExchange } from "./screens/AiExchange.tsx";
 import { BusinessFlow, type FlowEditing } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
 import { ChainViewScreen } from "./screens/ChainView.tsx";
@@ -97,6 +98,13 @@ export function App() {
           トレース表
         </a>
         <a
+          href={hrefOf({ screen: "ai" })}
+          className="nav-top"
+          aria-current={route.screen === "ai" ? "page" : undefined}
+        >
+          AI 連携
+        </a>
+        <a
           href={hrefOf({ screen: "io" })}
           className="nav-top"
           aria-current={route.screen === "io" ? "page" : undefined}
@@ -161,6 +169,14 @@ export function App() {
         )}
         {snapshot && route.screen === "trace" && (
           <TraceTable elements={snapshot.elements} onSelect={setSelectedId} />
+        )}
+        {snapshot && route.screen === "ai" && (
+          <AiExchange
+            projectId={LOCAL_PROJECT_ID}
+            snapshot={snapshot}
+            selected={snapshot.elements.find((e) => e.id === selectedId)}
+            onChanged={reload}
+          />
         )}
         {snapshot && route.screen === "io" && (
           <ImportExport
