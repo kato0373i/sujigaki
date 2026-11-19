@@ -1,5 +1,10 @@
 import type { ElementSnapshot } from "@sujigaki/domain";
-import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
+import { questionId } from "@sujigaki/domain";
+import {
+  elementSnapshot,
+  questionSnapshot,
+  relationTo,
+} from "@sujigaki/domain/testing";
 import type { ProjectDocument } from "@sujigaki/interchange";
 
 /**
@@ -102,7 +107,14 @@ function training(): ProjectDocument {
       summaryMaxLength: 100,
     },
     elements,
-    questions: [],
+    questions: [
+      questionSnapshot("act-apply", {
+        id: questionId("q-deadline"),
+        body: "申込の締め切りはいつですか",
+        recommendation: "開講の2週間前",
+        authorType: "human",
+      }),
+    ],
     decisions: [],
     layouts: [],
   };
