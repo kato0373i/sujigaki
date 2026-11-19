@@ -23,7 +23,8 @@ export const QUESTION_STATE_LABELS: Readonly<Record<QuestionState, string>> = {
 };
 
 /** 問いを作った人の種類。auto は空欄から作った問い（FR-035） */
-export type QuestionAuthorType = "human" | "ai" | "auto";
+export const QUESTION_AUTHOR_TYPES = ["human", "ai", "auto"] as const;
+export type QuestionAuthorType = (typeof QUESTION_AUTHOR_TYPES)[number];
 
 export interface QuestionSnapshot {
   readonly id: QuestionId;

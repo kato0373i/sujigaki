@@ -13,7 +13,8 @@ export type RelationId = string & { readonly __brand: "RelationId" };
 export const elementId = (value: string) => value as ElementId;
 export const relationId = (value: string) => value as RelationId;
 
-export type AuthorType = "human" | "ai" | "import";
+export const AUTHOR_TYPES = ["human", "ai", "import"] as const;
+export type AuthorType = (typeof AUTHOR_TYPES)[number];
 
 export type Attributes = { readonly [key: string]: JsonValue };
 
