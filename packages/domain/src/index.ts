@@ -1,2 +1,3 @@
-// モデル・合意・権限の型と規則を置く。I/O を持たない（設計書 1.2 節）。
-export {};
+export * from "./model/element-kind.ts";
+export * from "./model/relation-rule.ts";
+export * from "./model/relation-type.ts";
