@@ -15,6 +15,7 @@ import {
 } from "../api.ts";
 import { ImportDiffView } from "../components/ImportDiffView.tsx";
 import { RelatedDataExport } from "../components/RelatedDataExport.tsx";
+import { RelatedDataImport } from "../components/RelatedDataImport.tsx";
 import { downloadText } from "../download.ts";
 import { changeSetBody, restoreNotice } from "../model/import-review.ts";
 
@@ -32,7 +33,7 @@ type Loaded =
       readonly diff: ImportDiff;
     };
 
-/** S-09 読み込みと書き出し。このツールの YAML（FR-050）と、RDRA の関連データの書き出し（FR-051） */
+/** S-09 読み込みと書き出し。このツールの YAML（FR-050）と、RDRA の関連データ（FR-051、FR-052） */
 export function ImportExport({
   projectId,
   snapshot,
@@ -200,6 +201,11 @@ export function ImportExport({
           />
         )}
       </section>
+      <RelatedDataImport
+        projectId={projectId}
+        snapshot={snapshot}
+        onChanged={onChanged}
+      />
     </section>
   );
 }
