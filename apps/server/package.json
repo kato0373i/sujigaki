@@ -1,0 +1,19 @@
+{
+  "name": "@sujigaki/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sujigaki/domain": "0.0.0",
+    "@sujigaki/interchange": "0.0.0",
+    "hono": "^4.13.16",
+    "zod": "^4.6.7"
+  }
+}
