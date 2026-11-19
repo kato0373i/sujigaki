@@ -1,4 +1,4 @@
-import type { ElementId } from "./element.ts";
+import type { ElementId, Relation } from "./element.ts";
 import type { ElementKind } from "./element-kind.ts";
 import type { ReviewState } from "./review-state.ts";
 
@@ -19,6 +19,14 @@ export type ElementEvent =
   | (ElementEventBase & {
       readonly type: "ElementEdited";
       readonly fields: readonly EditedField[];
+    })
+  | (ElementEventBase & {
+      readonly type: "RelationAdded";
+      readonly relation: Relation;
+    })
+  | (ElementEventBase & {
+      readonly type: "RelationRemoved";
+      readonly relation: Relation;
     })
   | (ElementEventBase & {
       readonly type: "ReviewStateChanged";

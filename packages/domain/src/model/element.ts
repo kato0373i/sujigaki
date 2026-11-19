@@ -2,7 +2,8 @@ import type { Actor } from "../access/role.ts";
 import { type JsonValue, jsonEqual } from "../shared/json.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
 import type { EditedField, ElementEvent } from "./element-event.ts";
-import type { ElementKind } from "./element-kind.ts";
+import { ELEMENT_KIND_LABELS, type ElementKind } from "./element-kind.ts";
+import { findRelationType, resolveRelation } from "./relation-rule.ts";
 import type { ReviewState } from "./review-state.ts";
 
 export type ElementId = string & { readonly __brand: "ElementId" };
@@ -259,6 +260,88 @@ export class Element {
         false,
       ),
     );
+  }
+
+  /**
+   * つながりを追加する。この要素がつながりの元になる組だけを受け付ける。
+   * つながりは内容の一部なので、確認状態を未レビューに戻す（FR-001、FR-013）。
+   */
+  addRelation(
+    id: RelationId,
+    target: { readonly id: ElementId; readonly kind: ElementKind },
+    actor: Actor,
+    at: Date,
+  ): Result<ElementChange> {
+    const deleted = this.ensureNotDeleted();
+    if (!deleted.ok) return deleted;
+    const type = findRelationType(this.state.kind, target.kind);
+    if (!type) {
+      const resolved = resolveRelation(this.state.kind, target.kind);
+      if (!resolved.ok) return fail(resolved.code, resolved.message);
+      const origin = ELEMENT_KIND_LABELS[resolved.type.from];
+      return fail(
+        "RELATION_NOT_ALLOWED",
+        `このつながりは「${origin}」の側で持ちます。「${origin}」の要素からつないでください。`,
+      );
+    }
+    if (
+      this.state.relations.some(
+        (r) => r.typeId === type.id && r.to === target.id,
+      )
+    ) {
+      return fail("RELATION_EXISTS", "同じつながりがすでにあります。");
+    }
+    const relation: Relation = {
+      id,
+      typeId: type.id,
+      to: target.id,
+      toKind: target.kind,
+    };
+    return ok(
+      this.apply(
+        { relations: [...this.state.relations, relation] },
+        actor,
+        at,
+        [this.relationEvent("RelationAdded", relation, actor, at)],
+        true,
+      ),
+    );
+  }
+
+  /** つながりを削除する。確認状態を未レビューに戻す（FR-013） */
+  removeRelation(
+    id: RelationId,
+    actor: Actor,
+    at: Date,
+  ): Result<ElementChange> {
+    const deleted = this.ensureNotDeleted();
+    if (!deleted.ok) return deleted;
+    const relation = this.state.relations.find((r) => r.id === id);
+    if (!relation) return fail("NOT_FOUND", "つながりが見つかりません。");
+    return ok(
+      this.apply(
+        { relations: this.state.relations.filter((r) => r.id !== id) },
+        actor,
+        at,
+        [this.relationEvent("RelationRemoved", relation, actor, at)],
+        true,
+      ),
+    );
+  }
+
+  private relationEvent(
+    type: "RelationAdded" | "RelationRemoved",
+    relation: Relation,
+    actor: Actor,
+    at: Date,
+  ): ElementEvent {
+    return {
+      type,
+      elementId: this.state.id,
+      occurredAt: at.toISOString(),
+      actorId: actor.userId,
+      relation,
+    };
   }
 
   private ensureNotDeleted(): Result<void> {
