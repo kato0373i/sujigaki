@@ -1,3 +1,4 @@
+import type { ElementSnapshot } from "@sujigaki/domain";
 import { describe, expect, it } from "vitest";
 import { PROJECT_ID, testServer } from "../testing/test-server.ts";
 
@@ -195,6 +196,40 @@ describe("FR-012 削除と復元", () => {
       version: 2,
     });
     expect(restored.body).toMatchObject({ deletedAt: null, version: 3 });
+  });
+
+  it("削除済みの要素の一覧は、削除した日時の新しい順に並ぶ", async () => {
+    let minutes = 0;
+    const { call } = await testServer({
+      now: () => new Date(Date.UTC(2026, 10, 20, 9, minutes++)),
+    });
+    const make = async (name: string) =>
+      (
+        (await call("POST", "/elements", { body: { kind: "actor", name } }))
+          .body as { id: string }
+      ).id;
+    const first = await make("先に消す担当");
+    const second = await make("あとで消す担当");
+    await make("残す担当");
+    await call("DELETE", `/elements/${first}`, { version: 1 });
+    await call("DELETE", `/elements/${second}`, { version: 1 });
+
+    const response = await call("GET", "/elements?deleted=true");
+    expect(response.status).toBe(200);
+    const elements = (response.body as { elements: ElementSnapshot[] })
+      .elements;
+    expect(elements.map((e) => e.name)).toEqual([
+      "あとで消す担当",
+      "先に消す担当",
+    ]);
+    expect(elements[0]).toMatchObject({ deletedBy: "admin" });
+  });
+
+  it("削除済みの一覧は、deleted=true を付けないと返さない", async () => {
+    const { call } = await testServer();
+    const response = await call("GET", "/elements");
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: "VALIDATION_FAILED" });
   });
 
   it("削除済みの要素は編集できない", async () => {
