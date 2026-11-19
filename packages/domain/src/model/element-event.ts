@@ -28,6 +28,8 @@ export type ElementEvent =
       readonly type: "RelationRemoved";
       readonly relation: Relation;
     })
+  | (ElementEventBase & { readonly type: "ElementDeleted" })
+  | (ElementEventBase & { readonly type: "ElementRestored" })
   | (ElementEventBase & {
       readonly type: "ReviewStateChanged";
       readonly from: ReviewState;

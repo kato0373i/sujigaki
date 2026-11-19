@@ -52,6 +52,7 @@ export interface ElementSnapshot {
   readonly source: string | null;
   readonly version: number;
   readonly deletedAt: string | null;
+  readonly deletedBy: string | null;
   readonly links: readonly ExternalLink[];
   readonly relations: readonly Relation[];
   readonly createdAt: string;
@@ -142,6 +143,7 @@ export class Element {
       source: input.source ?? null,
       version: 1,
       deletedAt: null,
+      deletedBy: null,
       links: [],
       relations: [],
       createdAt: now,
@@ -349,6 +351,71 @@ export class Element {
       automatic: false,
     };
     return ok(this.apply({ reviewState: to }, actor, at, [event], false));
+  }
+
+  /**
+   * 論理削除する（FR-012）。つながりのデータは残し、復元すれば元に戻る。
+   * この要素を先とするつながりの元の要素は、呼び出し側が resetForChangedTarget で未レビューに戻す。
+   */
+  delete(actor: Actor, at: Date): Result<ElementChange> {
+    if (this.isDeleted) return ok({ element: this, events: [] });
+    const now = at.toISOString();
+    return ok(
+      this.apply(
+        { deletedAt: now, deletedBy: actor.userId },
+        actor,
+        at,
+        [this.lifecycleEvent("ElementDeleted", actor, at)],
+        false,
+      ),
+    );
+  }
+
+  /** 削除済みの要素を復元する（FR-012） */
+  restore(actor: Actor, at: Date): Result<ElementChange> {
+    if (!this.isDeleted) return ok({ element: this, events: [] });
+    return ok(
+      this.apply(
+        { deletedAt: null, deletedBy: null },
+        actor,
+        at,
+        [this.lifecycleEvent("ElementRestored", actor, at)],
+        false,
+      ),
+    );
+  }
+
+  /**
+   * つながりの先の要素が削除・復元されたときに呼ぶ。そのつながりを持っていれば、
+   * つながりが切れた・戻ったものとして未レビューに戻す（FR-013）。
+   */
+  resetForChangedTarget(
+    target: ElementId,
+    actor: Actor,
+    at: Date,
+  ): ElementChange {
+    const affected = this.state.relations.some((r) => r.to === target);
+    if (
+      !affected ||
+      this.isDeleted ||
+      this.state.reviewState === "unreviewed"
+    ) {
+      return { element: this, events: [] };
+    }
+    return this.apply({}, actor, at, [], true);
+  }
+
+  private lifecycleEvent(
+    type: "ElementDeleted" | "ElementRestored",
+    actor: Actor,
+    at: Date,
+  ): ElementEvent {
+    return {
+      type,
+      elementId: this.state.id,
+      occurredAt: at.toISOString(),
+      actorId: actor.userId,
+    };
   }
 
   private relationEvent(
