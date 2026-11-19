@@ -11,9 +11,12 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "biome check",
+    "format": "biome check --write"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@types/node": "^24.19.2",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1"
