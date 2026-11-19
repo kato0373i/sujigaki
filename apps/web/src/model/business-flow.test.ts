@@ -5,6 +5,7 @@ import {
   businessFlowView,
   COLUMN_WIDTH,
   LANE_HEIGHT,
+  positionsAfterMove,
   UNASSIGNED_LANE,
 } from "./business-flow.ts";
 
@@ -88,7 +89,7 @@ describe("FR-020 業務フローの図", () => {
     expect(view?.cards[2]?.mode).toBe("manual");
   });
 
-  it("保存した図の配置があれば、その位置を使う", () => {
+  it("保存した図の配置があれば横の位置に使い、縦の位置は担当者のレーンで決める", () => {
     const layout = {
       bucId: elementId("buc1"),
       version: 1,
@@ -96,7 +97,16 @@ describe("FR-020 業務フローの図", () => {
       positions: { [elementId("a1")]: { x: 500, y: 7 } },
     };
     const saved = businessFlowView(elements, "buc1", layout, []);
-    expect(saved?.cards[0]?.position).toEqual({ x: 500, y: 7 });
+    expect(saved?.cards[0]?.position).toEqual({ x: 500, y: 0 });
+  });
+
+  it("カードを横に動かしたあとの、すべての活動の位置を作る", () => {
+    if (!view) throw new Error("業務フローがない");
+    expect(positionsAfterMove(view, "a2", 333.4)).toEqual({
+      a1: { x: 0, y: 0 },
+      a2: { x: 333, y: LANE_HEIGHT },
+      a3: { x: 2 * COLUMN_WIDTH, y: 2 * LANE_HEIGHT },
+    });
   });
 
   it("活動の検証の違反を、そのカードに付ける", () => {
