@@ -231,3 +231,58 @@ export function removeRelation(
     owner.version,
   );
 }
+
+/** 要素を削除する（FR-012）。論理削除のため、削除済みの要素の一覧から復元できる */
+export function deleteElement(
+  projectId: string,
+  element: ElementSnapshot,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "DELETE",
+    `/api/projects/${projectId}/elements/${element.id}`,
+    element.version,
+  );
+}
+
+/** 削除した要素を復元する。削除する前のつながりも戻る（FR-012） */
+export function restoreElement(
+  projectId: string,
+  element: ElementSnapshot,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "POST",
+    `/api/projects/${projectId}/elements/${element.id}/restore`,
+    element.version,
+  );
+}
+
+/** 削除済みの要素を完全に削除する。管理者だけが行え、元に戻せない（FR-012） */
+export async function purgeElement(
+  projectId: string,
+  element: ElementSnapshot,
+): Promise<void> {
+  const response = await fetch(
+    `/api/projects/${projectId}/elements/${element.id}/purge`,
+    {
+      method: "POST",
+      headers: {
+        "X-Sujigaki-Request": "1",
+        "If-Match": `"${element.version}"`,
+      },
+    },
+  );
+  if (!response.ok)
+    throw await problemOf(response, "完全に削除できませんでした。");
+}
+
+/** 削除済みの要素の一覧。削除した日時の新しい順に並ぶ（S-10） */
+export async function fetchDeletedElements(
+  projectId: string,
+): Promise<readonly ElementSnapshot[]> {
+  const response = await fetch(
+    `/api/projects/${projectId}/elements?deleted=true`,
+  );
+  if (!response.ok)
+    throw await problemOf(response, "削除済みの要素を読み込めませんでした。");
+  return ((await response.json()) as { elements: ElementSnapshot[] }).elements;
+}

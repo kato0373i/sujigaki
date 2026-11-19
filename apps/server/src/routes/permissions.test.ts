@@ -32,6 +32,12 @@ const ENDPOINTS: readonly Endpoint[] = [
     permission: "view",
   },
   {
+    method: "GET",
+    route: `${base}/elements`,
+    path: () => "/elements?deleted=true",
+    permission: "view",
+  },
+  {
     method: "POST",
     route: `${base}/elements`,
     path: () => "/elements",

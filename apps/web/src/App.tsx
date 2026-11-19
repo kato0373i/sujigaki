@@ -17,6 +17,7 @@ import { AiExchange } from "./screens/AiExchange.tsx";
 import { BusinessFlow, type FlowEditing } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
 import { ChainViewScreen } from "./screens/ChainView.tsx";
+import { DeletedElements } from "./screens/DeletedElements.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
@@ -111,6 +112,13 @@ export function App() {
         >
           読み込みと書き出し
         </a>
+        <a
+          href={hrefOf({ screen: "deleted" })}
+          className="nav-top"
+          aria-current={route.screen === "deleted" ? "page" : undefined}
+        >
+          削除済みの要素
+        </a>
         <ul>
           {rows.map((row) => (
             <li key={row.business?.id ?? "unassigned"}>
@@ -182,6 +190,13 @@ export function App() {
           <ImportExport
             projectId={LOCAL_PROJECT_ID}
             snapshot={snapshot}
+            actor={LOCAL_ACTOR}
+            onChanged={reload}
+          />
+        )}
+        {snapshot && route.screen === "deleted" && (
+          <DeletedElements
+            projectId={LOCAL_PROJECT_ID}
             actor={LOCAL_ACTOR}
             onChanged={reload}
           />

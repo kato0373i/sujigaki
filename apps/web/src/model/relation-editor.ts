@@ -97,3 +97,22 @@ export function relationCandidates(
     )
     .slice(0, limit);
 }
+
+/** 削除するとつながりが表示から消える要素（D-02、FR-012）。同じ要素と2つ以上つながっていても、1つにまとめる */
+export function connectedElements(
+  element: ElementSnapshot,
+  elements: readonly ElementSnapshot[],
+): { readonly element: ElementSnapshot; readonly kindLabel: string }[] {
+  const seen = new Set<string>();
+  return relationRows(element, elements).flatMap((row) => {
+    if (!row.other || row.other.id === element.id || seen.has(row.other.id))
+      return [];
+    seen.add(row.other.id);
+    return [
+      {
+        element: row.other,
+        kindLabel: ELEMENT_KIND_LABELS[row.other.kind],
+      },
+    ];
+  });
+}

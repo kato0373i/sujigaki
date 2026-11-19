@@ -17,7 +17,7 @@ const testActors: ActorResolver = {
 };
 
 /** メモリのリポジトリに空のプロジェクトを1つ作った、テスト用のサーバー */
-export async function testServer() {
+export async function testServer(options: { now?: () => Date } = {}) {
   const projects = new MemoryProjectRepository();
   await projects.create(PROJECT_ID, {
     name: "申込管理",
@@ -28,7 +28,7 @@ export async function testServer() {
   const app = createApp({
     projects,
     actors: testActors,
-    now: () => AT,
+    now: options.now ?? (() => AT),
     newId: () => `id${String(++sequence).padStart(3, "0")}`,
   });
 

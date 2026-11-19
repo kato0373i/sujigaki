@@ -75,6 +75,27 @@ export function registerElementRoutes(app: Hono, deps: RouteDependencies) {
     });
   });
 
+  // 削除済みの要素は S-10 だけで使うため、deleted=true のときだけ返す（FR-012）
+  app.get(`${base}/elements`, async (c) => {
+    const projectId = c.req.param("projectId");
+    await authorize(deps, c, projectId, "view", "プロジェクトを見られる");
+    if (c.req.query("deleted") !== "true") {
+      throw new ApiError(
+        "VALIDATION_FAILED",
+        "削除済みの要素の一覧だけを返します。deleted=true を付けてください。",
+      );
+    }
+    const { document } = await loadProject(deps, projectId);
+    const deleted = document.elements
+      .filter((e) => e.deletedAt !== null)
+      .sort(
+        (a, b) =>
+          (b.deletedAt ?? "").localeCompare(a.deletedAt ?? "") ||
+          a.id.localeCompare(b.id),
+      );
+    return c.json({ elements: deleted });
+  });
+
   app.post(`${base}/elements`, async (c) => {
     const projectId = c.req.param("projectId");
     const actor = await authorize(
