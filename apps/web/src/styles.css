@@ -814,3 +814,46 @@ button.link:hover {
   border: 1px solid var(--line);
   border-radius: 6px;
 }
+
+.trace-wrap {
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.trace {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.trace-wrap table.trace th,
+.trace-wrap table.trace td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.trace-wrap table.trace thead th {
+  position: sticky;
+  top: 0;
+  background: var(--background);
+  text-align: left;
+}
+
+/* 途切れているセルは、色に加えて「なし」と斜線の模様で示す（NFR-017） */
+.trace-wrap table.trace td.gap {
+  background: repeating-linear-gradient(
+    135deg,
+    #ffebe9,
+    #ffebe9 6px,
+    #fff5f4 6px,
+    #fff5f4 12px
+  );
+}
+
+.gap-text {
+  color: var(--red);
+  font-weight: 700;
+}

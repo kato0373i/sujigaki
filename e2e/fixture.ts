@@ -83,6 +83,14 @@ function training(): ProjectDocument {
     relations: [relationTo(buc, "business"), relationTo(cancel, "business")],
   });
   const billing = elementSnapshot("biz-billing", "business", { name: "請求" });
+  const requirement = elementSnapshot("req-easy-apply", "requirement", {
+    name: "研修の申込をかんたんにしたい",
+    attributes: {
+      rationale: "紙の申込書の回収に手間がかかっている",
+      priority: "must",
+    },
+    relations: [relationTo(business, "requirement")],
+  });
   const elements: ElementSnapshot[] = [
     applicant,
     manager,
@@ -99,6 +107,7 @@ function training(): ProjectDocument {
     cancel,
     business,
     billing,
+    requirement,
   ];
   return {
     project: {
