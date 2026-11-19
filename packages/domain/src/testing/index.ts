@@ -48,6 +48,7 @@ export function elementSnapshot(
     summary: "",
     attributes: {},
     reviewState: "unreviewed",
+    reviewedHash: null,
     authorType: "human",
     source: null,
     version: 1,

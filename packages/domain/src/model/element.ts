@@ -2,6 +2,7 @@ import type { Actor } from "../access/role.ts";
 import { type JsonValue, jsonEqual } from "../shared/json.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
 import { parseAttributes } from "./attributes.ts";
+import { contentHash } from "./content-hash.ts";
 import type { EditedField, ElementEvent } from "./element-event.ts";
 import { ELEMENT_KIND_LABELS, type ElementKind } from "./element-kind.ts";
 import { findRelationType, resolveRelation } from "./relation-rule.ts";
@@ -50,6 +51,8 @@ export interface ElementSnapshot {
   readonly summary: string;
   readonly attributes: Attributes;
   readonly reviewState: ReviewState;
+  /** 確認状態を変えたときの内容のハッシュ（FR-041）。未レビューのあいだは null */
+  readonly reviewedHash: string | null;
   readonly authorType: AuthorType;
   readonly source: string | null;
   readonly version: number;
@@ -143,6 +146,7 @@ export class Element {
       summary: input.summary ?? "",
       attributes: attributes.value,
       reviewState: "unreviewed",
+      reviewedHash: null,
       authorType: input.authorType,
       source: input.source ?? null,
       version: 1,
@@ -355,7 +359,11 @@ export class Element {
       to,
       automatic: false,
     };
-    return ok(this.apply({ reviewState: to }, actor, at, [event], false));
+    // 確かめたときの内容を覚えておき、あとで外で変わったことを見つける（FR-041）
+    const reviewedHash = to === "unreviewed" ? null : contentHash(this.state);
+    return ok(
+      this.apply({ reviewState: to, reviewedHash }, actor, at, [event], false),
+    );
   }
 
   /**
@@ -492,8 +500,13 @@ export class Element {
     const now = at.toISOString();
     const allEvents = [...events];
     let reviewState = next.reviewState ?? this.state.reviewState;
+    let reviewedHash =
+      next.reviewedHash !== undefined
+        ? next.reviewedHash
+        : this.state.reviewedHash;
     if (resetReview && this.state.reviewState !== "unreviewed") {
       reviewState = "unreviewed";
+      reviewedHash = null;
       allEvents.push({
         type: "ReviewStateChanged",
         elementId: this.state.id,
@@ -508,6 +521,7 @@ export class Element {
       ...this.state,
       ...next,
       reviewState,
+      reviewedHash,
       version: this.state.version + 1,
       updatedAt: now,
       updatedBy: actor.userId,

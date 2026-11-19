@@ -91,6 +91,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -183,6 +188,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -277,6 +287,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -369,6 +384,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -463,6 +483,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -556,6 +581,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -648,6 +678,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -773,6 +808,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -865,6 +905,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -959,6 +1004,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -1051,6 +1101,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -1145,6 +1200,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -1237,6 +1297,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -1352,6 +1417,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -1444,6 +1514,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -1543,6 +1618,11 @@
                   "approved"
                 ]
               },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
+              },
               "authorType": {
                 "type": "string",
                 "enum": [
@@ -1635,6 +1715,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",
@@ -1736,6 +1821,11 @@
                   "needs_fix",
                   "approved"
                 ]
+              },
+              "reviewedHash": {
+                "description": "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+                "type": "string",
+                "pattern": "^[0-9a-f]{1,16}$"
               },
               "authorType": {
                 "type": "string",

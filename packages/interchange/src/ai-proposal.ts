@@ -151,6 +151,7 @@ export function readProposal(
         summary: e.summary ?? before?.summary ?? "",
         attributes: (e.attributes ?? {}) as ElementSnapshot["attributes"],
         reviewState: "unreviewed",
+        reviewedHash: null,
         authorType: before?.authorType ?? "ai",
         source: before?.source ?? null,
         version: before?.version ?? 1,

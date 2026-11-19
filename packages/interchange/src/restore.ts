@@ -17,6 +17,7 @@ export function restoreDocument(
     elements: document.elements.map((e) => ({
       ...e,
       reviewState: "unreviewed",
+      reviewedHash: null,
     })),
   };
 }
