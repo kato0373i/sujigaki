@@ -7,6 +7,8 @@ export default defineConfig({
   testDir: "tests",
   outputDir: ".work/results",
   retries: process.env.CI ? 1 : 0,
+  // サーバーとモデルを1つにしているため、テストは1つずつ動かす
+  workers: 1,
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
     viewport: { width: 1440, height: 900 },

@@ -54,8 +54,24 @@ function training(): ProjectDocument {
       relationTo(a, "buc"),
     ),
   });
+  // 編集の E2E で書き換える活動。ほかの E2E が確かめる業務フローとは分けておく
+  const accept = elementSnapshot("act-accept-cancel", "activity", {
+    name: "取り消しを受け付ける",
+    attributes: { mode: "manual" },
+    relations: [relationTo(trainer, "activity")],
+  });
+  const request = elementSnapshot("act-request-cancel", "activity", {
+    name: "取り消しを申し出る",
+    attributes: { mode: "system" },
+    reviewState: "approved",
+    relations: [
+      relationTo(applicant, "activity"),
+      relationTo(accept, "activity"),
+    ],
+  });
   const cancel = elementSnapshot("buc-cancel", "buc", {
     name: "受講の取り消し",
+    relations: [relationTo(request, "buc"), relationTo(accept, "buc")],
   });
   const business = elementSnapshot("biz-training", "business", {
     name: "研修",
@@ -73,6 +89,8 @@ function training(): ProjectDocument {
     apply,
     unassigned,
     buc,
+    request,
+    accept,
     cancel,
     business,
     billing,

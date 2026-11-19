@@ -1,31 +1,43 @@
-import { validateModel } from "@sujigaki/domain";
-import { useEffect, useMemo, useState } from "react";
+import { type Actor, validateModel } from "@sujigaki/domain";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchSnapshot, LOCAL_PROJECT_ID, type Snapshot } from "./api.ts";
+import { ElementPanel } from "./components/ElementPanel.tsx";
 import { businessFlowView } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
 import { hrefOf, useRoute } from "./route.ts";
 import { BusinessFlow } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
 
+/** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
+const LOCAL_ACTOR: Actor = { userId: null, role: "admin" };
+
 type Loaded =
   | { readonly state: "loading" }
   | { readonly state: "failed"; readonly message: string }
   | { readonly state: "ready"; readonly snapshot: Snapshot };
 
-/** 画面の共通の構成（画面設計書 4章）。ヘッダー・左のナビゲーション・中央の画面 */
+/** 画面の共通の構成（画面設計書 4章）。ヘッダー・左のナビゲーション・中央の画面・右の詳細パネル */
 export function App() {
   const route = useRoute();
   const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     fetchSnapshot(LOCAL_PROJECT_ID)
       .then((snapshot) => setLoaded({ state: "ready", snapshot }))
       .catch((error: Error) =>
         setLoaded({ state: "failed", message: error.message }),
       );
   }, []);
+  useEffect(reload, [reload]);
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
+  const selected =
+    route.screen === "flow"
+      ? snapshot?.elements.find(
+          (e) => e.id === selectedId && e.deletedAt === null,
+        )
+      : undefined;
   const rows = useMemo(
     () => (snapshot ? businessListView(snapshot.elements) : []),
     [snapshot],
@@ -41,7 +53,7 @@ export function App() {
   );
 
   return (
-    <div className="app">
+    <div className={selected ? "app with-panel" : "app"}>
       <header className="header">
         <span className="project-name">
           {snapshot?.project.name ?? "sujigaki"}
@@ -94,9 +106,22 @@ export function App() {
             snapshot={snapshot}
             bucId={route.bucId}
             violations={violations}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
           />
         )}
       </main>
+      {snapshot && selected && (
+        <ElementPanel
+          key={`${selected.id}-${selected.version}`}
+          projectId={LOCAL_PROJECT_ID}
+          element={selected}
+          snapshot={snapshot}
+          actor={LOCAL_ACTOR}
+          onChanged={reload}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -105,10 +130,14 @@ function FlowScreen({
   snapshot,
   bucId,
   violations,
+  selectedId,
+  onSelect,
 }: {
   snapshot: Snapshot;
   bucId: string;
   violations: ReturnType<typeof validateModel>;
+  selectedId: string | null;
+  onSelect: (elementId: string) => void;
 }) {
   const view = useMemo(
     () =>
@@ -121,5 +150,7 @@ function FlowScreen({
     [snapshot, bucId, violations],
   );
   if (!view) return <p className="error">業務フローが見つかりません。</p>;
-  return <BusinessFlow view={view} />;
+  return (
+    <BusinessFlow view={view} selectedId={selectedId} onSelect={onSelect} />
+  );
 }

@@ -19,26 +19,85 @@ export interface Snapshot {
 /** ローカルモードで扱う、ただ1つのプロジェクトの ID */
 export const LOCAL_PROJECT_ID = "local";
 
+/** API のエラー（設計書 5.2 節）。競合のときは current に今の内容が入る */
 export class ApiProblem extends Error {
   readonly code: string;
+  readonly current: unknown;
 
-  constructor(code: string, detail: string) {
+  constructor(code: string, detail: string, current?: unknown) {
     super(detail);
     this.code = code;
+    this.current = current;
   }
+}
+
+async function problemOf(
+  response: Response,
+  fallback: string,
+): Promise<ApiProblem> {
+  const problem = (await response.json().catch(() => ({}))) as {
+    code?: string;
+    detail?: string;
+    current?: unknown;
+  };
+  return new ApiProblem(
+    problem.code ?? "INTERNAL",
+    problem.detail ?? fallback,
+    problem.current,
+  );
+}
+
+/** 要素を変える API を呼ぶ。CSRF 対策のヘッダーと、読み込んだときのバージョンを付ける */
+async function mutateElement(
+  method: "PATCH" | "POST",
+  path: string,
+  version: number,
+  body: unknown,
+): Promise<ElementSnapshot> {
+  const response = await fetch(path, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Sujigaki-Request": "1",
+      "If-Match": `"${version}"`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await problemOf(response, "保存できませんでした。");
+  return (await response.json()) as ElementSnapshot;
+}
+
+export function updateElement(
+  projectId: string,
+  element: ElementSnapshot,
+  version: number,
+  changes: unknown,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "PATCH",
+    `/api/projects/${projectId}/elements/${element.id}`,
+    version,
+    changes,
+  );
+}
+
+export function changeReviewState(
+  projectId: string,
+  element: ElementSnapshot,
+  to: string,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "POST",
+    `/api/projects/${projectId}/elements/${element.id}/review-state`,
+    element.version,
+    { to },
+  );
 }
 
 export async function fetchSnapshot(projectId: string): Promise<Snapshot> {
   const response = await fetch(`/api/projects/${projectId}/snapshot`);
   if (!response.ok) {
-    const problem = (await response.json().catch(() => ({}))) as {
-      code?: string;
-      detail?: string;
-    };
-    throw new ApiProblem(
-      problem.code ?? "INTERNAL",
-      problem.detail ?? "プロジェクトを読み込めませんでした。",
-    );
+    throw await problemOf(response, "プロジェクトを読み込めませんでした。");
   }
   return (await response.json()) as Snapshot;
 }

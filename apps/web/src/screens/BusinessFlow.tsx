@@ -38,11 +38,11 @@ function LaneView({ data }: NodeProps<LaneNode>) {
   );
 }
 
-function ActivityView({ data }: NodeProps<ActivityNode>) {
+function ActivityView({ data, selected }: NodeProps<ActivityNode>) {
   const { card } = data;
   return (
     <div
-      className={`activity activity-${card.mode ?? "unknown"}`}
+      className={`activity activity-${card.mode ?? "unknown"}${selected ? " activity-selected" : ""}`}
       style={{ width: CARD_WIDTH }}
       data-testid="activity-card"
     >
@@ -75,7 +75,15 @@ function ActivityView({ data }: NodeProps<ActivityNode>) {
 const nodeTypes = { lane: LaneView, activity: ActivityView };
 
 /** S-04 業務フロー。担当者ごとのレーンに、活動を流れの順に並べる（FR-020） */
-export function BusinessFlow({ view }: { view: BusinessFlowView }) {
+export function BusinessFlow({
+  view,
+  selectedId,
+  onSelect,
+}: {
+  view: BusinessFlowView;
+  selectedId: string | null;
+  onSelect: (elementId: string) => void;
+}) {
   const { nodes, edges } = useMemo(() => {
     const right =
       Math.max(0, ...view.cards.map((c) => c.position.x)) + COLUMN_WIDTH + 80;
@@ -94,6 +102,7 @@ export function BusinessFlow({ view }: { view: BusinessFlowView }) {
       position: { x: card.position.x, y: card.position.y + 16 },
       data: { card },
       draggable: false,
+      selected: card.element.id === selectedId,
     }));
     const flowEdges: Edge[] = view.edges.map((e) => ({
       id: `${e.from}-${e.to}`,
@@ -102,7 +111,7 @@ export function BusinessFlow({ view }: { view: BusinessFlowView }) {
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
     return { nodes: [...lanes, ...cards] as Node[], edges: flowEdges };
-  }, [view]);
+  }, [view, selectedId]);
 
   return (
     <section className="screen screen-flow">
@@ -112,11 +121,16 @@ export function BusinessFlow({ view }: { view: BusinessFlowView }) {
       )}
       <div className="flow-canvas">
         <ReactFlow
+          // 詳細パネルを開くと図の幅が変わるため、描き直して全体が入るように合わせる
+          key={selectedId === null ? "full" : "with-panel"}
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
           fitView
           nodesConnectable={false}
+          onNodeClick={(_, node) => {
+            if (node.type === "activity") onSelect(node.id);
+          }}
           proOptions={{ hideAttribution: true }}
         >
           <Background />
