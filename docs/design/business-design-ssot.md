@@ -363,3 +363,121 @@ ID は、プロジェクトと利用者は UUID、それ以外は ULID（26文�
 | decision_elements | (element_id) | 要素に結び付いた決定記録を見る |
 | comments | (element_id, created_at) | 要素のコメントを古い順に見る |
 | memberships | (user_id) | ログインした利用者が参加しているプロジェクトの一覧を出す（FR-060） |
+
+## 5. API設計
+
+API は `/api` の下に置き、JSON でやり取りする。ローカルモードでも同じ API を使う。ローカルモードではログインせず、利用者は常に管理者として扱う。
+
+### 5.1 エンドポイント一覧
+
+| メソッド | パス | 概要 | 要件ID |
+|---|---|---|---|
+| GET | /auth/login | ID プロバイダーのログイン画面へ移る | FR-080 |
+| GET | /auth/callback | 認可コードをトークンに交換し、セッションを作る | FR-080 |
+| POST | /auth/logout | セッションを終える | FR-080 |
+| GET | /api/me | ログインしている利用者と、参加しているプロジェクトのロール | FR-080, FR-081 |
+| GET | /api/projects | 参加しているプロジェクトの一覧 | FR-060 |
+| POST | /api/projects | プロジェクトを作る | FR-090 |
+| PATCH | /api/projects/{projectId} | プロジェクトの設定を変える | FR-005 |
+| GET | /api/projects/{projectId}/snapshot | 有効な要素・つながり・外部リンク・図の配置・問い・決定記録と、プロジェクトのリビジョンをまとめて返す | FR-020〜026, NFR-001 |
+| GET | /api/projects/{projectId}/changes?after={リビジョン} | 指定したリビジョンより後の操作を返す | FR-071 |
+| POST | /api/projects/{projectId}/elements | 要素を作る | FR-010 |
+| PATCH | /api/projects/{projectId}/elements/{elementId} | 要素を編集する。`If-Match` にバージョンを付ける | FR-010, FR-013, FR-070 |
+| DELETE | /api/projects/{projectId}/elements/{elementId} | 要素を論理削除する | FR-012 |
+| POST | /api/projects/{projectId}/elements/{elementId}/restore | 要素を復元する | FR-012 |
+| POST | /api/projects/{projectId}/elements/{elementId}/purge | 削除済みの要素を完全に削除する | FR-012 |
+| GET | /api/projects/{projectId}/elements?deleted=true | 削除済みの要素の一覧 | FR-012 |
+| POST | /api/projects/{projectId}/elements/{elementId}/relations | つながりを追加する。`If-Match` に元の要素のバージョンを付ける | FR-010, FR-013 |
+| DELETE | /api/projects/{projectId}/elements/{elementId}/relations/{relationId} | つながりを削除する。`If-Match` に元の要素のバージョンを付ける | FR-010, FR-013 |
+| POST | /api/projects/{projectId}/elements/{elementId}/review-state | 確認状態を変える | FR-030 |
+| GET | /api/projects/{projectId}/elements/{elementId}/history | 要素の変更履歴 | FR-072 |
+| PUT | /api/projects/{projectId}/layouts/{bucId} | 業務フローの図の配置を保存する。`If-Match` に配置のバージョンを付ける | FR-020 |
+| POST | /api/projects/{projectId}/change-sets | 変更の一式をまとめて反映する | FR-034, FR-050, FR-052 |
+| POST | /api/projects/{projectId}/restore | 空のプロジェクトに、YAML の内容を復元する | FR-050 |
+| POST | /api/projects/{projectId}/questions | 問いを作る | FR-031, FR-035 |
+| POST | /api/projects/{projectId}/questions/{questionId}/state | 問いに回答する、回答を取り消す、解決する、取り下げる | FR-031 |
+| POST | /api/projects/{projectId}/decisions | 決定を記録する | FR-032 |
+| GET | /api/projects/{projectId}/elements/{elementId}/comments | 要素のコメントの一覧 | US-009 |
+| POST | /api/projects/{projectId}/elements/{elementId}/comments | コメントを書く | US-009 |
+| GET | /api/projects/{projectId}/members | メンバーと招待の一覧 | FR-082 |
+| POST | /api/projects/{projectId}/invitations | メンバーを招待する | FR-082 |
+| DELETE | /api/projects/{projectId}/invitations/{invitationId} | 招待を取り消す | FR-082 |
+| PATCH | /api/projects/{projectId}/members/{userId} | ロールを変える | FR-082 |
+| DELETE | /api/projects/{projectId}/members/{userId} | メンバーを除外する | FR-082 |
+
+次の処理は API を持たず、ブラウザで `packages/domain` と `packages/interchange` を使って行う。
+
+- 表示（業務フロー、連鎖ビュー、確認ボード、トレース表）と検索（FR-020〜026）。スナップショットから描画する。
+- 検証（FR-040）と、空欄からの問いの計算（FR-035）
+- AI に渡すテキストの作成（FR-033）
+- YAML と関連データの書き出し（FR-050、FR-051）。スナップショットから作る。
+- 読み込みと AI の提案の解析、差分の計算（FR-034、FR-050、FR-052）。利用者が採用した変更だけを、変更の一式として `change-sets` に送る。
+
+`change-sets` は変更の一式を1つのトランザクションで反映する。要素ごとに、差分を計算したときのバージョンを付けて送り、1件でもバージョンが合わなければ全体を反映しない。サーバーは権限の判定と集約の不変条件の検査をもう一度行う。
+
+権限の判定（FR-081）はすべてのエンドポイントでサーバー側で行う。操作とロールの対応は `packages/domain` の表として持ち、画面のボタンの表示にも同じ表を使う。
+
+状態を変える操作（確認状態、問いの状態）は、動詞のエンドポイントにまとめ、変更先の状態を本文で送る。
+
+状態を変えるリクエストには `X-Sujigaki-Request: 1` ヘッダーを必須とし、Cookie の SameSite=Lax と合わせて CSRF を防ぐ。
+
+### 5.2 エラーレスポンス規約
+
+エラーは RFC 9457 の形式（`application/problem+json`）で返し、`code` に次のコードを入れる。
+
+```json
+{
+  "type": "urn:sujigaki:problem:version-conflict",
+  "title": "ほかの人が先に更新しました",
+  "status": 412,
+  "code": "VERSION_CONFLICT",
+  "detail": "要素「申込内容を確認する」はバージョン 4 に更新されています。",
+  "current": { "id": "01J...", "version": 4 }
+}
+```
+
+| code | status | 使う場面 |
+|---|---|---|
+| `UNAUTHENTICATED` | 401 | ログインしていない、セッションが切れた |
+| `FORBIDDEN` | 403 | ロールに操作の権限がない |
+| `NOT_FOUND` | 404 | 対象がない、または参加していないプロジェクト |
+| `VALIDATION_FAILED` | 400 | 入力の形式が誤っている。`errors` に項目ごとの理由を入れる |
+| `RELATION_NOT_ALLOWED` | 422 | 定義されていない種類の組でつながりを作ろうとした（FR-001） |
+| `INVALID_TRANSITION` | 422 | 確認状態や問いの状態の遷移が定義にない |
+| `RELATION_EXISTS` | 409 | 同じつながりがすでにある |
+| `LAST_ADMIN` | 409 | 最後の管理者を除外する、またはロールを変えようとした |
+| `PROJECT_NOT_EMPTY` | 409 | 要素があるプロジェクトに復元しようとした（FR-050） |
+| `VERSION_CONFLICT` | 412 | `If-Match` のバージョンが今のバージョンと違う（FR-070）。`current` に今の内容を入れ、画面で差分を出す |
+| `INTERNAL` | 500 | 予期しないエラー。詳細はログにだけ残す |
+
+`type` には `code` に対応する URN を入れる。
+
+### 5.3 ページネーション方針
+
+- スナップショットは分けずに返す。要素1万件・つながり2万件でも、圧縮すれば数 MB に収まる見込みである（NFR-001）。数万件を超えたら、業務の単位で取り出す引数（`?businessId=`）を加える（NFR-003）。
+- 変更履歴・コメント・削除済みの一覧・変更の取り出しは、カーソル方式とする。カーソルは `operations.id` などの単調に増える値をもとにした不透明な文字列とする。既定の件数は50件、上限は200件。
+
+### 5.4 ローカルモードのファイル構成
+
+ローカルモードでは指定したフォルダーに次の構成で YAML ファイルを置く（ADR-006）。
+
+```text
+<フォルダー>/
+  sujigaki.yaml                 形式の版、システム名、設定
+  requirements.yaml             要求
+  actors.yaml                   登場人物・登場人物のグループ・外部システム・外部システムのグループ
+  businesses/<業務の ID>.yaml    業務と、その下の業務フロー・活動
+  system/usecases.yaml          システム操作
+  system/screens.yaml           画面
+  system/events.yaml            イベント
+  system/timers.yaml            定期処理
+  contexts/<分類の ID>.yaml      分類と、その下の情報・状態の流れ・状態・業務ルール・区分
+  deliberation.yaml             問い・決定記録
+  layouts/<業務フローの ID>.yaml  図の配置
+```
+
+- つながりは、元の要素の項目の下に書く。集約の境界と同じにするためである。
+- 業務や分類に属さない要素は、`businesses/unassigned.yaml` と `contexts/unassigned.yaml` に置く。
+- ファイルの中の要素は ID の順に並べ、項目の順も固定する。保存のたびに並びが変わって、Git の差分が大きくならないようにする。
+- 外部のエディターや `git pull` でファイルが変わったときは、読み込んだときのファイルの内容のハッシュと比べて検出し、再読み込みを促す。
+- コメントと変更履歴は持たない。変更履歴は Git の履歴を使う（FR-072）。
