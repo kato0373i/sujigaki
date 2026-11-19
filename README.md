@@ -10,6 +10,7 @@
 - 要件定義書: [docs/requirements/business-design-ssot.md](docs/requirements/business-design-ssot.md)
 - 設計書: [docs/design/business-design-ssot.md](docs/design/business-design-ssot.md)
 - 画面設計書: [docs/design/screens.md](docs/design/screens.md)
+- テスト戦略: [docs/design/test-strategy.md](docs/design/test-strategy.md)
 
 ## 開発
 
