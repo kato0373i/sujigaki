@@ -110,13 +110,57 @@ describe("内容を編集する（FR-013）", () => {
 
   it("未レビューの要素を編集しても、状態のイベントは出さない", () => {
     const result = created().edit(
-      { attributes: { exception: "必須項目の不足" } },
+      { attributes: { exceptions: ["必須項目の不足"] } },
       editor,
       later,
     );
     expect(result.ok && result.value.events.map((e) => e.type)).toEqual([
       "ElementEdited",
     ]);
+  });
+});
+
+describe("属性を検査する（設計書 ADR-005）", () => {
+  it("種類に合わない属性では作らない", () => {
+    const result = Element.create(
+      {
+        id: elementId("s1"),
+        kind: "screen",
+        name: "申込入力",
+        attributes: { mode: "manual" },
+        authorType: "human",
+      },
+      editor,
+      at,
+    );
+    expect(result.ok === false && result.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("正しくない属性では編集しない", () => {
+    const result = created().edit(
+      { attributes: { mode: "auto" } },
+      editor,
+      later,
+    );
+    expect(result.ok === false && result.error.message).toBe(
+      "「区分」の値が正しくありません。",
+    );
+  });
+
+  it("空白を除くと今と同じ値なら、変更として扱わない", () => {
+    const first = created().edit(
+      { attributes: { outcome: "承認済み" } },
+      editor,
+      later,
+    );
+    if (!first.ok) throw new Error(first.error.message);
+    const element = first.value.element;
+    const second = element.edit(
+      { attributes: { outcome: " 承認済み " } },
+      editor,
+      later,
+    );
+    expect(second.ok && second.value.element).toBe(element);
   });
 });
 
