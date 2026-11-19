@@ -286,3 +286,18 @@ export async function fetchDeletedElements(
     throw await problemOf(response, "削除済みの要素を読み込めませんでした。");
   return ((await response.json()) as { elements: ElementSnapshot[] }).elements;
 }
+
+/** プロジェクトの設定を変える。管理者だけが行える（FR-005、S-12） */
+export async function updateProjectSettings(
+  projectId: string,
+  changes: Partial<ProjectSettings>,
+): Promise<ProjectSettings> {
+  const response = await fetch(`/api/projects/${projectId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Sujigaki-Request": "1" },
+    body: JSON.stringify(changes),
+  });
+  if (!response.ok)
+    throw await problemOf(response, "設定を保存できませんでした。");
+  return (await response.json()) as ProjectSettings;
+}

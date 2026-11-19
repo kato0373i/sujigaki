@@ -19,6 +19,7 @@ import { BusinessList } from "./screens/BusinessList.tsx";
 import { ChainViewScreen } from "./screens/ChainView.tsx";
 import { DeletedElements } from "./screens/DeletedElements.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
+import { ProjectSettingsScreen } from "./screens/ProjectSettingsScreen.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
 
@@ -119,6 +120,15 @@ export function App() {
         >
           削除済みの要素
         </a>
+        {can(LOCAL_ACTOR, "configureProject") && (
+          <a
+            href={hrefOf({ screen: "settings" })}
+            className="nav-top"
+            aria-current={route.screen === "settings" ? "page" : undefined}
+          >
+            プロジェクトの設定
+          </a>
+        )}
         <ul>
           {rows.map((row) => (
             <li key={row.business?.id ?? "unassigned"}>
@@ -198,6 +208,13 @@ export function App() {
           <DeletedElements
             projectId={LOCAL_PROJECT_ID}
             actor={LOCAL_ACTOR}
+            onChanged={reload}
+          />
+        )}
+        {snapshot && route.screen === "settings" && (
+          <ProjectSettingsScreen
+            projectId={LOCAL_PROJECT_ID}
+            settings={snapshot.project}
             onChanged={reload}
           />
         )}
