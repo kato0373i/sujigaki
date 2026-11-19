@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: "v8",
-      include: ["packages/*/src/**/*.ts"],
+      include: ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts"],
       exclude: ["**/*.test.ts", "**/index.ts", "**/testing/**"],
       reporter: ["text-summary", "text"],
       thresholds: {
