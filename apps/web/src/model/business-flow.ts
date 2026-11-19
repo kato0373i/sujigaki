@@ -52,7 +52,7 @@ const BADGE_KINDS = [
 /**
  * 業務フローの図に出す内容を計算する（画面設計書 S-04、FR-020）。
  * 担当者ごとにレーンを作り、活動を流れの順に左から並べる。担当者が未設定の活動は、いちばん下のレーンに置く。
- * 図の配置が保存してあれば、その位置を使う
+ * 図の配置が保存してあれば、その横の位置を使う
  */
 export function businessFlowView(
   elements: readonly ElementSnapshot[],
@@ -109,8 +109,9 @@ export function businessFlowView(
       element: activity,
       mode: modeOf(activity),
       laneIndex,
-      position: saved ?? {
-        x: (rank.get(activity.id) ?? 0) * COLUMN_WIDTH,
+      // 横の位置は保存した配置を使い、縦の位置は担当者のレーンで決める。レーンと担当者がずれないようにする
+      position: {
+        x: saved?.x ?? (rank.get(activity.id) ?? 0) * COLUMN_WIDTH,
         y: laneIndex * LANE_HEIGHT,
       },
       usecases: related.filter((e) => e.kind === "usecase").map((e) => e.name),
@@ -147,4 +148,21 @@ function ranks(
     if (!changed) break;
   }
   return rank;
+}
+
+/** カードを横に動かしたあとの、業務フローのすべての活動の位置。図の配置として保存する（FR-020） */
+export function positionsAfterMove(
+  view: BusinessFlowView,
+  movedId: string,
+  x: number,
+): Record<string, { x: number; y: number }> {
+  return Object.fromEntries(
+    view.cards.map((card) => [
+      card.element.id,
+      {
+        x: Math.round(card.element.id === movedId ? x : card.position.x),
+        y: card.position.y,
+      },
+    ]),
+  );
 }

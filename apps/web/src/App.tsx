@@ -1,12 +1,19 @@
-import { type Actor, validateModel } from "@sujigaki/domain";
+import { type Actor, can, validateModel } from "@sujigaki/domain";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchSnapshot, LOCAL_PROJECT_ID, type Snapshot } from "./api.ts";
+import {
+  addRelation,
+  createElement,
+  fetchSnapshot,
+  LOCAL_PROJECT_ID,
+  type Snapshot,
+  saveLayout,
+} from "./api.ts";
 import { ElementPanel } from "./components/ElementPanel.tsx";
-import { businessFlowView } from "./model/business-flow.ts";
+import { businessFlowView, positionsAfterMove } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
 import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
-import { BusinessFlow } from "./screens/BusinessFlow.tsx";
+import { BusinessFlow, type FlowEditing } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
@@ -147,6 +154,7 @@ export function App() {
             violations={violations}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            onChanged={reload}
           />
         )}
       </main>
@@ -171,25 +179,79 @@ function FlowScreen({
   violations,
   selectedId,
   onSelect,
+  onChanged,
 }: {
   snapshot: Snapshot;
   bucId: string;
   violations: ReturnType<typeof validateModel>;
   selectedId: string | null;
   onSelect: (elementId: string) => void;
+  onChanged: () => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+  const layout = snapshot.layouts.find((l) => l.bucId === bucId);
   const view = useMemo(
-    () =>
-      businessFlowView(
-        snapshot.elements,
-        bucId,
-        snapshot.layouts.find((l) => l.bucId === bucId),
-        violations,
-      ),
-    [snapshot, bucId, violations],
+    () => businessFlowView(snapshot.elements, bucId, layout, violations),
+    [snapshot, bucId, layout, violations],
   );
+
+  /** 編集の操作を行い、終わったら読み直す。失敗したら理由を出す */
+  const attempt = async (task: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await task();
+    } catch (problem) {
+      setError((problem as Error).message);
+    } finally {
+      onChanged();
+    }
+  };
+
+  const editing: FlowEditing | undefined =
+    view && can(LOCAL_ACTOR, "editElement")
+      ? {
+          // 活動を作り、業務フローの子にして、レーンの担当者につなぐ
+          onAdd: (actorId, name) =>
+            attempt(async () => {
+              const created = await createElement(LOCAL_PROJECT_ID, {
+                kind: "activity",
+                name,
+              });
+              await addRelation(LOCAL_PROJECT_ID, view.buc, created.id);
+              if (actorId)
+                await addRelation(LOCAL_PROJECT_ID, created, actorId);
+            }),
+          onMove: (elementId, x) =>
+            void attempt(() =>
+              saveLayout(
+                LOCAL_PROJECT_ID,
+                bucId,
+                layout?.version ?? 0,
+                positionsAfterMove(view, elementId, x),
+              ),
+            ),
+          onConnect: (from, to) => {
+            const source = snapshot.elements.find((e) => e.id === from);
+            if (source)
+              void attempt(() => addRelation(LOCAL_PROJECT_ID, source, to));
+          },
+        }
+      : undefined;
+
   if (!view) return <p className="error">業務フローが見つかりません。</p>;
   return (
-    <BusinessFlow view={view} selectedId={selectedId} onSelect={onSelect} />
+    <>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <BusinessFlow
+        view={view}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        {...(editing && { editing })}
+      />
+    </>
   );
 }
