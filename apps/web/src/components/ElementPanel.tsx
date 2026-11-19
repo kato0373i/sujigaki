@@ -9,7 +9,7 @@ import {
   REVIEW_TRANSITIONS,
   ROLE_LABELS,
 } from "@sujigaki/domain";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ApiProblem,
   changeReviewState,
@@ -45,6 +45,7 @@ export function ElementPanel({
   actor,
   onChanged,
   onClose,
+  onDirtyChange,
 }: {
   projectId: string;
   element: ElementSnapshot;
@@ -52,6 +53,8 @@ export function ElementPanel({
   actor: Actor;
   onChanged: () => void;
   onClose: () => void;
+  /** 保存していない内容があるかを知らせる。再読み込みの前に確かめるために使う（FR-071） */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftOf(element));
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +65,11 @@ export function ElementPanel({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const changes = changesOf(element, draft);
   const canEdit = can(actor, "editElement");
+  const dirty = changes !== null;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   const save = async (version: number, content: ContentChanges) => {
     setError(null);

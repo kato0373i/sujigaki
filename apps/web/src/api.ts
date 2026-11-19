@@ -5,6 +5,7 @@ import type {
   ProjectSettings,
   QuestionSnapshot,
 } from "@sujigaki/domain";
+import type { ChangesResponse } from "./model/update-notice.ts";
 
 /** スナップショットの API の応答（設計書 5.1 節） */
 export interface Snapshot {
@@ -300,4 +301,17 @@ export async function updateProjectSettings(
   if (!response.ok)
     throw await problemOf(response, "設定を保存できませんでした。");
   return (await response.json()) as ProjectSettings;
+}
+
+/** 読み込んだリビジョンより後の操作を取り出す（FR-071） */
+export async function fetchChanges(
+  projectId: string,
+  after: number,
+): Promise<ChangesResponse> {
+  const response = await fetch(
+    `/api/projects/${projectId}/changes?after=${after}`,
+  );
+  if (!response.ok)
+    throw await problemOf(response, "更新を確かめられませんでした。");
+  return (await response.json()) as ChangesResponse;
 }
