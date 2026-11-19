@@ -21,7 +21,7 @@ npm ci
 npm test
 ```
 
-依存パッケージを入れてテストを実行します。lint は `npm run lint`、型の検査は `npm run typecheck` で実行できます。
+依存パッケージを入れてテストを実行します。lint は `npm run lint`、型の検査は `npm run typecheck`、カバレッジの計測は `npm run test:coverage` で実行できます。
 
 ## ライセンス
 
