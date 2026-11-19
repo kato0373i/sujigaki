@@ -101,3 +101,44 @@ export async function fetchSnapshot(projectId: string): Promise<Snapshot> {
   }
   return (await response.json()) as Snapshot;
 }
+
+/** 状態を変える API を呼ぶ。CSRF 対策のヘッダーを付ける */
+async function post<T>(
+  path: string,
+  body: unknown,
+  fallback: string,
+): Promise<T> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Sujigaki-Request": "1" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await problemOf(response, fallback);
+  return (await response.json()) as T;
+}
+
+export function askQuestion(
+  projectId: string,
+  question: { elementId: string; body: string; authorType: "human" | "auto" },
+): Promise<QuestionSnapshot> {
+  return post(
+    `/api/projects/${projectId}/questions`,
+    question,
+    "問いを保存できませんでした。",
+  );
+}
+
+/** 問いに回答する（FR-031）。推奨案を採用するときは answer を省く */
+export function answerQuestion(
+  projectId: string,
+  questionId: string,
+  answer: string | null,
+): Promise<QuestionSnapshot> {
+  return post(
+    `/api/projects/${projectId}/questions/${questionId}/state`,
+    answer === null
+      ? { action: "acceptRecommendation" }
+      : { action: "answer", answer },
+    "回答を保存できませんでした。",
+  );
+}

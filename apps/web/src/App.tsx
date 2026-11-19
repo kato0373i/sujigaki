@@ -4,9 +4,11 @@ import { fetchSnapshot, LOCAL_PROJECT_ID, type Snapshot } from "./api.ts";
 import { ElementPanel } from "./components/ElementPanel.tsx";
 import { businessFlowView } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
+import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
 import { BusinessFlow } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
+import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 
 /** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
 const LOCAL_ACTOR: Actor = { userId: null, role: "admin" };
@@ -33,7 +35,7 @@ export function App() {
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
   const selected =
-    route.screen === "flow"
+    route.screen !== "businesses"
       ? snapshot?.elements.find(
           (e) => e.id === selectedId && e.deletedAt === null,
         )
@@ -60,8 +62,19 @@ export function App() {
         </span>
       </header>
       <nav className="nav" aria-label="業務">
-        <a href={hrefOf({ screen: "businesses" })} className="nav-top">
+        <a
+          href={hrefOf({ screen: "businesses" })}
+          className="nav-top"
+          aria-current={route.screen === "businesses" ? "page" : undefined}
+        >
           業務一覧
+        </a>
+        <a
+          href={hrefOf({ screen: "board" })}
+          className="nav-top"
+          aria-current={route.screen === "board" ? "page" : undefined}
+        >
+          確認ボード
         </a>
         <ul>
           {rows.map((row) => (
@@ -100,6 +113,16 @@ export function App() {
         )}
         {snapshot && route.screen === "businesses" && (
           <BusinessList rows={rows} />
+        )}
+        {snapshot && route.screen === "board" && (
+          <ReviewBoard
+            projectId={LOCAL_PROJECT_ID}
+            snapshot={snapshot}
+            violations={violations}
+            initialFilter={defaultFilter(LOCAL_ACTOR)}
+            onSelect={setSelectedId}
+            onChanged={reload}
+          />
         )}
         {snapshot && route.screen === "flow" && (
           <FlowScreen
