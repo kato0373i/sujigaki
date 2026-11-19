@@ -187,6 +187,7 @@ erDiagram
     PROJECTS ||--o{ COMMENTS : contains
     PROJECTS ||--o{ MEMBERSHIPS : has
     USERS ||--o{ MEMBERSHIPS : has
+    USERS ||--o{ VIEW_SETTINGS : has
     PROJECTS ||--o{ INVITATIONS : has
     PROJECTS ||--o{ OPERATIONS : records
 ```
@@ -294,6 +295,16 @@ ID は、プロジェクトと利用者は UUID、それ以外は ULID（26文�
 | | element_id | text | NOT NULL。ID 参照のため FK は張らない |
 | | | | PK (decision_id, element_id) |
 
+`view_settings`
+
+| カラム | 型 | 制約 |
+|---|---|---|
+| user_id | uuid | NOT NULL, FK users |
+| project_id | uuid | NOT NULL, FK projects |
+| settings | jsonb | NOT NULL。選んだプリセットと、種類ごとの表示・非表示（FR-022） |
+| updated_at | timestamptz | NOT NULL |
+| | | PK (user_id, project_id) |
+
 `comments`
 
 | カラム | 型 | 制約 |
@@ -399,6 +410,8 @@ API は `/api` の下に置き、JSON でやり取りする。ローカルモー
 | POST | /api/projects/{projectId}/decisions | 決定を記録する | FR-032 |
 | GET | /api/projects/{projectId}/elements/{elementId}/comments | 要素のコメントの一覧 | US-009 |
 | POST | /api/projects/{projectId}/elements/{elementId}/comments | コメントを書く | US-009 |
+| GET | /api/projects/{projectId}/view-settings | 自分の表示の設定を返す | FR-022 |
+| PUT | /api/projects/{projectId}/view-settings | 自分の表示の設定を保存する | FR-022 |
 | GET | /api/projects/{projectId}/members | メンバーと招待の一覧 | FR-082 |
 | POST | /api/projects/{projectId}/invitations | メンバーを招待する | FR-082 |
 | DELETE | /api/projects/{projectId}/invitations/{invitationId} | 招待を取り消す | FR-082 |
@@ -481,6 +494,7 @@ API は `/api` の下に置き、JSON でやり取りする。ローカルモー
 - ファイルの中の要素は ID の順に並べ、項目の順も固定する。保存のたびに並びが変わって、Git の差分が大きくならないようにする。
 - 外部のエディターや `git pull` でファイルが変わったときは、読み込んだときのファイルの内容のハッシュと比べて検出し、再読み込みを促す。
 - コメントと変更履歴は持たない。変更履歴は Git の履歴を使う（FR-072）。
+- 表示の設定（FR-022）はファイルに書かず、ブラウザに保存する。
 
 ## 6. 主要シーケンス
 
@@ -657,6 +671,7 @@ sequenceDiagram
 | FR-013 | §3 要素の集約、ADR-004、§6.1 | |
 | FR-020 | §3 図の配置、§4 `layouts`、§5 スナップショット | |
 | FR-021〜026 | §5 スナップショットと、ブラウザでの表示 | 描画は表示する範囲に絞る |
+| FR-022 | §4 `view_settings`、§5 `view-settings` | 表示の設定の保存 |
 | FR-030 | §5 `review-state` | |
 | FR-031 | §3 問い、§4 `questions`、§5 問いのエンドポイント | |
 | FR-032 | §3 決定記録、§4 `decisions` | |
@@ -709,3 +724,4 @@ sequenceDiagram
 | 日付 | 変更内容 | 変更者 |
 |---|---|---|
 | 2026-11-19 | 初版を作成 | 開発 |
+| 2026-11-19 | 表示の設定を保存するテーブルと API を追加した | 開発 |
