@@ -25,7 +25,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     # ブラウザと依存パッケージの入ったイメージで動かし、apt での取得を待たないようにする。
-    # タグは package-lock.json の @playwright/test の版に合わせる
+    # タグは package-lock.json にある @playwright/test のバージョンに合わせる
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-resolute
       options: --user 1001
