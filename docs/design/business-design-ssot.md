@@ -481,3 +481,96 @@ API は `/api` の下に置き、JSON でやり取りする。ローカルモー
 - ファイルの中の要素は ID の順に並べ、項目の順も固定する。保存のたびに並びが変わって、Git の差分が大きくならないようにする。
 - 外部のエディターや `git pull` でファイルが変わったときは、読み込んだときのファイルの内容のハッシュと比べて検出し、再読み込みを促す。
 - コメントと変更履歴は持たない。変更履歴は Git の履歴を使う（FR-072）。
+
+## 6. 主要シーケンス
+
+### 6.1 要素を編集して保存する（FR-010、FR-013、FR-070）
+
+```mermaid
+sequenceDiagram
+    participant U as 編集者
+    participant W as 画面
+    participant API as API
+    participant P as 利用者と権限
+    participant M as モデル
+    participant DB as データベース
+    U->>W: 活動の担当者を変えて保存
+    W->>API: PATCH /elements/{id}（If-Match: 3）
+    API->>P: ロールを判定（要素の編集）
+    P-->>API: 許可
+    API->>DB: 要素を読む
+    API->>M: element.edit(変更内容, 操作した人)
+    M-->>API: バージョン4・未レビューの要素と、ElementEdited・ReviewStateChanged
+    API->>DB: バージョンが3のときだけ更新し、操作を記録（同じトランザクション）
+    alt バージョンが一致した
+        API-->>W: 200（バージョン4）
+    else ほかの人が先に更新した
+        API-->>W: 412 VERSION_CONFLICT（今の内容）
+        W->>U: 差分を表示し、残す内容を選ばせる
+    end
+```
+
+### 6.2 AI の提案を取り込む（FR-033、FR-034）
+
+```mermaid
+sequenceDiagram
+    participant U as 編集者
+    participant W as 画面
+    participant AI as Claude・ChatGPT など
+    participant API as API
+    participant DB as データベース
+    U->>W: 範囲とテンプレートを選ぶ
+    W->>W: AI に渡すテキストを作り、クリップボードにコピー
+    U->>AI: テキストを貼り付ける
+    AI-->>U: 提案（取り込める形式）
+    U->>W: 提案を貼り付ける
+    W->>W: 解析し、今のモデルとの差分と検証の結果を出す
+    U->>W: 要素ごとに採否を決める
+    W->>API: POST /change-sets（採用した変更と、差分を計算したときのバージョン）
+    API->>API: 権限と不変条件を検査する
+    API->>DB: 1つのトランザクションで反映し、操作を記録
+    API-->>W: 200（反映した要素と新しいバージョン）
+```
+
+### 6.3 ほかの人の更新を知らせる（FR-071）
+
+```mermaid
+sequenceDiagram
+    participant W1 as 画面（利用者A）
+    participant W2 as 画面（利用者B）
+    participant API as API
+    W2->>API: 要素を保存
+    API-->>W2: 200（プロジェクトのリビジョン 120）
+    loop 30秒ごと（タブが表示されているあいだ）
+        W1->>API: GET /changes?after=118
+        API-->>W1: リビジョン 119〜120 の操作
+    end
+    W1-->>W1: 通知を出し、再読み込みを促す
+```
+
+### 6.4 初めてログインする（FR-060、FR-080）
+
+```mermaid
+sequenceDiagram
+    participant U as 利用者
+    participant W as 画面
+    participant API as API
+    participant IdP as ID プロバイダー
+    participant DB as データベース
+    U->>W: ログインを押す
+    W->>API: GET /auth/login
+    API-->>U: ID プロバイダーへ移す（PKCE 付き）
+    U->>IdP: ログイン
+    IdP-->>API: GET /auth/callback（認可コード）
+    API->>IdP: 認可コードをトークンに交換
+    API->>API: ID トークンの署名と発行者を検証
+    API->>DB: 利用者を作る（発行者と識別子の組）
+    alt メールアドレスに未受諾の招待がある
+        API->>DB: 招待のロールでメンバーにする
+    else 設定で指定した最初の管理者で、最初のプロジェクトに管理者がいない
+        API->>DB: 最初のプロジェクトの管理者にする
+    end
+    API-->>W: セッションの Cookie を付けて画面へ戻す
+```
+
+最初のプロジェクトはデプロイの後に実行するマイグレーションで作る。Lambda には「起動」の時点がないため、FR-060 の「初めて起動したとき」はマイグレーションの実行に当てる。最初の管理者のメールアドレスは環境の設定で渡す（NFR-014）。
