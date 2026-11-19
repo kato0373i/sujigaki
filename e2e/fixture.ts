@@ -1,5 +1,5 @@
 import type { ElementSnapshot } from "@sujigaki/domain";
-import { questionId } from "@sujigaki/domain";
+import { contentHash, questionId } from "@sujigaki/domain";
 import {
   elementSnapshot,
   questionSnapshot,
@@ -102,7 +102,7 @@ function training(): ProjectDocument {
     },
     relations: [relationTo(business, "requirement")],
   });
-  const elements: ElementSnapshot[] = [
+  const listed: ElementSnapshot[] = [
     applicant,
     manager,
     trainer,
@@ -122,6 +122,10 @@ function training(): ProjectDocument {
     billing,
     requirement,
   ];
+  // ツールで確認したときと同じく、未レビュー以外の要素には確認したときの内容のハッシュを入れる（FR-041）
+  const elements = listed.map((e) =>
+    e.reviewState === "unreviewed" ? e : { ...e, reviewedHash: contentHash(e) },
+  );
   return {
     project: {
       name: "社内研修",
