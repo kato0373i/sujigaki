@@ -1,6 +1,7 @@
 import type { Actor } from "../access/role.ts";
 import { type JsonValue, jsonEqual } from "../shared/json.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
+import { parseAttributes } from "./attributes.ts";
 import type { EditedField, ElementEvent } from "./element-event.ts";
 import { ELEMENT_KIND_LABELS, type ElementKind } from "./element-kind.ts";
 import { findRelationType, resolveRelation } from "./relation-rule.ts";
@@ -131,13 +132,15 @@ export class Element {
   ): Result<ElementChange> {
     const name = validateName(input.name);
     if (!name.ok) return name;
+    const attributes = parseAttributes(input.kind, input.attributes ?? {});
+    if (!attributes.ok) return attributes;
     const now = at.toISOString();
     const element = new Element({
       id: input.id,
       kind: input.kind,
       name: name.value,
       summary: input.summary ?? "",
-      attributes: input.attributes ?? {},
+      attributes: attributes.value,
       reviewState: "unreviewed",
       authorType: input.authorType,
       source: input.source ?? null,
@@ -221,12 +224,13 @@ export class Element {
       next.summary = changes.summary;
       fields.push("summary");
     }
-    if (
-      changes.attributes !== undefined &&
-      !jsonEqual(changes.attributes, this.state.attributes)
-    ) {
-      next.attributes = changes.attributes;
-      fields.push("attributes");
+    if (changes.attributes !== undefined) {
+      const attributes = parseAttributes(this.state.kind, changes.attributes);
+      if (!attributes.ok) return attributes;
+      if (!jsonEqual(attributes.value, this.state.attributes)) {
+        next.attributes = attributes.value;
+        fields.push("attributes");
+      }
     }
     if (fields.length === 0) return ok({ element: this, events: [] });
 
