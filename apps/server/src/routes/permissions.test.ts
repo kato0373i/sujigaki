@@ -6,10 +6,13 @@ interface Fixture {
   readonly activity: string;
   readonly actor: string;
   readonly deleted: string;
+  readonly buc: string;
+  readonly openQuestion: string;
+  readonly answeredQuestion: string;
 }
 
 interface Endpoint {
-  readonly method: "GET" | "POST" | "PATCH" | "DELETE";
+  readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** Hono に登録したパス。すべてのルートが表にあることを確かめるのに使う */
   readonly route: string;
   readonly path: (f: Fixture) => string;
@@ -95,6 +98,61 @@ const ENDPOINTS: readonly Endpoint[] = [
     permission: "purgeElement",
     version: (f) => ({ id: f.deleted, version: 2 }),
   },
+  {
+    method: "POST",
+    route: `${base}/questions`,
+    path: () => "/questions",
+    permission: "askQuestion",
+    body: (f) => ({ elementId: f.activity, body: "担当者は誰ですか" }),
+  },
+  {
+    method: "POST",
+    route: `${base}/questions/:questionId/state`,
+    path: (f) => `/questions/${f.openQuestion}/state`,
+    permission: "answerQuestion",
+    body: () => ({ action: "answer", answer: "審査担当" }),
+  },
+  {
+    method: "POST",
+    route: `${base}/questions/:questionId/state`,
+    path: (f) => `/questions/${f.answeredQuestion}/state`,
+    permission: "manageQuestion",
+    body: () => ({ action: "resolve" }),
+  },
+  {
+    method: "POST",
+    route: `${base}/questions/:questionId/state`,
+    path: (f) => `/questions/${f.openQuestion}/state`,
+    permission: "manageQuestion",
+    body: () => ({ action: "withdraw" }),
+  },
+  {
+    method: "POST",
+    route: `${base}/decisions`,
+    path: () => "/decisions",
+    permission: "recordDecision",
+    body: (f) => ({
+      topic: "担当",
+      conclusion: "審査担当が確認する",
+      reason: "申込に詳しいため",
+      elementIds: [f.activity],
+    }),
+  },
+  {
+    method: "PUT",
+    route: `${base}/layouts/:bucId`,
+    path: (f) => `/layouts/${f.buc}`,
+    permission: "editElement",
+    body: (f) => ({ positions: { [f.activity]: { x: 1, y: 2 } } }),
+    version: (f) => ({ id: f.buc, version: 0 }),
+  },
+  {
+    method: "PATCH",
+    route: base,
+    path: () => "",
+    permission: "configureProject",
+    body: () => ({ summaryMaxLength: 200 }),
+  },
 ];
 
 async function prepared() {
@@ -108,9 +166,25 @@ async function prepared() {
     activity: await make("activity", "申込を受け付ける"),
     actor: await make("actor", "審査担当"),
     deleted: await make("actor", "削除した担当"),
+    buc: await make("buc", "申込を受け付ける流れ"),
+    openQuestion: "",
+    answeredQuestion: "",
   };
+  const ask = async () =>
+    (
+      (
+        await server.call("POST", "/questions", {
+          body: { elementId: fixture.activity, body: "締め切りはいつですか" },
+        })
+      ).body as { id: string }
+    ).id;
+  const openQuestion = await ask();
+  const answeredQuestion = await ask();
+  await server.call("POST", `/questions/${answeredQuestion}/state`, {
+    body: { action: "answer", answer: "毎月20日" },
+  });
   await server.call("DELETE", `/elements/${fixture.deleted}`, { version: 1 });
-  return { ...server, fixture };
+  return { ...server, fixture: { ...fixture, openQuestion, answeredQuestion } };
 }
 
 describe("NFR-006 権限の外の操作を、API を直接呼んでも通さない", () => {
