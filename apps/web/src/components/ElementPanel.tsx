@@ -1,0 +1,311 @@
+import {
+  type Actor,
+  can,
+  ELEMENT_KIND_LABELS,
+  type ElementSnapshot,
+  PERMISSIONS,
+  QUESTION_STATE_LABELS,
+  REVIEW_STATE_LABELS,
+  REVIEW_TRANSITIONS,
+  ROLE_LABELS,
+} from "@sujigaki/domain";
+import { useState } from "react";
+import {
+  ApiProblem,
+  changeReviewState,
+  type Snapshot,
+  updateElement,
+} from "../api.ts";
+import {
+  ATTRIBUTE_FIELDS,
+  type ContentChanges,
+  changesOf,
+  type Draft,
+  draftOf,
+  resetsReview,
+} from "../model/element-editor.ts";
+import { ConflictDialog } from "./ConflictDialog.tsx";
+import { ReviewStateMark } from "./status.tsx";
+
+const AUTHOR_TAGS = { ai: "AI", import: "読み込み" } as const;
+
+/**
+ * P-01 要素の詳細パネル。見出し・確認状態・内容・つながり・外部リンク・問いと決定記録を並べる。
+ * ローカルモードにはコメントと変更履歴がないため、出さない
+ */
+export function ElementPanel({
+  projectId,
+  element,
+  snapshot,
+  actor,
+  onChanged,
+  onClose,
+}: {
+  projectId: string;
+  element: ElementSnapshot;
+  snapshot: Snapshot;
+  actor: Actor;
+  onChanged: () => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<Draft>(() => draftOf(element));
+  const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<{
+    changes: ContentChanges;
+    current: ElementSnapshot;
+  } | null>(null);
+  const changes = changesOf(element, draft);
+  const canEdit = can(actor, "editElement");
+  const byId = new Map(snapshot.elements.map((e) => [e.id as string, e]));
+
+  const save = async (version: number, content: ContentChanges) => {
+    setError(null);
+    try {
+      await updateElement(projectId, element, version, content);
+      setConflict(null);
+      onChanged();
+    } catch (problem) {
+      if (
+        problem instanceof ApiProblem &&
+        problem.code === "VERSION_CONFLICT" &&
+        problem.current
+      ) {
+        setConflict({
+          changes: content,
+          current: problem.current as ElementSnapshot,
+        });
+      } else {
+        setError((problem as Error).message);
+      }
+    }
+  };
+
+  const transition = async (to: string) => {
+    setError(null);
+    try {
+      await changeReviewState(projectId, element, to);
+      onChanged();
+    } catch (problem) {
+      setError((problem as Error).message);
+    }
+  };
+
+  const setAttribute = (key: string, value: string) =>
+    setDraft({ ...draft, attributes: { ...draft.attributes, [key]: value } });
+  const summaryLength = [...draft.summary].length;
+  const summaryMax = snapshot.project.summaryMaxLength;
+
+  return (
+    <aside className="panel" aria-label="要素の詳細">
+      <div className="panel-head">
+        <span className="panel-kind">{ELEMENT_KIND_LABELS[element.kind]}</span>
+        <button
+          type="button"
+          className="close"
+          onClick={onClose}
+          aria-label="詳細を閉じる"
+        >
+          ×
+        </button>
+      </div>
+      <h2 className="panel-title">{element.name}</h2>
+      <div className="panel-tags">
+        <ReviewStateMark state={element.reviewState} />
+        {element.authorType !== "human" && (
+          <span className={`tag tag-${element.authorType}`}>
+            {AUTHOR_TAGS[element.authorType]}
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <p className="error-inline" role="alert">
+          {error}
+        </p>
+      )}
+
+      <section aria-labelledby="review-heading">
+        <h3 id="review-heading">確認状態</h3>
+        <div className="review-actions">
+          {REVIEW_TRANSITIONS.filter((t) => t.from === element.reviewState).map(
+            (t) => {
+              const allowed = can(actor, t.permission);
+              const minimum = ROLE_LABELS[PERMISSIONS[t.permission]];
+              return (
+                <button
+                  key={t.to}
+                  type="button"
+                  disabled={!allowed}
+                  title={allowed ? undefined : `${minimum}以上が操作できます`}
+                  onClick={() => transition(t.to)}
+                >
+                  「{REVIEW_STATE_LABELS[t.to]}」にする
+                </button>
+              );
+            },
+          )}
+        </div>
+      </section>
+
+      <section aria-labelledby="content-heading">
+        <h3 id="content-heading">内容</h3>
+        <label className="field">
+          <span>名前</span>
+          <input
+            value={draft.name}
+            disabled={!canEdit}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span>
+            要約
+            <span className={summaryLength > summaryMax ? "over" : "muted"}>
+              {" "}
+              {summaryLength} / {summaryMax}字
+            </span>
+          </span>
+          <textarea
+            rows={3}
+            value={draft.summary}
+            disabled={!canEdit}
+            onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+          />
+        </label>
+        {(ATTRIBUTE_FIELDS[element.kind] ?? []).map((f) => {
+          const id = `attribute-${f.key}`;
+          const value = draft.attributes[f.key] ?? "";
+          return (
+            <div key={f.key} className="field">
+              <label htmlFor={id}>
+                {f.label}
+                {f.input === "lines" && (
+                  <span className="muted">（1行に1つ）</span>
+                )}
+              </label>
+              {f.input === "select" ? (
+                <select
+                  id={id}
+                  value={value}
+                  disabled={!canEdit}
+                  onChange={(e) => setAttribute(f.key, e.target.value)}
+                >
+                  <option value="">未設定</option>
+                  {f.choices?.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              ) : f.input === "text" ? (
+                <input
+                  id={id}
+                  value={value}
+                  disabled={!canEdit}
+                  onChange={(e) => setAttribute(f.key, e.target.value)}
+                />
+              ) : (
+                <textarea
+                  id={id}
+                  rows={3}
+                  value={value}
+                  disabled={!canEdit}
+                  onChange={(e) => setAttribute(f.key, e.target.value)}
+                />
+              )}
+            </div>
+          );
+        })}
+        <div className="save-row">
+          {resetsReview(element, changes) && (
+            <span className="notice" role="status">
+              保存すると未レビューに戻ります
+            </span>
+          )}
+          <button
+            type="button"
+            disabled={!canEdit || changes === null}
+            onClick={() => changes && save(element.version, changes)}
+          >
+            保存
+          </button>
+        </div>
+      </section>
+
+      <section aria-labelledby="relations-heading">
+        <h3 id="relations-heading">つながり</h3>
+        {element.relations.length === 0 ? (
+          <p className="muted">つながりはありません。</p>
+        ) : (
+          <ul className="plain">
+            {element.relations.map((r) => {
+              const target = byId.get(r.to);
+              return (
+                <li key={r.id}>
+                  <span className="muted">{ELEMENT_KIND_LABELS[r.toKind]}</span>{" "}
+                  {target?.name ?? "（見つからない要素）"}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="links-heading">
+        <h3 id="links-heading">外部リンク</h3>
+        {element.links.length === 0 ? (
+          <p className="muted">外部リンクはありません。</p>
+        ) : (
+          <ul className="plain">
+            {element.links.map((link) => (
+              <li key={link.id}>
+                <a href={link.url} target="_blank" rel="noreferrer noopener">
+                  {link.label ?? link.url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="deliberation-heading">
+        <h3 id="deliberation-heading">問いと決定記録</h3>
+        {snapshot.questions.every((q) => q.elementId !== element.id) &&
+          snapshot.decisions.every(
+            (d) => !d.elementIds.includes(element.id),
+          ) && <p className="muted">問いと決定記録はありません。</p>}
+        <ul className="plain">
+          {snapshot.questions
+            .filter((q) => q.elementId === element.id)
+            .map((q) => (
+              <li key={q.id}>
+                <span className="muted">
+                  問い（{QUESTION_STATE_LABELS[q.state]}）
+                </span>{" "}
+                {q.body}
+              </li>
+            ))}
+          {snapshot.decisions
+            .filter((d) => d.elementIds.includes(element.id))
+            .map((d) => (
+              <li key={d.id}>
+                <span className="muted">決定</span> {d.topic}: {d.conclusion}
+              </li>
+            ))}
+        </ul>
+      </section>
+
+      {conflict && (
+        <ConflictDialog
+          changes={conflict.changes}
+          current={conflict.current}
+          onOverwrite={() => save(conflict.current.version, conflict.changes)}
+          onDiscard={() => {
+            setConflict(null);
+            onChanged();
+          }}
+        />
+      )}
+    </aside>
+  );
+}
