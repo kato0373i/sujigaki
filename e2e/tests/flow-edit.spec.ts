@@ -60,7 +60,21 @@ test.describe("S-04 業務フローを編集する", () => {
     const card = page
       .getByTestId("activity-card")
       .filter({ hasText: "取り消しを申し出る" });
-    const box = await card.boundingBox();
+    await page.waitForLoadState("networkidle");
+    // 図が全体を収めるように動き終えてから、カードをつかむ
+    let box = await card.boundingBox();
+    await expect
+      .poll(async () => {
+        const previous = box;
+        box = await card.boundingBox();
+        return (
+          previous !== null &&
+          box !== null &&
+          previous.x === box.x &&
+          previous.y === box.y
+        );
+      })
+      .toBe(true);
     if (!box) throw new Error("カードが見えない");
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();

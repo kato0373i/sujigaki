@@ -28,10 +28,11 @@ test.describe("FR-025 トレース表", () => {
     const rows = page.locator("tbody tr");
     const total = await rows.count();
     await page.getByLabel("途切れている行だけ").check();
+    // 絞り込んだあとは、途切れたセルのない行が残らない
+    await expect(rows.filter({ hasNot: page.locator("td.gap") })).toHaveCount(
+      0,
+    );
     expect(await rows.count()).toBeLessThanOrEqual(total);
-    for (const row of await rows.all()) {
-      await expect(row.locator("td.gap").first()).toBeVisible();
-    }
     await page.getByRole("button", { name: "活動" }).click();
     await expect(
       page.getByRole("columnheader", { name: /活動/ }),

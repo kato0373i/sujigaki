@@ -24,11 +24,22 @@ function training(): ProjectDocument {
   const info = elementSnapshot("info-application", "information", {
     name: "受講申込",
   });
+  // 連鎖ビューで、画面から要求までさかのぼれる経路にする
+  const noticeScreen = elementSnapshot("screen-notice", "screen", {
+    name: "受講案内の画面",
+  });
+  const noticeUsecase = elementSnapshot("uc-notice", "usecase", {
+    name: "受講案内を作る",
+    relations: [relationTo(noticeScreen, "usecase")],
+  });
   const notify = elementSnapshot("act-notify", "activity", {
     name: "受講案内を送る",
     attributes: { mode: "manual" },
     reviewState: "needs_check",
-    relations: [relationTo(trainer, "activity")],
+    relations: [
+      relationTo(trainer, "activity"),
+      relationTo(noticeUsecase, "activity"),
+    ],
   });
   const approve = elementSnapshot("act-approve", "activity", {
     name: "申込を承認する",
@@ -97,6 +108,8 @@ function training(): ProjectDocument {
     trainer,
     usecase,
     info,
+    noticeScreen,
+    noticeUsecase,
     notify,
     approve,
     apply,
