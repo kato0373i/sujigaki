@@ -180,6 +180,45 @@ test.describe("FR-052 RDRA の関連データの読み込み", () => {
     ).toMatchObject({ summary: "受講を承認する人" });
   });
 
+  test("名前の変更が疑われる要素は、対応づけてから名前の変更として取り込む", async ({
+    page,
+  }) => {
+    const text = await exportRelated(page);
+    const section = page.getByRole("region", {
+      name: "RDRA の関連データの読み込み",
+    });
+    await section.getByLabel("読み込む関連データ").setInputFiles({
+      name: "renamed.rdra.tsv",
+      mimeType: "text/tab-separated-values",
+      buffer: Buffer.from(text.replaceAll("受講案内の画面", "受講案内の表示")),
+    });
+    const choice = section.getByLabel("画面 受講案内の画面");
+    await expect(choice.locator("option:checked")).toHaveText(
+      "「受講案内の表示」に名前を変える（つながりが重なる）",
+    );
+    const result = await new AxeBuilder({ page }).include(".io").analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await section.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${screenshots}/s-09-related-rename.png` });
+
+    await section.getByRole("button", { name: "差分を出す" }).click();
+    const rows = section.locator(".diff-row");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText("受講案内の画面");
+    await section
+      .getByRole("button", { name: "採用した変更を反映（1件）" })
+      .click();
+    await expect(section.getByRole("status")).toHaveText(
+      "1件の変更を反映しました。",
+    );
+    const snapshot = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    expect(
+      snapshot.elements.find((e: { id: string }) => e.id === "screen-notice"),
+    ).toMatchObject({ name: "受講案内の表示" });
+  });
+
   test("形式に合わない関連データは、行番号を付けて読み込まない", async ({
     page,
   }) => {

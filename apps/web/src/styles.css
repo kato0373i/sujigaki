@@ -1141,3 +1141,37 @@ button.badge {
   gap: 8px;
   margin-top: 8px;
 }
+
+.rename-step {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+
+.rename-step h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.rename-step li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0;
+}
+
+.rename-step label {
+  min-width: 200px;
+}
+
+.rename-step button.primary {
+  border: 1px solid #1f883d;
+  background: #1f883d;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font: inherit;
+  cursor: pointer;
+  margin-top: 8px;
+}
