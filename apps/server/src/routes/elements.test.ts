@@ -260,6 +260,32 @@ describe("FR-012 削除と復元", () => {
     expect(again.status).toBe(404);
   });
 
+  it("完全に削除すると、ほかの要素からのつながりも外れる", async () => {
+    const { call, activity } = await withActivity();
+    const actor = (
+      await call("POST", "/elements", {
+        body: { kind: "actor", name: "審査担当" },
+      })
+    ).body as { id: string };
+    await call("POST", `/elements/${activity.id}/relations`, {
+      version: 1,
+      body: { to: actor.id },
+    });
+    await call("DELETE", `/elements/${actor.id}`, { version: 1 });
+    const purged = await call("POST", `/elements/${actor.id}/purge`, {
+      version: 2,
+    });
+    expect(purged.status).toBe(204);
+
+    const snapshot = await call("GET", "/snapshot");
+    const elements = (snapshot.body as { elements: ElementSnapshot[] })
+      .elements;
+    expect(elements.find((e) => e.id === activity.id)).toMatchObject({
+      relations: [],
+      version: 3,
+    });
+  });
+
   it("完全に削除するときも、バージョンを確かめる", async () => {
     const { call, activity } = await withActivity();
     await call("DELETE", `/elements/${activity.id}`, { version: 1 });

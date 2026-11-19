@@ -136,3 +136,40 @@ describe("FR-012 削除済みの要素", () => {
     expect(result).toMatchObject({ ok: true, value: { events: [] } });
   });
 });
+
+describe("FR-012 完全に削除した要素へのつながり", () => {
+  it("その要素へのつながりをすべて外し、未レビューに戻す", () => {
+    const element = approvedActivityConnectedTo("u1");
+    const { element: after, events } = element.dropRelationsTo(
+      elementId("u1"),
+      editor,
+      at,
+    );
+    expect(after.relations).toEqual([]);
+    expect(after.version).toBe(element.version + 1);
+    expect(events.map((e) => e.type)).toEqual([
+      "RelationRemoved",
+      "ReviewStateChanged",
+    ]);
+  });
+
+  it("削除済みの要素からも外す。確認状態は変えない", () => {
+    const deleted = approvedActivityConnectedTo("u1").delete(editor, at);
+    if (!deleted.ok) throw new Error();
+    const { element, events } = deleted.value.element.dropRelationsTo(
+      elementId("u1"),
+      editor,
+      at,
+    );
+    expect(element.relations).toEqual([]);
+    expect(element.reviewState).toBe("approved");
+    expect(events.map((e) => e.type)).toEqual(["RelationRemoved"]);
+  });
+
+  it("その要素へのつながりがなければ変えない", () => {
+    const element = approvedActivityConnectedTo("u1");
+    const change = element.dropRelationsTo(elementId("other"), editor, at);
+    expect(change.element).toBe(element);
+    expect(change.events).toEqual([]);
+  });
+});
