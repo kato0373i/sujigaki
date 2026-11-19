@@ -1,4 +1,5 @@
-import { type Actor, hasRoleAtLeast } from "../access/role.ts";
+import { can, checkPermission } from "../access/permission.ts";
+import type { Actor } from "../access/role.ts";
 import type { ElementId } from "../model/element.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
 import { requiredText } from "../shared/text.ts";
@@ -157,7 +158,7 @@ export class Question {
     if (!from.ok) return from;
     const isAnswerer =
       actor.userId !== null && actor.userId === this.state.answeredBy;
-    if (!isAnswerer && !hasRoleAtLeast(actor.role, "editor")) {
+    if (!isAnswerer && !can(actor, "manageQuestion")) {
       return fail(
         "FORBIDDEN",
         "回答を取り消せるのは、回答した人か編集者以上です。",
@@ -210,9 +211,12 @@ export class Question {
   ): Result<QuestionChange> {
     const current = this.expectState(from, action);
     if (!current.ok) return current;
-    if (!hasRoleAtLeast(actor.role, "editor")) {
-      return fail("FORBIDDEN", `問いの${action}ができるのは、編集者以上です。`);
-    }
+    const allowed = checkPermission(
+      actor,
+      "manageQuestion",
+      `問いの${action}ができる`,
+    );
+    if (!allowed.ok) return allowed;
     const question = new Question({ ...this.state, state: to });
     return ok({ question, events: [question.event(type, actor, at)] });
   }

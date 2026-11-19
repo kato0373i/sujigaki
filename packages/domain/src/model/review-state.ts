@@ -1,10 +1,6 @@
-import {
-  type Actor,
-  hasRoleAtLeast,
-  ROLE_LABELS,
-  type Role,
-} from "../access/role.ts";
-import { fail, ok, type Result } from "../shared/result.ts";
+import { can, checkPermission, type Permission } from "../access/permission.ts";
+import type { Actor } from "../access/role.ts";
+import { fail, type Result } from "../shared/result.ts";
 
 export const REVIEW_STATES = [
   "unreviewed",
@@ -25,7 +21,7 @@ export const REVIEW_STATE_LABELS: Readonly<Record<ReviewState, string>> = {
 interface ReviewTransition {
   readonly from: ReviewState;
   readonly to: ReviewState;
-  readonly minimumRole: Role;
+  readonly permission: Extract<Permission, "flagReview" | "approveReview">;
 }
 
 /**
@@ -33,12 +29,12 @@ interface ReviewTransition {
  * 内容の編集で未レビューに戻る遷移は自動で行うため、ここには含めない。
  */
 export const REVIEW_TRANSITIONS: readonly ReviewTransition[] = [
-  { from: "unreviewed", to: "needs_check", minimumRole: "editor" },
-  { from: "unreviewed", to: "approved", minimumRole: "owner" },
-  { from: "needs_check", to: "approved", minimumRole: "owner" },
-  { from: "unreviewed", to: "needs_fix", minimumRole: "editor" },
-  { from: "needs_check", to: "needs_fix", minimumRole: "editor" },
-  { from: "approved", to: "needs_check", minimumRole: "editor" },
+  { from: "unreviewed", to: "needs_check", permission: "flagReview" },
+  { from: "unreviewed", to: "approved", permission: "approveReview" },
+  { from: "needs_check", to: "approved", permission: "approveReview" },
+  { from: "unreviewed", to: "needs_fix", permission: "flagReview" },
+  { from: "needs_check", to: "needs_fix", permission: "flagReview" },
+  { from: "approved", to: "needs_check", permission: "flagReview" },
 ];
 
 /** actor が from から遷移できる確認状態を返す。画面のボタンの出し分けに使う（FR-030） */
@@ -47,7 +43,7 @@ export function availableReviewStates(
   actor: Actor,
 ): ReviewState[] {
   return REVIEW_TRANSITIONS.filter(
-    (t) => t.from === from && hasRoleAtLeast(actor.role, t.minimumRole),
+    (t) => t.from === from && can(actor, t.permission),
   ).map((t) => t.to);
 }
 
@@ -65,11 +61,9 @@ export function checkReviewTransition(
       `「${REVIEW_STATE_LABELS[from]}」から「${REVIEW_STATE_LABELS[to]}」には変えられません。`,
     );
   }
-  if (!hasRoleAtLeast(actor.role, transition.minimumRole)) {
-    return fail(
-      "FORBIDDEN",
-      `「${REVIEW_STATE_LABELS[to]}」にできるのは、${ROLE_LABELS[transition.minimumRole]}以上です。`,
-    );
-  }
-  return ok(undefined);
+  return checkPermission(
+    actor,
+    transition.permission,
+    `「${REVIEW_STATE_LABELS[to]}」にできる`,
+  );
 }
