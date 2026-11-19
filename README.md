@@ -23,13 +23,14 @@ npm test
 
 依存パッケージを入れてテストを実行します。lint は `npm run lint`、型の検査は `npm run typecheck`、カバレッジの計測は `npm run test:coverage` で実行できます。
 
-ローカルモードは次のコマンドで起動します。フォルダーにプロジェクトがなければ、フォルダーの名前で作ります。
+ローカルモードは画面をビルドしてから、次のコマンドで起動します。フォルダーにプロジェクトがなければ、フォルダーの名前で作ります。起動したら、表示された URL をブラウザで開いてください。
 
 ```bash
+npm run build
 npm run local -- ./my-project
 ```
 
-今は API だけが動きます。画面はこれから作ります。
+E2E は `npm run test:e2e` で実行できます。初めて実行する前に、`npx playwright install chromium` でブラウザを入れておきます。
 
 ## ライセンス
 
