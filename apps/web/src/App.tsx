@@ -9,6 +9,7 @@ import {
   saveLayout,
 } from "./api.ts";
 import { ElementPanel } from "./components/ElementPanel.tsx";
+import { SearchBox } from "./components/SearchBox.tsx";
 import { businessFlowView, positionsAfterMove } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
 import { defaultFilter } from "./model/review-board.ts";
@@ -47,15 +48,16 @@ export function App() {
   useEffect(reload, [reload]);
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
-  const selected =
+  const showsPanel =
     route.screen === "flow" ||
     route.screen === "board" ||
     route.screen === "trace" ||
-    route.screen === "chain"
-      ? snapshot?.elements.find(
-          (e) => e.id === selectedId && e.deletedAt === null,
-        )
-      : undefined;
+    route.screen === "chain";
+  const selected = showsPanel
+    ? snapshot?.elements.find(
+        (e) => e.id === selectedId && e.deletedAt === null,
+      )
+    : undefined;
   const rows = useMemo(
     () => (snapshot ? businessListView(snapshot.elements) : []),
     [snapshot],
@@ -76,6 +78,20 @@ export function App() {
         <span className="project-name">
           {snapshot?.project.name ?? "sujigaki"}
         </span>
+        {snapshot && (
+          <SearchBox
+            elements={snapshot.elements}
+            onSelect={(elementId) => {
+              setSelectedId(elementId);
+              // 詳細パネルを出さない画面では、選んだ要素を起点に連鎖ビューを開く（画面設計書 4章）
+              if (!showsPanel)
+                window.location.hash = hrefOf({
+                  screen: "chain",
+                  originId: elementId,
+                });
+            }}
+          />
+        )}
       </header>
       <nav className="nav" aria-label="業務">
         <a
