@@ -24,6 +24,7 @@ import {
   draftOf,
   resetsReview,
 } from "../model/element-editor.ts";
+import { hrefOf } from "../route.ts";
 import { ConflictDialog } from "./ConflictDialog.tsx";
 import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
@@ -109,6 +110,12 @@ export function ElementPanel({
         </button>
       </div>
       <h2 className="panel-title">{element.name}</h2>
+      <a
+        className="chain-link"
+        href={hrefOf({ screen: "chain", originId: element.id })}
+      >
+        連鎖ビューで開く
+      </a>
       <div className="panel-tags">
         <ReviewStateMark state={element.reviewState} />
         {element.authorType !== "human" && (

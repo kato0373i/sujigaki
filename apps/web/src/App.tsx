@@ -15,6 +15,7 @@ import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
 import { BusinessFlow, type FlowEditing } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
+import { ChainViewScreen } from "./screens/ChainView.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
@@ -46,7 +47,8 @@ export function App() {
   const selected =
     route.screen === "flow" ||
     route.screen === "board" ||
-    route.screen === "trace"
+    route.screen === "trace" ||
+    route.screen === "chain"
       ? snapshot?.elements.find(
           (e) => e.id === selectedId && e.deletedAt === null,
         )
@@ -147,6 +149,14 @@ export function App() {
             initialFilter={defaultFilter(LOCAL_ACTOR)}
             onSelect={setSelectedId}
             onChanged={reload}
+          />
+        )}
+        {snapshot && route.screen === "chain" && (
+          <ChainViewScreen
+            elements={snapshot.elements}
+            originId={route.originId}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
           />
         )}
         {snapshot && route.screen === "trace" && (

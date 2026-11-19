@@ -857,3 +857,49 @@ button.link:hover {
   color: var(--red);
   font-weight: 700;
 }
+
+.chain-node {
+  width: 190px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* 強調は、太い枠と色の両方で示す（NFR-017） */
+.chain-highlighted {
+  border: 3px solid var(--accent);
+}
+
+.chain-origin {
+  background: #ddf4ff;
+}
+
+.chain-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+button.badge {
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.kind-picker fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 2px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 4px;
+  background: var(--surface);
+}
+
+.chain-link {
+  font-size: 12px;
+}
