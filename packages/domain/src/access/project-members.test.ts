@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { unwrap } from "../testing/index.ts";
 import { invitationId, ProjectMembers } from "./project-members.ts";
 import type { Actor } from "./role.ts";
 
 const at = new Date("2026-11-19T00:00:00Z");
 const admin: Actor = { userId: "admin", role: "admin" };
-
-function unwrap<T>(result: { ok: true; value: T } | { ok: false }): T {
-  if (!result.ok) throw new Error("失敗した");
-  return result.value;
-}
 
 function withEditor(): ProjectMembers {
   const start = ProjectMembers.start("p1", "admin");

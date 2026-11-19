@@ -1,50 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { ElementSnapshot } from "../model/element.ts";
 import {
-  type ElementSnapshot,
-  elementId,
-  type Relation,
-  relationId,
-} from "../model/element.ts";
-import type { ElementKind } from "../model/element-kind.ts";
+  AT,
+  elementSnapshot as element,
+  relationTo as relation,
+} from "../testing/index.ts";
 import { validateModel } from "./model-validation.ts";
 
-const at = "2026-11-19T00:00:00.000Z";
-
-function element(
-  id: string,
-  kind: ElementKind,
-  overrides: Partial<ElementSnapshot> = {},
-): ElementSnapshot {
-  return {
-    id: elementId(id),
-    kind,
-    name: id,
-    summary: "",
-    attributes: {},
-    reviewState: "unreviewed",
-    authorType: "human",
-    source: null,
-    version: 1,
-    deletedAt: null,
-    deletedBy: null,
-    links: [],
-    relations: [],
-    createdAt: at,
-    createdBy: null,
-    updatedAt: at,
-    updatedBy: null,
-    ...overrides,
-  };
-}
-
-function relation(to: ElementSnapshot): Relation {
-  return {
-    id: relationId(`r-${to.id}`),
-    typeId: "",
-    to: to.id,
-    toKind: to.kind,
-  };
-}
+const at = AT.toISOString();
 
 const options = { summaryMaxLength: 10 };
 
