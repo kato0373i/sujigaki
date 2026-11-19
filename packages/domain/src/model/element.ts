@@ -410,6 +410,22 @@ export class Element {
     return this.apply({}, actor, at, [], true);
   }
 
+  /**
+   * 完全に削除した要素へのつながりを、すべて外す（FR-012、設計書 5.1 節）。
+   * 復元できなくなったつながりの後始末のため、削除済みの要素でも外す。外したら未レビューに戻す（FR-013）
+   */
+  dropRelationsTo(target: ElementId, actor: Actor, at: Date): ElementChange {
+    const dropped = this.state.relations.filter((r) => r.to === target);
+    if (dropped.length === 0) return { element: this, events: [] };
+    return this.apply(
+      { relations: this.state.relations.filter((r) => r.to !== target) },
+      actor,
+      at,
+      dropped.map((r) => this.relationEvent("RelationRemoved", r, actor, at)),
+      !this.isDeleted,
+    );
+  }
+
   private lifecycleEvent(
     type: "ElementDeleted" | "ElementRestored",
     actor: Actor,
