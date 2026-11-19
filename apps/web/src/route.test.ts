@@ -9,6 +9,7 @@ describe("画面の場所", () => {
       "#/trace",
       "#/ai",
       "#/deleted",
+      "#/settings",
       "#/io",
       "#/flows/buc-1",
       "#/chain/a-1",
