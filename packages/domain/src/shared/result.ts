@@ -6,7 +6,8 @@ export type DomainErrorCode =
   | "RELATION_NOT_ALLOWED"
   | "RELATION_EXISTS"
   | "NOT_FOUND"
-  | "ELEMENT_DELETED";
+  | "ELEMENT_DELETED"
+  | "LAST_ADMIN";
 
 export interface DomainError {
   readonly code: DomainErrorCode;

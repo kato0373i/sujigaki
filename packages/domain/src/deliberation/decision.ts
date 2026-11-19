@@ -1,4 +1,5 @@
-import { type Actor, hasRoleAtLeast } from "../access/role.ts";
+import { checkPermission } from "../access/permission.ts";
+import type { Actor } from "../access/role.ts";
 import type { ElementId } from "../model/element.ts";
 import { fail, ok, type Result } from "../shared/result.ts";
 import { requiredText } from "../shared/text.ts";
@@ -59,9 +60,12 @@ export class Decision {
     readonly decision: Decision;
     readonly events: readonly DecisionRecorded[];
   }> {
-    if (!hasRoleAtLeast(actor.role, "owner")) {
-      return fail("FORBIDDEN", "決定を記録できるのは、業務責任者以上です。");
-    }
+    const allowed = checkPermission(
+      actor,
+      "recordDecision",
+      "決定を記録できる",
+    );
+    if (!allowed.ok) return allowed;
     const topic = requiredText(input.topic, "何についての決定か");
     if (!topic.ok) return topic;
     const conclusion = requiredText(input.conclusion, "結論");
