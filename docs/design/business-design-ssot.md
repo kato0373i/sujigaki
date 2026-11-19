@@ -168,7 +168,7 @@ FR-035 の問いは検証（FR-040）と同じく、モデルから毎回計算�
 | `LayoutChanged` | 図の配置を保存した | 変更記録 |
 | `QuestionAsked` / `QuestionAnswered` / `QuestionAnswerRetracted` / `QuestionResolved` / `QuestionWithdrawn` | 問いを作成した、回答した、回答を取り消した、解決した、取り下げた | 変更記録 |
 | `DecisionRecorded` | 決定を記録した | 変更記録 |
-| `MemberInvited` / `MemberRoleChanged` / `MemberRemoved` | 招待した、ロールを変えた、除外した | 変更記録 |
+| `MemberInvited` / `InvitationCancelled` / `InvitationAccepted` / `MemberRoleChanged` / `MemberRemoved` | 招待した、招待を取り消した、招待を受けてメンバーになった、ロールを変えた、除外した | 変更記録 |
 
 ## 4. DB設計
 
