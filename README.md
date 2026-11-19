@@ -23,6 +23,14 @@ npm test
 
 依存パッケージを入れてテストを実行します。lint は `npm run lint`、型の検査は `npm run typecheck`、カバレッジの計測は `npm run test:coverage` で実行できます。
 
+ローカルモードは次のコマンドで起動します。フォルダーにプロジェクトがなければ、フォルダーの名前で作ります。
+
+```bash
+npm run local -- ./my-project
+```
+
+今は API だけが動きます。画面はこれから作ります。
+
 ## ライセンス
 
 [MIT](LICENSE)
