@@ -2,7 +2,7 @@ import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
 import { diffElements } from "./import-diff.ts";
 import { exportRelatedData } from "./rdra-export.ts";
-import { readRelatedData } from "./rdra-import.ts";
+import { readRelatedData, renameCandidates, renameKey } from "./rdra-import.ts";
 
 const at = new Date("2026-11-20T00:00:00Z");
 let sequence = 0;
@@ -192,5 +192,88 @@ describe("FR-052 関連データの読み込み", () => {
         },
       ],
     });
+  });
+});
+
+describe("FR-052 名前の変更が疑われる要素", () => {
+  const renamed = () =>
+    exportRelatedData("申込システム", model).text.replaceAll(
+      "受付担当",
+      "窓口担当",
+    );
+
+  it("消える要素とつながっていた要素に新しい要素もつながっていれば、疑われる組として選んでおく", () => {
+    const imported = read(renamed());
+    const [row, ...rest] = renameCandidates(model, imported);
+    expect(rest).toEqual([]);
+    expect(row?.element.id).toBe("u1");
+    expect(row?.candidates.map((c) => [c.element.name, c.suspected])).toEqual([
+      ["窓口担当", true],
+    ]);
+    expect(row?.preselected?.name).toBe("窓口担当");
+  });
+
+  it("同じ要素と選んだ組は、今の要素の ID を引き継いで名前の変更にする", () => {
+    const imported = read(renamed());
+    const target = renameCandidates(model, imported)[0]?.preselected;
+    if (!target) throw new Error("候補がありません");
+    const result = readRelatedData(
+      renamed(),
+      model,
+      at,
+      newId,
+      new Map([[renameKey(target), "u1"]]),
+    );
+    if (!result.ok) throw new Error("読み込めません");
+    const changes = diffElements(model, result.elements, {
+      removeMissing: true,
+    }).changes;
+    expect(
+      changes.map((c) =>
+        c.type === "update"
+          ? [c.type, c.before.name, c.after.name, c.fields]
+          : [c.type],
+      ),
+    ).toEqual([["update", "受付担当", "窓口担当", ["name"]]]);
+  });
+
+  it("つながる要素が重ならない新しい要素は、疑われる組にしない", () => {
+    const screen = elementSnapshot("s1", "screen", { name: "申込入力" });
+    const usecase = elementSnapshot("uc1", "usecase", {
+      name: "申込を登録する",
+      relations: [relationTo(screen, "usecase")],
+    });
+    const text =
+      "申込システム\n#edge\tUC\t画面\t申込を登録する@@申込入力\n#edge\tUC\t画面\t申込を取り消す@@取消入力\n";
+    const imported = read(text, [usecase, screen]);
+    // 今のモデルに消える要素がないので、疑われる組もない
+    expect(renameCandidates([usecase, screen], imported)).toEqual([]);
+
+    const other = elementSnapshot("uc2", "usecase", {
+      name: "申込を変更する",
+      relations: [
+        relationTo(
+          elementSnapshot("s2", "screen", { name: "変更入力" }),
+          "usecase",
+        ),
+      ],
+    });
+    const current = [
+      usecase,
+      screen,
+      other,
+      elementSnapshot("s2", "screen", { name: "変更入力" }),
+    ];
+    const rows = renameCandidates(current, read(text, current));
+    expect(
+      rows.map((r) => [
+        r.element.name,
+        r.candidates.map((c) => [c.element.name, c.suspected]),
+        r.preselected,
+      ]),
+    ).toEqual([
+      ["申込を変更する", [["申込を取り消す", false]], null],
+      ["変更入力", [["取消入力", false]], null],
+    ]);
   });
 });

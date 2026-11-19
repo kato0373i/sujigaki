@@ -91,15 +91,22 @@ export type RelatedDataRead =
     }
   | { readonly ok: false; readonly issues: readonly ReadIssue[] };
 
+/** 同じ要素とみなす組の鍵。関連データでの種類と名前で、新しい要素を指す */
+export function renameKey(element: Pick<ElementSnapshot, "kind" | "name">) {
+  return `${element.kind}\n${element.name}`;
+}
+
 /**
  * RDRA の関連データを読み、取り込んだあとの要素を組み立てる（FR-052、設計書 5.9 節）。
- * 種類と名前が同じ今の要素は ID を引き継ぎ、関連データで表せる内容だけを合わせる
+ * 種類と名前が同じ今の要素は ID を引き継ぎ、関連データで表せる内容だけを合わせる。
+ * renames には、利用者が同じ要素と選んだ組（新しい要素の鍵から、今の要素の ID へ）を渡す
  */
 export function readRelatedData(
   text: string,
   current: readonly ElementSnapshot[],
   at: Date,
   newId: () => string,
+  renames: ReadonlyMap<string, string> = new Map(),
 ): RelatedDataRead {
   const issues: ReadIssue[] = [];
   const issue = (line: number, message: string) =>
@@ -200,7 +207,12 @@ export function readRelatedData(
       );
       continue;
     }
-    const before = candidates[0];
+    const renamed = renames.get(key);
+    const before =
+      candidates[0] ??
+      (renamed === undefined
+        ? undefined
+        : active.find((e) => e.id === renamed && e.kind === draft.kind));
     if (before) matched.set(key, before);
     ids.set(key, before?.id ?? (newId() as ElementId));
   }
@@ -235,6 +247,7 @@ export function readRelatedData(
     const element: ElementSnapshot = before
       ? {
           ...before,
+          name: draft.name,
           summary,
           attributes: attributesOf(draft, before.attributes),
           relations: [...keptRelations, ...unique],
@@ -305,4 +318,76 @@ function attributesOf(draft: Draft, before: Attributes): Attributes {
     ) as Attributes;
   }
   return before;
+}
+
+/** 名前の変更が疑われる要素（設計書 5.9 節）。関連データにない今の要素と、同じ種類の新しい要素の組 */
+export interface RenameCandidate {
+  readonly element: ElementSnapshot;
+  /** 同じ種類の新しい要素。つながる要素が重なるものを先に並べる */
+  readonly candidates: readonly {
+    readonly element: ElementSnapshot;
+    readonly suspected: boolean;
+  }[];
+  /** はじめから選んでおく新しい要素。疑われる組が1つだけのときに決まる */
+  readonly preselected: ElementSnapshot | null;
+}
+
+/** 要素とつながる要素の ID。つながりの向きは問わない */
+function neighbors(
+  elements: readonly ElementSnapshot[],
+  id: string,
+): Set<string> {
+  const result = new Set<string>();
+  for (const e of elements) {
+    for (const r of e.relations) {
+      if (e.id === id) result.add(r.to);
+      if (r.to === id) result.add(e.id);
+    }
+  }
+  return result;
+}
+
+/**
+ * 取り込むと削除の変更になる要素ごとに、同じ要素かもしれない新しい要素を求める（FR-052）。
+ * 消える要素とつながっていた要素に、新しい要素もつながっていれば、名前の変更が疑われる
+ */
+export function renameCandidates(
+  current: readonly ElementSnapshot[],
+  imported: readonly ElementSnapshot[],
+): RenameCandidate[] {
+  const currentIds = new Set(current.map((e) => e.id as string));
+  const importedIds = new Set(imported.map((e) => e.id as string));
+  const removed = current.filter(
+    (e) => e.deletedAt === null && !importedIds.has(e.id),
+  );
+  const added = imported.filter((e) => !currentIds.has(e.id));
+  const rows = removed.flatMap((element) => {
+    const before = neighbors(current, element.id);
+    const candidates = added
+      .filter((n) => n.kind === element.kind)
+      .map((n) => ({
+        element: n,
+        suspected: [...neighbors(imported, n.id)].some((id) => before.has(id)),
+      }))
+      .sort(
+        (a, b) =>
+          Number(b.suspected) - Number(a.suspected) ||
+          a.element.name.localeCompare(b.element.name, "ja"),
+      );
+    return candidates.length > 0 ? [{ element, candidates }] : [];
+  });
+  // 同じ新しい要素を2つの組で選ばないよう、疑われる組がどちらから見ても1つだけのときに選んでおく
+  const suspectedOf = (id: string) =>
+    rows.filter((row) =>
+      row.candidates.some((c) => c.suspected && c.element.id === id),
+    ).length;
+  return rows.map((row) => {
+    const suspected = row.candidates.filter((c) => c.suspected);
+    const only = suspected.length === 1 ? suspected[0] : undefined;
+    return {
+      ...row,
+      preselected:
+        only && suspectedOf(only.element.id) === 1 ? only.element : null,
+    };
+  });
 }
