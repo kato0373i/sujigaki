@@ -48,4 +48,14 @@ describe("種類ごとの属性", () => {
       "「名前」の値が正しくありません。",
     );
   });
+
+  it("属性がオブジェクトでなければ受け付けない", () => {
+    expect(parseAttributes("activity", "手作業")).toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "「属性」の値が正しくありません。",
+      },
+    });
+  });
 });

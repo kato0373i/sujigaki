@@ -72,6 +72,23 @@ describe("要素を作る", () => {
       error: { code: "VALIDATION_FAILED", message: "名前を入力してください。" },
     });
   });
+
+  it("名前は200文字まで受け付け、201文字からは作らない", () => {
+    const make = (name: string) =>
+      Element.create(
+        { id: elementId("e1"), kind: "activity", name, authorType: "human" },
+        editor,
+        at,
+      );
+    expect(make("あ".repeat(200)).ok).toBe(true);
+    expect(make("あ".repeat(201))).toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "名前は200文字以内にしてください。",
+      },
+    });
+  });
 });
 
 describe("内容を編集する（FR-013）", () => {
@@ -192,5 +209,29 @@ describe("外部リンクを変える", () => {
       later,
     );
     expect(result.ok).toBe(false);
+  });
+
+  it("今と同じリンクなら、バージョンを上げない", () => {
+    const element = created();
+    const result = element.replaceLinks([], editor, later);
+    expect(result).toMatchObject({ ok: true, value: { events: [] } });
+    if (result.ok) expect(result.value.element.version).toBe(element.version);
+  });
+});
+
+describe("名前を編集する", () => {
+  it("名前を変え、前後の空白を除く", () => {
+    const result = created().edit({ name: " 申込を確かめる " }, editor, later);
+    expect(result.ok && result.value.element.toSnapshot().name).toBe(
+      "申込を確かめる",
+    );
+  });
+
+  it("空の名前には変えない", () => {
+    const result = created().edit({ name: " " }, editor, later);
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_FAILED" },
+    });
   });
 });
