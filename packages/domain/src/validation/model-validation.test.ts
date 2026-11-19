@@ -89,3 +89,76 @@ describe("モデルの検証：切れたつながりと要約の長さ", () => {
     ]);
   });
 });
+
+describe("モデルの検証：つながりの抜け", () => {
+  const actor = element("actor", "actor");
+  const screen = element("screen", "screen");
+  const info = element("info", "information");
+  const usecase = element("uc", "usecase", {
+    relations: [relation(screen), relation(info)],
+  });
+  const business = element("biz", "business");
+  const requirement = element("req", "requirement", {
+    relations: [relation(business)],
+  });
+
+  function rules(elements: ElementSnapshot[]) {
+    return validateModel(elements, options).map((v) => [v.rule, v.elementId]);
+  }
+
+  it("つながるべき先がそろっていれば違反はない", () => {
+    const activity = element("act", "activity", {
+      attributes: { mode: "system" },
+      relations: [relation(actor), relation(usecase)],
+    });
+    expect(
+      rules([actor, screen, info, usecase, business, requirement, activity]),
+    ).toEqual([]);
+  });
+
+  it("区分がシステム利用で、システム操作につながらない活動を見つける", () => {
+    const activity = element("act", "activity", {
+      attributes: { mode: "system" },
+      relations: [relation(actor)],
+    });
+    expect(
+      validateModel([actor, activity], options).find(
+        (v) => v.rule === "systemActivityWithoutUsecase",
+      ),
+    ).toEqual({
+      rule: "systemActivityWithoutUsecase",
+      elementId: "act",
+      message:
+        "区分がシステム利用の活動ですが、システム操作につながっていません。",
+    });
+  });
+
+  it("手作業の活動は、システム操作につながらなくてもよい", () => {
+    const activity = element("act", "activity", {
+      attributes: { mode: "manual" },
+      relations: [relation(actor)],
+    });
+    expect(rules([actor, activity])).toEqual([]);
+  });
+
+  it("担当者のない活動、要求のない業務、画面のないシステム操作、使われない情報を見つける", () => {
+    const activity = element("act", "activity");
+    const lonelyUsecase = element("uc", "usecase");
+    expect(rules([activity, business, lonelyUsecase, info])).toEqual([
+      ["businessWithoutRequirement", "biz"],
+      ["usecaseWithoutScreen", "uc"],
+      ["unusedInformation", "info"],
+      ["activityWithoutActor", "act"],
+    ]);
+  });
+
+  it("削除済みの要素からのつながりは、つながりとして数えない", () => {
+    const removedRequirement = element("req", "requirement", {
+      deletedAt: at,
+      relations: [relation(business)],
+    });
+    expect(rules([business, removedRequirement])).toEqual([
+      ["businessWithoutRequirement", "biz"],
+    ]);
+  });
+});

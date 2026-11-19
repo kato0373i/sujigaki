@@ -3,15 +3,29 @@ import type {
   ElementSnapshot,
   RelationId,
 } from "../model/element.ts";
+import type { ElementKind } from "../model/element-kind.ts";
 
 /** 検証の規則（要件定義書 FR-040）。並び順は一覧での表示の順 */
-export const VALIDATION_RULES = ["brokenRelation", "summaryTooLong"] as const;
+export const VALIDATION_RULES = [
+  "brokenRelation",
+  "businessWithoutRequirement",
+  "systemActivityWithoutUsecase",
+  "usecaseWithoutScreen",
+  "unusedInformation",
+  "activityWithoutActor",
+  "summaryTooLong",
+] as const;
 
 export type ValidationRule = (typeof VALIDATION_RULES)[number];
 
 export const VALIDATION_RULE_LABELS: Readonly<Record<ValidationRule, string>> =
   {
     brokenRelation: "つながりが切れている",
+    businessWithoutRequirement: "要求につながっていない",
+    systemActivityWithoutUsecase: "システム操作につながっていない",
+    usecaseWithoutScreen: "画面につながっていない",
+    unusedInformation: "システム操作から使われていない",
+    activityWithoutActor: "担当者が未設定",
     summaryTooLong: "要約が長すぎる",
   };
 
@@ -39,6 +53,7 @@ export function validateModel(
   const model = new ModelIndex(elements);
   const violations = [
     ...brokenRelations(model),
+    ...missingConnections(model),
     ...summariesTooLong(model, options.summaryMaxLength),
   ];
   return violations.sort(
@@ -60,6 +75,75 @@ class ModelIndex {
   isActive(id: ElementId): boolean {
     return this.activeIds.has(id);
   }
+
+  /** element から、有効な kind の要素へのつながりがあるか */
+  hasOutgoing(element: ElementSnapshot, kind: ElementKind): boolean {
+    return element.relations.some(
+      (r) => r.toKind === kind && this.isActive(r.to),
+    );
+  }
+
+  /** 有効な kind の要素から、element へのつながりがあるか */
+  hasIncoming(element: ElementSnapshot, kind: ElementKind): boolean {
+    return this.active.some(
+      (from) =>
+        from.kind === kind && from.relations.some((r) => r.to === element.id),
+    );
+  }
+}
+
+interface ConnectionRule {
+  readonly rule: ValidationRule;
+  readonly applies: (element: ElementSnapshot) => boolean;
+  readonly connected: (model: ModelIndex, element: ElementSnapshot) => boolean;
+  readonly message: string;
+}
+
+/** 要素がつながるべき先につながっているかの規則 */
+const CONNECTION_RULES: readonly ConnectionRule[] = [
+  {
+    rule: "businessWithoutRequirement",
+    applies: (e) => e.kind === "business",
+    connected: (m, e) => m.hasIncoming(e, "requirement"),
+    message: "この業務につながる要求がありません。",
+  },
+  {
+    rule: "systemActivityWithoutUsecase",
+    applies: (e) => e.kind === "activity" && e.attributes.mode === "system",
+    connected: (m, e) => m.hasOutgoing(e, "usecase"),
+    message:
+      "区分がシステム利用の活動ですが、システム操作につながっていません。",
+  },
+  {
+    rule: "usecaseWithoutScreen",
+    applies: (e) => e.kind === "usecase",
+    connected: (m, e) => m.hasOutgoing(e, "screen"),
+    message: "このシステム操作は画面につながっていません。",
+  },
+  {
+    rule: "unusedInformation",
+    applies: (e) => e.kind === "information",
+    connected: (m, e) => m.hasIncoming(e, "usecase"),
+    message: "この情報を使うシステム操作がありません。",
+  },
+  {
+    rule: "activityWithoutActor",
+    applies: (e) => e.kind === "activity",
+    connected: (m, e) => m.hasOutgoing(e, "actor"),
+    message: "この活動の担当者が設定されていません。",
+  },
+];
+
+function missingConnections(model: ModelIndex): Violation[] {
+  return CONNECTION_RULES.flatMap((rule) =>
+    model.active
+      .filter((e) => rule.applies(e) && !rule.connected(model, e))
+      .map((e) => ({
+        rule: rule.rule,
+        elementId: e.id,
+        message: rule.message,
+      })),
+  );
 }
 
 function brokenRelations(model: ModelIndex): Violation[] {
