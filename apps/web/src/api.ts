@@ -231,3 +231,16 @@ export function removeRelation(
     owner.version,
   );
 }
+
+/** 要素を削除する（FR-012）。論理削除のため、削除済みの要素の一覧から復元できる */
+export function deleteElement(
+  projectId: string,
+  element: ElementSnapshot,
+): Promise<ElementSnapshot> {
+  return mutateElement(
+    "DELETE",
+    `/api/projects/${projectId}/elements/${element.id}`,
+    element.version,
+  );
+}
+

@@ -956,3 +956,46 @@ button.badge {
   font-size: 14px;
   margin: 16px 0 8px;
 }
+
+.confirm {
+  max-width: 480px;
+  width: 90vw;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.confirm::backdrop {
+  background: rgba(31, 35, 40, 0.4);
+}
+
+.confirm h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.confirm ul.plain {
+  margin: 0 0 16px;
+}
+
+.confirm button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.confirm button.danger,
+.panel button.delete-element {
+  background: var(--red);
+  border-color: var(--red);
+  color: #ffffff;
+}
+
+.panel button.delete-element:disabled {
+  opacity: 0.5;
+}
+

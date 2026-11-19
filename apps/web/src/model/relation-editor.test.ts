@@ -1,6 +1,10 @@
 import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
-import { relationCandidates, relationRows } from "./relation-editor.ts";
+import {
+  connectedElements,
+  relationCandidates,
+  relationRows,
+} from "./relation-editor.ts";
 
 const reception = elementSnapshot("u1", "actor", { name: "受付担当" });
 const reviewer = elementSnapshot("u2", "actor", { name: "審査担当" });
@@ -66,5 +70,34 @@ describe("P-01 つながりの編集", () => {
     expect(candidates).toEqual([
       { element: flow, kindLabel: "業務フロー", reversed: true },
     ]);
+  });
+});
+
+describe("D-02 削除の確認", () => {
+  it("つながっている有効な要素を、向きを問わず1つずつ出す", () => {
+    const linked = elementSnapshot("a2", "activity", {
+      name: "審査する",
+      relations: [
+        relationTo(reception, "activity"),
+        relationTo(removed, "activity"),
+      ],
+    });
+    const twice = elementSnapshot("f2", "buc", {
+      name: "審査の流れ",
+      relations: [relationTo(linked, "buc"), relationTo(linked, "buc")],
+    });
+    expect(
+      connectedElements(linked, [...elements, linked, twice]).map((c) => [
+        c.kindLabel,
+        c.element.name,
+      ]),
+    ).toEqual([
+      ["業務フロー", "審査の流れ"],
+      ["登場人物", "受付担当"],
+    ]);
+  });
+
+  it("つながりのない要素では、空にする", () => {
+    expect(connectedElements(screen, elements)).toEqual([]);
   });
 });
