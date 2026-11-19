@@ -8,7 +8,14 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { dirname, join, sep } from "node:path";
-import { fail, ok, type ProjectSettings, type Result } from "@sujigaki/domain";
+import {
+  fail,
+  type JsonValue,
+  jsonEqual,
+  ok,
+  type ProjectSettings,
+  type Result,
+} from "@sujigaki/domain";
 import {
   isProjectFile,
   type ProjectDocument,
@@ -44,13 +51,21 @@ export interface FileProjectRepositoryOptions {
 
 /**
  * ローカルモードのフォルダーに保存するリポジトリ（設計書 5.4 節）。
- * 読み込んだときのファイルの内容のハッシュを覚えておき、保存の前に比べて、外で変わったことを見つける。
+ * 外部のエディターや git pull でファイルが変わったことは、最後に読み書きしたときのファイルのハッシュと比べて見つける。
+ * 見つけたら、内容が変わった要素と図の配置のバージョンを進め、プロジェクトのリビジョンも1つ進める。
+ * 古いバージョンのまま保存しようとした画面には VERSION_CONFLICT を返し、リビジョンの変化で再読み込みを促す。
  * 操作の記録はファイルに書かない。変更履歴は Git の履歴を使う（FR-072）
  */
 export class FileProjectRepository implements ProjectRepository {
   private readonly folder: string;
   private readonly projectId: string;
-  private knownHash: string | null = null;
+  /** 最後に読み書きしたときの、ファイルのハッシュと中身 */
+  private known: {
+    readonly hash: string;
+    readonly document: ProjectDocument;
+  } | null = null;
+  /** 外で変わったために進めたバージョン。次に保存するときにファイルへ書く */
+  private readonly bumps = new Map<string, number>();
   private revision = 0;
   /** 保存を1件ずつ処理するための待ち行列 */
   private queue: Promise<unknown> = Promise.resolve();
@@ -85,7 +100,7 @@ export class FileProjectRepository implements ProjectRepository {
         decisions: [],
         layouts: [],
       };
-      await this.writeFiles(files, writeProjectFolder(document));
+      await this.writeFiles(files, document);
       return ok({ document, revision: this.revision });
     });
   }
@@ -93,11 +108,9 @@ export class FileProjectRepository implements ProjectRepository {
   load(projectId: string): Promise<StoredProject | null> {
     return this.exclusive(async () => {
       if (projectId !== this.projectId) return null;
-      const files = await this.readFiles();
-      if (!files.has(SETTINGS_FILE)) return null;
-      const document = this.parse(files);
-      this.knownHash = hashOf(files);
-      return { document, revision: this.revision };
+      const current = await this.readCurrent();
+      if (!current) return null;
+      return { document: current.document, revision: this.revision };
     });
   }
 
@@ -106,25 +119,69 @@ export class FileProjectRepository implements ProjectRepository {
     changes: ChangeSet,
   ): Promise<Result<{ readonly revision: number }>> {
     return this.exclusive(async () => {
-      if (projectId !== this.projectId) {
-        return fail("NOT_FOUND", "プロジェクトが見つかりません。");
-      }
-      const files = await this.readFiles();
-      if (!files.has(SETTINGS_FILE)) {
-        return fail("NOT_FOUND", "プロジェクトが見つかりません。");
-      }
-      if (this.knownHash !== null && this.knownHash !== hashOf(files)) {
-        return fail(
-          "VERSION_CONFLICT",
-          "フォルダーのファイルが、ほかのエディターや git pull で変わっています。読み込み直してから保存してください。",
-        );
-      }
-      const applied = applyChangeSet(this.parse(files), changes);
+      const current =
+        projectId === this.projectId ? await this.readCurrent() : null;
+      if (!current) return fail("NOT_FOUND", "プロジェクトが見つかりません。");
+      const applied = applyChangeSet(current.document, changes);
       if (!applied.ok) return applied;
-      await this.writeFiles(files, writeProjectFolder(applied.value));
+      await this.writeFiles(current.files, applied.value);
+      this.bumps.clear();
       this.revision += changes.operations.length;
       return ok({ revision: this.revision });
     });
+  }
+
+  /**
+   * フォルダーを読み、外で変わっていれば、変わった要素と図の配置のバージョンを進める。
+   * 進めたバージョンは、次に保存するまでメモリに持つ
+   */
+  private async readCurrent(): Promise<{
+    files: Map<string, string>;
+    document: ProjectDocument;
+  } | null> {
+    const files = await this.readFiles();
+    if (!files.has(SETTINGS_FILE)) return null;
+    const hash = hashOf(files);
+    const onDisk = this.parse(files);
+    if (this.known && this.known.hash !== hash) {
+      const previous = this.known.document;
+      const before = new Map(previous.elements.map((e) => [e.id, e]));
+      for (const element of onDisk.elements) {
+        const seen = before.get(element.id);
+        if (seen && !sameContent(seen, this.withBump(element))) {
+          this.bumps.set(element.id, seen.version + 1 - element.version);
+        }
+      }
+      const layouts = new Map(previous.layouts.map((l) => [l.bucId, l]));
+      for (const layout of onDisk.layouts) {
+        const seen = layouts.get(layout.bucId);
+        if (seen && !sameContent(seen, this.withBump(layout))) {
+          this.bumps.set(
+            `layout:${layout.bucId}`,
+            seen.version + 1 - layout.version,
+          );
+        }
+      }
+      this.revision += 1;
+    }
+    const document: ProjectDocument = {
+      ...onDisk,
+      elements: onDisk.elements.map((e) => this.withBump(e)),
+      layouts: onDisk.layouts.map((l) => this.withBump(l)),
+    };
+    this.known = { hash, document };
+    return { files, document };
+  }
+
+  private withBump<
+    T extends { readonly version: number } & (
+      | { readonly id: string }
+      | { readonly bucId: string }
+    ),
+  >(item: T): T {
+    const key = "id" in item ? item.id : `layout:${item.bucId}`;
+    const bump = this.bumps.get(key) ?? 0;
+    return bump === 0 ? item : { ...item, version: item.version + bump };
   }
 
   private parse(files: ReadonlyMap<string, string>): ProjectDocument {
@@ -162,8 +219,9 @@ export class FileProjectRepository implements ProjectRepository {
   /** 変わったファイルだけを書き、なくなったファイルを消す。書くときは一時ファイルから置き換える */
   private async writeFiles(
     before: ReadonlyMap<string, string>,
-    after: ReadonlyMap<string, string>,
+    document: ProjectDocument,
   ): Promise<void> {
+    const after = writeProjectFolder(document);
     for (const [path, text] of after) {
       if (before.get(path) === text) continue;
       const target = join(this.folder, path);
@@ -175,7 +233,7 @@ export class FileProjectRepository implements ProjectRepository {
     for (const path of before.keys()) {
       if (!after.has(path)) await rm(join(this.folder, path));
     }
-    this.knownHash = hashOf(after);
+    this.known = { hash: hashOf(after), document: this.parse(after) };
   }
 }
 
@@ -185,4 +243,12 @@ function hashOf(files: ReadonlyMap<string, string>): string {
     hash.update(`${path}\0${text}\0`);
   }
   return hash.digest("hex");
+}
+
+/** バージョンのほかに違いがあるか */
+function sameContent(a: { version: number }, b: { version: number }): boolean {
+  return jsonEqual(
+    { ...a, version: 0 } as unknown as JsonValue,
+    { ...b, version: 0 } as unknown as JsonValue,
+  );
 }
