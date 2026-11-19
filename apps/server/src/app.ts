@@ -8,6 +8,7 @@ import {
   ProjectFilesWriteError,
 } from "./repository/file-project-repository.ts";
 import type { ProjectRepository } from "./repository/project-repository.ts";
+import { registerDeliberationRoutes } from "./routes/deliberation.ts";
 import { registerElementRoutes } from "./routes/elements.ts";
 
 /** サーバーのログ。詳細はログにだけ残し、レスポンスには出さない（設計書 5.2 節の INTERNAL） */
@@ -40,12 +41,14 @@ export function createApp(options: AppOptions) {
   app.use("/api/*", requireRequestHeader);
   app.use("/auth/logout", requireRequestHeader);
 
-  registerElementRoutes(app, {
+  const deps = {
     projects: options.projects,
     actors: options.actors,
     now: options.now ?? (() => new Date()),
     newId: options.newId ?? (() => ulid()),
-  });
+  };
+  registerElementRoutes(app, deps);
+  registerDeliberationRoutes(app, deps);
 
   app.notFound(() => {
     throw new ApiError("NOT_FOUND", "API が見つかりません。");
