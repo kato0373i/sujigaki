@@ -1,3 +1,4 @@
+export * from "./access/permission.ts";
 export * from "./access/role.ts";
 export * from "./deliberation/comment.ts";
 export * from "./deliberation/decision.ts";
