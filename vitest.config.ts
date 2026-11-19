@@ -10,6 +10,7 @@ export default defineConfig({
       reporter: ["text-summary", "text"],
       thresholds: {
         "packages/domain/src/**": { lines: 95, branches: 90 },
+        "packages/interchange/src/**": { lines: 95, branches: 90 },
       },
     },
   },
