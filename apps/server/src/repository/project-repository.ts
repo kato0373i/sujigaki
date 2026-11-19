@@ -61,6 +61,17 @@ export interface ChangeSet {
   readonly operations: readonly OperationRecord[];
 }
 
+/** 取り出した操作。その操作で進んだあとのリビジョンを付ける（FR-071） */
+export type RevisionedOperation = OperationRecord & {
+  readonly revision: number;
+};
+
+/** 指定したリビジョンより後の操作と、今のリビジョン */
+export interface ChangesAfter {
+  readonly revision: number;
+  readonly operations: readonly RevisionedOperation[];
+}
+
 /** プロジェクトの中身を読み書きする。保存先ごとに実装を差し替える */
 export interface ProjectRepository {
   /** 空のプロジェクトを作る。同じ ID のプロジェクトがあれば失敗する */
@@ -78,4 +89,28 @@ export interface ProjectRepository {
     projectId: string,
     changes: ChangeSet,
   ): Promise<Result<{ readonly revision: number }>>;
+  /**
+   * 指定したリビジョンより後の操作を、古い順に limit 件まで返す（FR-071、設計書 5.1 節）。
+   * after が今のリビジョンより大きければ、操作を空にする。プロジェクトがなければ null
+   */
+  changesAfter(
+    projectId: string,
+    after: number,
+    limit: number,
+  ): Promise<ChangesAfter | null>;
+}
+
+/** 記録した操作の並びから、指定したリビジョンより後を取り出す。操作の位置がそのままリビジョンになる */
+export function sliceChanges(
+  operations: readonly OperationRecord[],
+  after: number,
+  limit: number,
+): ChangesAfter {
+  const start = Math.max(0, after);
+  return {
+    revision: operations.length,
+    operations: operations
+      .slice(start, start + limit)
+      .map((o, i) => ({ ...o, revision: start + i + 1 })),
+  };
 }

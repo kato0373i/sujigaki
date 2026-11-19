@@ -1117,3 +1117,21 @@ button.badge {
 .search-results button:focus-visible {
   background: var(--background);
 }
+
+.update-notice {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--blue);
+}
+
+.update-notice button {
+  border: 1px solid var(--blue);
+  background: var(--surface);
+  color: var(--blue);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font: inherit;
+  cursor: pointer;
+}

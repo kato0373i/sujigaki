@@ -10,6 +10,7 @@ import {
 } from "./api.ts";
 import { ElementPanel } from "./components/ElementPanel.tsx";
 import { SearchBox } from "./components/SearchBox.tsx";
+import { UpdateBanner, useUpdateNotice } from "./components/UpdateNotice.tsx";
 import { businessFlowView, positionsAfterMove } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
 import { defaultFilter } from "./model/review-board.ts";
@@ -37,6 +38,9 @@ export function App() {
   const route = useRoute();
   const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  /** 再読み込みで捨てた回数。詳細パネルを作り直して、保存していない内容を捨てる */
+  const [discarded, setDiscarded] = useState(0);
 
   const reload = useCallback(() => {
     fetchSnapshot(LOCAL_PROJECT_ID)
@@ -48,6 +52,11 @@ export function App() {
   useEffect(reload, [reload]);
 
   const snapshot = loaded.state === "ready" ? loaded.snapshot : null;
+  const notice = useUpdateNotice(
+    LOCAL_PROJECT_ID,
+    snapshot?.revision ?? null,
+    LOCAL_ACTOR,
+  );
   const showsPanel =
     route.screen === "flow" ||
     route.screen === "board" ||
@@ -89,6 +98,16 @@ export function App() {
                   screen: "chain",
                   originId: elementId,
                 });
+            }}
+          />
+        )}
+        {notice && (
+          <UpdateBanner
+            notice={notice}
+            dirty={dirty}
+            onReload={() => {
+              setDiscarded((n) => n + 1);
+              reload();
             }}
           />
         )}
@@ -247,13 +266,14 @@ export function App() {
       </main>
       {snapshot && selected && (
         <ElementPanel
-          key={`${selected.id}-${selected.version}`}
+          key={`${selected.id}-${selected.version}-${discarded}`}
           projectId={LOCAL_PROJECT_ID}
           element={selected}
           snapshot={snapshot}
           actor={LOCAL_ACTOR}
           onChanged={reload}
           onClose={() => setSelectedId(null)}
+          onDirtyChange={setDirty}
         />
       )}
     </div>

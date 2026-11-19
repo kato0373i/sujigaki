@@ -132,6 +132,31 @@ describe("ローカルモードのファイルのリポジトリ", () => {
     expect(await readFile(path, "utf8")).toContain("version: 3");
   });
 
+  it("FR-071 外の変更を、ExternalChange の操作として返す", async () => {
+    const { folder, repository } = await createdRepository();
+    await repository.load("local");
+    const path = join(folder, "sujigaki.yaml");
+    await writeFile(
+      path,
+      (await readFile(path, "utf8")).replace("申込管理", "申込の管理"),
+    );
+    expect(await repository.changesAfter("local", 0, 200)).toEqual({
+      revision: 1,
+      operations: [
+        expect.objectContaining({
+          type: "ExternalChange",
+          targetType: "project",
+          actorId: null,
+          revision: 1,
+        }),
+      ],
+    });
+    // 同じ外の変更は、二度は数えない
+    expect(
+      (await repository.changesAfter("local", 1, 200))?.operations,
+    ).toEqual([]);
+  });
+
   it("外で変わらなかった要素は、バージョンを進めずにそのまま保存できる", async () => {
     const { folder, repository } = await createdRepository();
     const actor = elementSnapshot("a1", "actor");

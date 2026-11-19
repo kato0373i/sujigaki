@@ -33,6 +33,12 @@ const ENDPOINTS: readonly Endpoint[] = [
   },
   {
     method: "GET",
+    route: `${base}/changes`,
+    path: () => "/changes?after=0",
+    permission: "view",
+  },
+  {
+    method: "GET",
     route: `${base}/elements`,
     path: () => "/elements?deleted=true",
     permission: "view",

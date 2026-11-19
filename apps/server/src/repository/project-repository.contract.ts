@@ -274,4 +274,48 @@ export function projectRepositoryContract(
     await repository.commit(projectId, changes({ project: next }));
     expect((await repository.load(projectId))?.document.project).toEqual(next);
   });
+
+  it("FR-071 指定したリビジョンより後の操作を、古い順に件数の上限まで返す", async () => {
+    const { repository, projectId } = await created();
+    await repository.commit(
+      projectId,
+      changes({
+        elements: [
+          { value: elementSnapshot("a1", "actor"), expectedVersion: null },
+        ],
+        operations: [operation("a1")],
+      }),
+    );
+    await repository.commit(
+      projectId,
+      changes({
+        elements: [
+          { value: elementSnapshot("a2", "actor"), expectedVersion: null },
+          { value: elementSnapshot("a3", "actor"), expectedVersion: null },
+        ],
+        operations: [operation("a2"), operation("a3")],
+      }),
+    );
+
+    const after1 = await repository.changesAfter(projectId, 1, 200);
+    expect(after1?.revision).toBe(3);
+    expect(after1?.operations.map((o) => [o.targetId, o.revision])).toEqual([
+      ["a2", 2],
+      ["a3", 3],
+    ]);
+    expect(
+      (await repository.changesAfter(projectId, 0, 1))?.operations.map(
+        (o) => o.targetId,
+      ),
+    ).toEqual(["a1"]);
+    expect(await repository.changesAfter(projectId, 3, 200)).toEqual({
+      revision: 3,
+      operations: [],
+    });
+    expect(await repository.changesAfter(projectId, 99, 200)).toEqual({
+      revision: 3,
+      operations: [],
+    });
+    expect(await repository.changesAfter("none", 0, 200)).toBeNull();
+  });
 }

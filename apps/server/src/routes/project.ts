@@ -29,6 +29,9 @@ const settingsSchema = z.strictObject({
   summaryMaxLength: z.number().optional(),
 });
 
+/** 変更の取り出しで、1回に返す操作の上限（設計書 5.3 節） */
+const CHANGES_LIMIT = 200;
+
 function layoutConflict(current: LayoutSnapshot): ApiError {
   return new ApiError(
     "VERSION_CONFLICT",
@@ -96,6 +99,38 @@ export function registerProjectRoutes(app: Hono, deps: RouteDependencies) {
       throw ApiError.fromDomain(result.error);
     }
     return respondLayout(c, after);
+  });
+
+  // ほかの人の更新を知らせるために、画面が定期的に呼ぶ（FR-071、設計書 5.1 節）
+  app.get(`${base}/changes`, async (c) => {
+    const projectId = c.req.param("projectId");
+    await authorize(deps, c, projectId, "view", "プロジェクトを見られる");
+    const query = c.req.query("after") ?? "";
+    const after = Number(query);
+    if (!/^\d+$/.test(query) || !Number.isSafeInteger(after)) {
+      throw new ApiError(
+        "VALIDATION_FAILED",
+        "after には0以上の整数のリビジョンを付けてください。",
+      );
+    }
+    const changes = await deps.projects.changesAfter(
+      projectId,
+      after,
+      CHANGES_LIMIT,
+    );
+    if (!changes)
+      throw new ApiError("NOT_FOUND", "プロジェクトが見つかりません。");
+    return c.json({
+      revision: changes.revision,
+      operations: changes.operations.map((o) => ({
+        type: o.type,
+        targetType: o.targetType,
+        targetId: o.targetId,
+        actorId: o.actorId,
+        occurredAt: o.occurredAt,
+        revision: o.revision,
+      })),
+    });
   });
 
   app.patch(base, async (c) => {
