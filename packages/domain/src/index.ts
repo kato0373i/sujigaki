@@ -1,6 +1,7 @@
 export * from "./access/permission.ts";
 export * from "./access/project-members.ts";
 export * from "./access/role.ts";
+export * from "./deliberation/blank-questions.ts";
 export * from "./deliberation/comment.ts";
 export * from "./deliberation/decision.ts";
 export * from "./deliberation/question.ts";
