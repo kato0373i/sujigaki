@@ -108,3 +108,40 @@ describe("FR-005 プロジェクトの設定を変える", () => {
     expect((await projects.load(PROJECT_ID))?.revision).toBe(0);
   });
 });
+
+describe("FR-071 変更を取り出す", () => {
+  it("指定したリビジョンより後の操作を、前後の内容を省いて返す", async () => {
+    const { call } = await withBuc();
+    const snapshot = await call("GET", "/snapshot");
+    const revision = (snapshot.body as { revision: number }).revision;
+    await call("POST", "/elements", {
+      body: { kind: "actor", name: "受付担当" },
+    });
+
+    const response = await call("GET", `/changes?after=${revision}`);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      revision: revision + 1,
+      operations: [
+        {
+          type: "ElementCreated",
+          targetType: "element",
+          targetId: expect.any(String),
+          actorId: "admin",
+          occurredAt: expect.any(String),
+          revision: revision + 1,
+        },
+      ],
+    });
+  });
+
+  it.each(["", "-1", "1.5", "abc"])(
+    "after が「%s」なら VALIDATION_FAILED を返す",
+    async (after) => {
+      const { call } = await testServer();
+      const response = await call("GET", `/changes?after=${after}`);
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({ code: "VALIDATION_FAILED" });
+    },
+  );
+});
