@@ -5,7 +5,7 @@
 | ステータス | Approved |
 | 作成日 | 2026-11-19 |
 | 最終更新 | 2026-11-19 |
-| 関連ドキュメント | 設計書（未作成）: `docs/design/business-design-ssot.md` |
+| 関連ドキュメント | [設計書](../design/business-design-ssot.md) |
 
 ## 1. 背景と課題（Why）
 
@@ -936,12 +936,12 @@ stateDiagram-v2
 | 1 | RDRA の関連データ形式の列の仕様を、公式資料かサンプルで確認する（[Issue #3](https://github.com/kato0373i/sujigaki/issues/3)。[調査メモ](../research/rdra-related-data-format.md)にまとめた） | 開発 | 解決済み |
 | 2 | RDRA 2.0 の要素の一覧と表示名の対応を、公式資料と照合して確定する。alder の「活動」をアクティビティに当てる案を、架空の業務のサンプルで確かめる（[Issue #4](https://github.com/kato0373i/sujigaki/issues/4)。[調査メモ](../research/rdra-elements-and-labels.md)にまとめた） | 開発 | 解決済み |
 | 3 | 「内容の編集」（FR-013）とみなす変更の範囲。特に、つながりを追加・削除したとき、両端の要素を未レビューに戻すか（[Issue #5](https://github.com/kato0373i/sujigaki/issues/5)。関係の元の要素だけを戻すことにした） | 業務責任者・開発 | 解決済み |
-| 4 | サーバーモードのデータベース（RDS for PostgreSQL か DynamoDB か）（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)） | 開発 | 設計中 |
-| 5 | 監査ログと変更履歴の保持期間（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)） | 管理者 | 設計中 |
+| 4 | サーバーモードのデータベース（RDS for PostgreSQL か DynamoDB か）（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)。[設計書](../design/business-design-ssot.md)の ADR-001 で PostgreSQL に決めた） | 開発 | 解決済み |
+| 5 | 監査ログと変更履歴の保持期間（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)。[設計書](../design/business-design-ssot.md)の4章で、期限を設けずに残すことにした） | 管理者 | 解決済み |
 | 6 | 成功指標と、性能・可用性・コストの目標値（[Issue #7](https://github.com/kato0373i/sujigaki/issues/7)） | 開発 | プロトタイプの後 |
 | 7 | 公開リポジトリのライセンス（MIT に決定。2026-11-19） | 開発 | 解決済み |
-| 8 | ローカルモードで YAML ファイルを分割する単位（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)） | 開発 | 設計中 |
-| 9 | プロジェクトと、RDRA の「システム」の対応（1つのプロジェクトに1つのシステムとするか）（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)） | 開発 | 設計中 |
+| 8 | ローカルモードで YAML ファイルを分割する単位（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)。[設計書](../design/business-design-ssot.md)の ADR-006 で、業務と分類の単位に分けることにした） | 開発 | 解決済み |
+| 9 | プロジェクトと、RDRA の「システム」の対応（1つのプロジェクトに1つのシステムとするか）（[Issue #6](https://github.com/kato0373i/sujigaki/issues/6)。[設計書](../design/business-design-ssot.md)の7章で、1対1にすることにした） | 開発 | 解決済み |
 
 ## 10. 変更履歴
 
@@ -954,3 +954,4 @@ stateDiagram-v2
 | 2026-11-19 | 表示名の対応表を確定し、本文の呼び名をそろえた。要求と業務のつながりと、活動を分ける目安を追記した。未解決事項 #2 を解決済みにした | 開発 |
 | 2026-11-19 | FR-013 で未レビューに戻す変更の範囲を決め、未解決事項 #3 を解決済みにした | 開発 |
 | 2026-11-19 | レビューの指摘を反映し、ステータスを Approved にした。FR-060 に、最初のプロジェクトを作る手順を追記した | 開発 |
+| 2026-11-19 | 設計書へのリンクを加え、未解決事項 #4・#5・#8・#9 を設計書で解決済みにした | 開発 |
