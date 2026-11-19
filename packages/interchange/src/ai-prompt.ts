@@ -181,7 +181,7 @@ export function aiPrompt(input: {
     ),
   ];
   return [
-    `# 依頼\n\nシステム「${input.systemName}」の業務設計（RDRA のモデル）について、${AI_TEMPLATES[input.template].request}`,
+    `# 依頼\n\nシステム「${input.systemName}」の業務設計（RDRA のモデル）の一部を、「範囲の要素」の節に書きました。${AI_TEMPLATES[input.template].request}`,
     `# 規則\n\n${rules(new Set(scoped.map((e) => e.kind)))}`,
     `# 範囲の要素\n\n\`\`\`yaml\n${stringify({ elements: scoped.map(elementValue) }, { lineWidth: 0 })}\`\`\``,
     `# 未解決の問い\n\n${open.length > 0 ? open.map((q) => `- ${q}`).join("\n") : "ありません。"}`,
