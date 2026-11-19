@@ -153,6 +153,31 @@ const ENDPOINTS: readonly Endpoint[] = [
     permission: "configureProject",
     body: () => ({ summaryMaxLength: 200 }),
   },
+  {
+    method: "POST",
+    route: `${base}/restore`,
+    path: () => "/restore",
+    permission: "editElement",
+    // 要素があるプロジェクトのため、権限があれば PROJECT_NOT_EMPTY になる
+    body: () => ({
+      yaml: "format: sujigaki\nversion: 1\nproject:\n  name: a\n  systemName: b\n",
+    }),
+  },
+  {
+    method: "POST",
+    route: `${base}/change-sets`,
+    path: () => "/change-sets",
+    permission: "editElement",
+    body: () => ({
+      origin: { authorType: "ai", source: "AI 提案" },
+      changes: [
+        {
+          type: "add",
+          element: { id: "p9", kind: "actor", name: "提案の担当" },
+        },
+      ],
+    }),
+  },
 ];
 
 async function prepared() {
