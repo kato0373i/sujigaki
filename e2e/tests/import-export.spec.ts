@@ -1,0 +1,97 @@
+import { readFile } from "node:fs/promises";
+import AxeBuilder from "@axe-core/playwright";
+import { expect, type Page, test } from "@playwright/test";
+
+const screenshots = "e2e/.work/screenshots";
+
+async function exportYaml(page: Page): Promise<string> {
+  await page.goto("/#/io");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "YAML を書き出す" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("社内研修.sujigaki.yaml");
+  return readFile((await file.path()) ?? "", "utf8");
+}
+
+async function choose(page: Page, name: string, text: string) {
+  await page.getByLabel("読み込むファイル").setInputFiles({
+    name,
+    mimeType: "application/yaml",
+    buffer: Buffer.from(text),
+  });
+}
+
+// 取り込みはモデルを変えるため、順に動かす
+test.describe.configure({ mode: "serial" });
+
+test.describe("FR-050 YAML の読み込みと書き出し", () => {
+  test("モデル全体を YAML に書き出す", async ({ page }) => {
+    const yaml = await exportYaml(page);
+    expect(yaml).toContain("format: sujigaki");
+    expect(yaml).toContain("name: 研修に申し込む");
+  });
+
+  test("形式に合わないファイルは、行番号を付けて読み込まない", async ({
+    page,
+  }) => {
+    await page.goto("/#/io");
+    await choose(
+      page,
+      "broken.yaml",
+      "format: sujigaki\nversion: 1\nproject:\n  name: 研修\n",
+    );
+    await expect(page.getByRole("alert")).toContainText(
+      "ファイルの形式が正しくないため、読み込めません。",
+    );
+    await expect(page.getByRole("alert")).toContainText("4行目:");
+  });
+
+  test("書き出したファイルを直して読み込むと、差分を出して、採用した変更だけを反映する", async ({
+    page,
+  }) => {
+    const yaml = await exportYaml(page);
+    // ほかの E2E が確かめない要素だけを変える
+    const edited = yaml
+      .replace("name: 受講者\n", "name: 受講する人\n")
+      .replace("name: 請求\n", "name: 請求の管理\n");
+    await choose(page, "edited.yaml", edited);
+
+    const rows = page.locator(".diff-row");
+    await expect(rows).toHaveCount(2);
+    const actor = rows.filter({ hasText: "受講する人" });
+    await expect(actor).toContainText("変更");
+    await expect(actor.getByRole("row", { name: /名前/ })).toContainText(
+      "受講者",
+    );
+    const result = await new AxeBuilder({ page }).include(".io").analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await page.screenshot({ path: `${screenshots}/s-09-import-diff.png` });
+
+    // 片方だけを採用する
+    await rows
+      .filter({ hasText: "請求の管理" })
+      .getByRole("checkbox")
+      .uncheck();
+    await page
+      .getByRole("button", { name: "採用した変更を反映（1件）" })
+      .click();
+    await expect(page.getByRole("status")).toHaveText(
+      "1件の変更を反映しました。",
+    );
+
+    const snapshot = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    const names = snapshot.elements.map((e: { name: string }) => e.name);
+    expect(names).toContain("受講する人");
+    expect(names).toContain("請求");
+  });
+
+  test("今のモデルと違いがなければ、そのことを出す", async ({ page }) => {
+    const yaml = await exportYaml(page);
+    await choose(page, "same.yaml", yaml);
+    await expect(
+      page.getByText("今のモデルとの違いはありません。"),
+    ).toBeVisible();
+  });
+});
