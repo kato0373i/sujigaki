@@ -119,6 +119,23 @@ describe("FR-050 YAML を読み込む", () => {
     ]);
   });
 
+  it("ファイル名に使えない文字の ID は読み込まない", () => {
+    const text = `${header}elements:
+  - id: ../a1
+    kind: actor
+    name: 審査担当
+    createdAt: 2026-11-19T00:00:00.000Z
+    updatedAt: 2026-11-19T00:00:00.000Z
+`;
+    expect(issuesOf(text)).toEqual([
+      {
+        path: ["elements", 0, "id"],
+        line: 7,
+        message: "ID に使えるのは、英数字と「-」「_」だけです。",
+      },
+    ]);
+  });
+
   it("要素の種類がなければ、そのことを返す", () => {
     const text = `${header}elements:
   - id: x1

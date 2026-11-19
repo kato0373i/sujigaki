@@ -42,7 +42,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -156,7 +156,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -249,7 +249,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -342,7 +342,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -435,7 +435,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -528,7 +528,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -621,7 +621,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -714,7 +714,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -838,7 +838,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -931,7 +931,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1024,7 +1024,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1117,7 +1117,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1210,7 +1210,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1303,7 +1303,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1417,7 +1417,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1510,7 +1510,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1608,7 +1608,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1701,7 +1701,7 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[A-Za-z0-9_-]+$"
               },
               "kind": {
                 "type": "string",
@@ -1807,11 +1807,11 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[A-Za-z0-9_-]+$"
           },
           "elementId": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[A-Za-z0-9_-]+$"
           },
           "body": {
             "type": "string",
@@ -1874,7 +1874,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[A-Za-z0-9_-]+$"
           },
           "topic": {
             "type": "string",
@@ -1890,14 +1890,14 @@
           },
           "questionId": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[A-Za-z0-9_-]+$"
           },
           "elementIds": {
             "minItems": 1,
             "type": "array",
             "items": {
               "type": "string",
-              "minLength": 1
+              "pattern": "^[A-Za-z0-9_-]+$"
             }
           },
           "decidedBy": {
@@ -1926,7 +1926,7 @@
         "properties": {
           "bucId": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^[A-Za-z0-9_-]+$"
           },
           "version": {
             "type": "integer",
@@ -1980,7 +1980,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[A-Za-z0-9_-]+$"
         },
         "kind": {
           "type": "string",
@@ -2014,7 +2014,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[A-Za-z0-9_-]+$"
         },
         "type": {
           "type": "string",
@@ -2022,7 +2022,7 @@
         },
         "to": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[A-Za-z0-9_-]+$"
         }
       },
       "required": [

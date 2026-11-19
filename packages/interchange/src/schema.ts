@@ -15,7 +15,10 @@ import { FORMAT_VERSION } from "./document.ts";
  * 既定の値と同じ項目は書き出さないため、多くの項目を省略できる。
  */
 
-const id = z.string().min(1);
+/** ID はローカルモードのファイル名にも使うため、英数字と「-」「_」に限る（設計書 5.4 節） */
+const id = z.string().regex(/^[A-Za-z0-9_-]+$/, {
+  error: "ID に使えるのは、英数字と「-」「_」だけです。",
+});
 const text = z.string().trim().min(1);
 const userId = z.string().min(1);
 const timestamp = z.iso.datetime().meta({ id: "timestamp" });
