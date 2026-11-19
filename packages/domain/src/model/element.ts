@@ -4,7 +4,7 @@ import { fail, ok, type Result } from "../shared/result.ts";
 import type { EditedField, ElementEvent } from "./element-event.ts";
 import { ELEMENT_KIND_LABELS, type ElementKind } from "./element-kind.ts";
 import { findRelationType, resolveRelation } from "./relation-rule.ts";
-import type { ReviewState } from "./review-state.ts";
+import { checkReviewTransition, type ReviewState } from "./review-state.ts";
 
 export type ElementId = string & { readonly __brand: "ElementId" };
 export type RelationId = string & { readonly __brand: "RelationId" };
@@ -327,6 +327,28 @@ export class Element {
         true,
       ),
     );
+  }
+
+  /** 確認状態を変える。遷移とロールは要件定義書 7.1 節に従う（FR-030） */
+  changeReviewState(
+    to: ReviewState,
+    actor: Actor,
+    at: Date,
+  ): Result<ElementChange> {
+    const deleted = this.ensureNotDeleted();
+    if (!deleted.ok) return deleted;
+    const allowed = checkReviewTransition(this.state.reviewState, to, actor);
+    if (!allowed.ok) return allowed;
+    const event: ElementEvent = {
+      type: "ReviewStateChanged",
+      elementId: this.state.id,
+      occurredAt: at.toISOString(),
+      actorId: actor.userId,
+      from: this.state.reviewState,
+      to,
+      automatic: false,
+    };
+    return ok(this.apply({ reviewState: to }, actor, at, [event], false));
   }
 
   private relationEvent(
