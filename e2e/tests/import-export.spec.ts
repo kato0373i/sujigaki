@@ -95,3 +95,40 @@ test.describe("FR-050 YAML の読み込みと書き出し", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("FR-051 RDRA の関連データの書き出し", () => {
+  test("書き出す前に知らせることを出し、関連データをコピーとファイルで書き出す", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/#/io");
+    const section = page.getByRole("region", {
+      name: "RDRA の関連データの書き出し",
+    });
+    // 業務フローのない業務「請求」は、つながりがないため関連データに出てこない
+    await expect(section).toContainText(
+      "つながりがないため、関連データに出てこない要素",
+    );
+    await expect(section.getByRole("listitem")).toContainText(["業務 請求"]);
+    const result = await new AxeBuilder({ page }).include(".io").analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await section.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${screenshots}/s-09-related-data.png` });
+
+    await section.getByRole("button", { name: "関連データをコピー" }).click();
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    const lines = copied.split("\n");
+    expect(lines[0]).toBe("研修管理システム");
+    expect(lines).toContain(
+      "#child\t業務\tBUC\t研修@@研修の受講申込//研修@@受講の取り消し",
+    );
+    expect(copied).not.toContain("研修の申込をかんたんにしたい");
+
+    const download = page.waitForEvent("download");
+    await section.getByRole("button", { name: "ファイルに書き出す" }).click();
+    const file = await download;
+    expect(file.suggestedFilename()).toBe("社内研修.rdra.tsv");
+    expect(await readFile((await file.path()) ?? "", "utf8")).toBe(copied);
+  });
+});
