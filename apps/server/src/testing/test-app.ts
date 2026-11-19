@@ -1,12 +1,18 @@
 import { fail } from "@sujigaki/domain";
 import { z } from "zod";
 import { createApp, type Logger } from "../app.ts";
+import { localActorResolver } from "../auth/actor-resolver.ts";
 import { REQUEST_HEADER } from "../http/csrf.ts";
 import { readBody, unwrapOrThrow } from "../http/validation.ts";
+import { MemoryProjectRepository } from "../repository/memory-project-repository.ts";
 
 /** 共通の処理を確かめるための、テスト用のルートを足したアプリ */
 export function appWithTestRoutes(logger?: Logger) {
-  const app = createApp(logger ? { logger } : {});
+  const app = createApp({
+    projects: new MemoryProjectRepository(),
+    actors: localActorResolver,
+    ...(logger && { logger }),
+  });
   app.get("/api/test/last-admin", () =>
     unwrapOrThrow(fail("LAST_ADMIN", "管理者が1人以上必要です。")),
   );
