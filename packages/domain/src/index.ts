@@ -1,4 +1,7 @@
 export * from "./access/role.ts";
+export * from "./deliberation/comment.ts";
+export * from "./deliberation/decision.ts";
+export * from "./deliberation/question.ts";
 export * from "./model/attributes.ts";
 export * from "./model/element.ts";
 export * from "./model/element-event.ts";
@@ -8,3 +11,4 @@ export * from "./model/relation-type.ts";
 export * from "./model/review-state.ts";
 export * from "./shared/json.ts";
 export * from "./shared/result.ts";
+export * from "./shared/text.ts";

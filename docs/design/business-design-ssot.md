@@ -137,7 +137,7 @@ graph LR
 | 図の配置 | `Layout` | 要素ごとの位置（VO） | 1つの業務フローに1つだけ |
 | プロジェクト | `Project` | 設定（VO。システム名、要約の上限） | 要約の上限は1以上 |
 | 問い | `Question` | 推奨案（VO）、回答（VO） | 状態の遷移は要件定義書 7.2 節に従う |
-| 決定記録 | `Decision` | 関係する要素の ID（VO） | 結論と理由が空でない |
+| 決定記録 | `Decision` | 関係する要素の ID（VO） | 結論と理由が空でない。関係する要素が1つ以上ある |
 | コメント | `Comment` | なし | 本文が空でない |
 | メンバー構成 | `ProjectMembers` | メンバー（エンティティ）、招待（エンティティ）、ロール（VO） | 管理者が1人以上いる。1人の利用者が持つロールは1つ |
 | 利用者 | `User` | なし | ID プロバイダーと利用者の識別子の組が一意 |
@@ -166,7 +166,7 @@ FR-035 の問いは検証（FR-040）と同じく、モデルから毎回計算�
 | `ElementDeleted` | 要素を論理削除した | モデル（切れたつながりの元の要素を未レビューに戻す）、変更記録 |
 | `ElementRestored` / `ElementPurged` | 要素を復元した／完全に削除した | 変更記録 |
 | `LayoutChanged` | 図の配置を保存した | 変更記録 |
-| `QuestionAsked` / `QuestionAnswered` / `QuestionResolved` / `QuestionWithdrawn` | 問いを作成した、回答した、解決した、取り下げた | 変更記録 |
+| `QuestionAsked` / `QuestionAnswered` / `QuestionAnswerRetracted` / `QuestionResolved` / `QuestionWithdrawn` | 問いを作成した、回答した、回答を取り消した、解決した、取り下げた | 変更記録 |
 | `DecisionRecorded` | 決定を記録した | 変更記録 |
 | `MemberInvited` / `MemberRoleChanged` / `MemberRemoved` | 招待した、ロールを変えた、除外した | 変更記録 |
 
@@ -727,3 +727,4 @@ sequenceDiagram
 | 2026-11-19 | 初版を作成 | 開発 |
 | 2026-11-19 | 表示の設定を保存するテーブルと API を追加した | 開発 |
 | 2026-11-19 | エラーコードに ELEMENT_DELETED を追加した | 開発 |
+| 2026-11-19 | 問いの回答を取り消すイベントと、決定記録の不変条件を追加した | 開発 |
