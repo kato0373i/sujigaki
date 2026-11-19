@@ -95,6 +95,7 @@ function toSnapshot(
     summary: input.summary ?? "",
     attributes: (input.attributes ?? {}) as ElementSnapshot["attributes"],
     reviewState: base?.reviewState ?? "unreviewed",
+    reviewedHash: base?.reviewedHash ?? null,
     authorType: base?.authorType ?? "human",
     source: base?.source ?? null,
     version: base?.version ?? 1,

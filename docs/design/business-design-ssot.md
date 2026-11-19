@@ -253,6 +253,7 @@ ID は、プロジェクトと利用者は UUID、それ以外は ULID（26文�
 | summary | text | NOT NULL, DEFAULT ''。上限を超えても保存できる（FR-005） |
 | attributes | jsonb | NOT NULL, DEFAULT '{}'。種類ごとの属性（ADR-005） |
 | review_state | text | NOT NULL, CHECK (review_state IN ('unreviewed', 'needs_check', 'needs_fix', 'approved')) |
+| reviewed_hash | text | NULL。確認状態を変えたときの内容のハッシュ（FR-041）。未レビューに戻ると空にする |
 | author_type | text | NOT NULL, CHECK (author_type IN ('human', 'ai', 'import')) |
 | source | text | NULL。出所（「AI 提案」「RDRA 読み込み」と、取り込みの日時） |
 | version | integer | NOT NULL, DEFAULT 1。楽観ロックのバージョン（FR-070） |
@@ -562,6 +563,7 @@ elements:
     attributes:
       mode: system
     reviewState: approved
+    reviewedHash: 3f9c0a1b2d4e5f   # 確認状態を変えたときの内容のハッシュ（FR-041）
     authorType: human
     relations:
       - id: r1
@@ -577,6 +579,7 @@ layouts: []
 
 - 既定の値と同じ項目（空の要約、空の属性、つながりのない要素の `relations` など）は書き出さず、読み込むときに既定の値で補う。
 - つながりは種類と先の要素の ID で書き、先の要素の種類は種類から求める。
+- `reviewedHash` は、確認状態を未レビュー以外に変えたときに、内容（名前・要約・属性・つながりの種類と先）から求めて記録する。読み込んだ今の内容から求めた値と違えば、検証（FR-041）で「確認したあとに内容が変わった」と知らせる。手で書き換えれば一致させられるため、うっかりの変更を見つけるための値であり、改ざんは防がない。外部リンクは確認状態を戻さない（FR-013）ため、ハッシュに含めない。ブラウザとサーバーの両方で同じ値を求めるため、暗号用ではない53ビットのハッシュを16進数で書く。
 - 削除済みの要素も `deletedAt` を付けて書き出す。ローカルモードで、削除済みの一覧から復元できるようにするためである。
 - 読み込むときは、スキーマに加えて、ID の重なりと、元の要素の種類が持てないつながりを確かめる。合わない箇所は YAML の中の位置と行番号を付けてすべて返し、モデルは変えない。先の要素がないつながりは拒否せず、検証（FR-040）で知らせる。
 - 対応しているより新しいバージョンの形式は読み込まず、sujigaki の更新を促す。形式を変えるときはバージョンを上げ、古いバージョンを変換する処理を足す。古いバージョンのファイルはテストのデータとして `packages/interchange/fixtures/` に残す。
@@ -827,6 +830,7 @@ sequenceDiagram
 | FR-034 | §5 `change-sets`、§5.6、§5.7、§6.2 | |
 | FR-035 | §3 未解決の問いの自動作成 | |
 | FR-040 | §1.2 `packages/domain`、§5 ブラウザでの検証 | |
+| FR-041 | §3 `reviewed_hash`、§5.5 `reviewedHash` | |
 | FR-050 | §5 `change-sets`・`restore`・`PROJECT_NOT_EMPTY`、§5.4、§5.5、§5.6 | |
 | FR-051 | §1.2 `packages/interchange`、§3 つながりの種類 | |
 | FR-052 | §5 `change-sets` | |
@@ -888,3 +892,4 @@ sequenceDiagram
 | 2026-11-20 | 削除済みの要素の一覧の API の応答を 5.1 節に書いた | 開発 |
 | 2026-11-20 | 完全に削除したときに、ほかの要素からのつながりを外すことを 5.1 節に書いた | 開発 |
 | 2026-11-20 | 変更の取り出し（`GET /changes`）の応答と、ローカルモードの外の変更の記録を書いた | 開発 |
+| 2026-11-20 | 確認したときの内容のハッシュ（FR-041）を3章と5.5 節に追加した | 開発 |

@@ -49,6 +49,14 @@ function elementSchemaOf(kind: (typeof ELEMENT_KINDS)[number]) {
     summary: z.string().optional(),
     attributes: ATTRIBUTE_SCHEMAS[kind].optional(),
     reviewState: z.enum(REVIEW_STATES).optional(),
+    reviewedHash: z
+      .string()
+      .regex(/^[0-9a-f]{1,16}$/)
+      .optional()
+      .meta({
+        description:
+          "確認状態を変えたときの内容のハッシュ（FR-041）。ツールが書く値で、手で書き換えない",
+      }),
     authorType: z.enum(AUTHOR_TYPES).optional(),
     source: text.optional(),
     links: z.array(linkSchema).optional(),

@@ -239,6 +239,7 @@ function elementToYaml(e: ElementSnapshot) {
     ...(e.summary !== "" && { summary: e.summary }),
     ...(Object.keys(e.attributes).length > 0 && { attributes: e.attributes }),
     reviewState: e.reviewState,
+    ...optional("reviewedHash", e.reviewedHash),
     authorType: e.authorType,
     ...optional("source", e.source),
     ...(e.links.length > 0 && {
@@ -311,6 +312,7 @@ function fromParsed(data: Parsed): ProjectDocument {
         summary: e.summary ?? "",
         attributes: (e.attributes ?? {}) as ElementSnapshot["attributes"],
         reviewState: e.reviewState ?? "unreviewed",
+        reviewedHash: e.reviewedHash ?? null,
         authorType: e.authorType ?? "human",
         source: e.source ?? null,
         version: e.version ?? 1,

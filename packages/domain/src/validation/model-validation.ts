@@ -1,3 +1,4 @@
+import { contentHash } from "../model/content-hash.ts";
 import type {
   ElementId,
   ElementSnapshot,
@@ -5,8 +6,9 @@ import type {
 } from "../model/element.ts";
 import type { ElementKind } from "../model/element-kind.ts";
 
-/** 検証の規則（要件定義書 FR-040）。並び順は一覧での表示の順 */
+/** 検証の規則（要件定義書 FR-040、FR-041）。並び順は一覧での表示の順 */
 export const VALIDATION_RULES = [
+  "changedAfterReview",
   "brokenRelation",
   "businessWithoutRequirement",
   "systemActivityWithoutUsecase",
@@ -20,6 +22,7 @@ export type ValidationRule = (typeof VALIDATION_RULES)[number];
 
 export const VALIDATION_RULE_LABELS: Readonly<Record<ValidationRule, string>> =
   {
+    changedAfterReview: "確認したあとに内容が変わった",
     brokenRelation: "つながりが切れている",
     businessWithoutRequirement: "要求につながっていない",
     systemActivityWithoutUsecase: "システム操作につながっていない",
@@ -52,6 +55,7 @@ export function validateModel(
 ): Violation[] {
   const model = new ModelIndex(elements);
   const violations = [
+    ...changedAfterReview(model),
     ...brokenRelations(model),
     ...missingConnections(model),
     ...summariesTooLong(model, options.summaryMaxLength),
@@ -144,6 +148,26 @@ function missingConnections(model: ModelIndex): Violation[] {
         message: rule.message,
       })),
   );
+}
+
+/**
+ * 確認状態を変えたときの内容と、今の内容が違う要素（FR-041）。
+ * ツールで編集すれば未レビューに戻るため、ファイルを直接書き換えたときに見つかる
+ */
+function changedAfterReview(model: ModelIndex): Violation[] {
+  return model.active
+    .filter(
+      (e) =>
+        e.reviewState !== "unreviewed" &&
+        e.reviewedHash !== null &&
+        e.reviewedHash !== contentHash(e),
+    )
+    .map((e) => ({
+      rule: "changedAfterReview" as const,
+      elementId: e.id,
+      message:
+        "確認したあとに、ツールの外で内容が変わっています。内容を確かめ直してください。",
+    }));
 }
 
 function brokenRelations(model: ModelIndex): Violation[] {

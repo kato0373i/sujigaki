@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { contentHash } from "../model/content-hash.ts";
 import type { ElementSnapshot } from "../model/element.ts";
 import {
   AT,
@@ -123,5 +124,40 @@ describe("FR-040 つながりの抜け", () => {
     expect(rules([business, removedRequirement])).toEqual([
       ["businessWithoutRequirement", "biz"],
     ]);
+  });
+});
+
+describe("FR-041 確認したあとに内容が変わった要素", () => {
+  const reviewed = (overrides: Partial<ElementSnapshot> = {}) => {
+    const actor = element("u1", "actor", {
+      reviewState: "approved",
+      ...overrides,
+    });
+    return { ...actor, reviewedHash: contentHash(element("u1", "actor")) };
+  };
+
+  it("記録したハッシュと今の内容が違えば、違反にする", () => {
+    const violations = validateModel(
+      [reviewed({ name: "受付担当" })],
+      options,
+    ).filter((v) => v.rule === "changedAfterReview");
+    expect(violations).toEqual([expect.objectContaining({ elementId: "u1" })]);
+  });
+
+  it("内容が同じなら違反にしない。ハッシュがない要素と未レビューの要素も違反にしない", () => {
+    const rules = (elements: ElementSnapshot[]) =>
+      validateModel(elements, options).map((v) => v.rule);
+    expect(rules([reviewed()])).not.toContain("changedAfterReview");
+    expect(
+      rules([element("u2", "actor", { reviewState: "approved", name: "x" })]),
+    ).not.toContain("changedAfterReview");
+    expect(
+      rules([
+        {
+          ...reviewed({ name: "受付担当" }),
+          reviewState: "unreviewed",
+        },
+      ]),
+    ).not.toContain("changedAfterReview");
   });
 });

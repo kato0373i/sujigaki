@@ -113,6 +113,9 @@ export function elementOf(
         updatedBy: userId,
         deletedAt: fc.option(timestamp, { nil: null }),
         deletedBy: userId,
+        reviewedHash: fc.option(fc.stringMatching(/^[0-9a-f]{14}$/), {
+          nil: null,
+        }),
       });
     })
     .map(

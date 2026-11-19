@@ -6,6 +6,7 @@ export * from "./deliberation/comment.ts";
 export * from "./deliberation/decision.ts";
 export * from "./deliberation/question.ts";
 export * from "./model/attributes.ts";
+export * from "./model/content-hash.ts";
 export * from "./model/element.ts";
 export * from "./model/element-event.ts";
 export * from "./model/element-kind.ts";
