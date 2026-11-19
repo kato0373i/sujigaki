@@ -701,8 +701,8 @@ sequenceDiagram
 |---|---|---|---|
 | 1 | 月額費用の試算と、NFR-018 の目標値（[Issue #7](https://github.com/kato0373i/sujigaki/issues/7)） | 開発 | プロトタイプの後 |
 | 2 | 関連データの形式を、定義・分析シートの実データで確かめる（[Issue #10](https://github.com/kato0373i/sujigaki/issues/10)） | 開発 | FR-051・FR-052 の実装時 |
-| 3 | 画面の設計（レイアウト、操作の流れ、NFR-017 の表現） | 開発 | 実装の開始前 |
-| 4 | Cognito と Keycloak の違い（トークンの項目、ログアウトの方法）を、AWS の検証環境で確かめる | 開発 | サーバーモードの公開前 |
+| 3 | 画面の設計（レイアウト、操作の流れ、NFR-017 の表現）（[Issue #16](https://github.com/kato0373i/sujigaki/issues/16)） | 開発 | 実装の開始前 |
+| 4 | Cognito と Keycloak の違い（トークンの項目、ログアウトの方法）を、AWS の検証環境で確かめる（[Issue #17](https://github.com/kato0373i/sujigaki/issues/17)） | 開発 | サーバーモードの公開前 |
 
 ## 10. 変更履歴
 
