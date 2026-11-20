@@ -74,3 +74,48 @@ test.describe("FR-020 業務一覧から業務フローを開く", () => {
     }
   });
 });
+
+test.describe("#144 #158 業務フローのレーン", () => {
+  test("幅が狭く、詳細パネルを開いても、レーンの名前が見え、カードと重ならない", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto("/#/flows/buc-cancel");
+    await page
+      .getByTestId("activity-card")
+      .filter({ hasText: "取り消しを申し出る" })
+      .click();
+    await expect(
+      page.getByRole("complementary", { name: "要素の詳細" }),
+    ).toBeVisible();
+    const canvas = await page.locator(".flow-canvas").boundingBox();
+    const label = page.locator(".lane-name").first();
+    await expect(label).toBeVisible();
+    await expect
+      .poll(async () => {
+        const box = await label.boundingBox();
+        const cards = await page.getByTestId("activity-card").all();
+        const lefts = await Promise.all(
+          cards.map(async (c) => (await c.boundingBox())?.x ?? 0),
+        );
+        // 名前は枠の左端にあり、どのカードも名前より右にある
+        return (
+          box !== null &&
+          canvas !== null &&
+          Math.abs(box.x - canvas.x) < 4 &&
+          lefts.every((x) => x >= box.x + box.width)
+        );
+      })
+      .toBe(true);
+  });
+
+  test("担当者のいない活動がなければ、「担当者が未設定」のレーンを出さない", async ({
+    page,
+  }) => {
+    await page.goto("/#/flows/buc-cancel");
+    await expect(page.getByTestId("activity-card").first()).toBeVisible();
+    await expect(
+      page.locator(".lane-name", { hasText: "担当者が未設定" }),
+    ).toHaveCount(0);
+  });
+});
