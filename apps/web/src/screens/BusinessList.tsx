@@ -253,9 +253,14 @@ function AddForm({
 }) {
   const [name, setName] = useState(initial ?? "");
   const input = useRef<HTMLInputElement>(null);
+  // 押して開いた欄なら、開いたときに1回だけ入力にフォーカスを移す。
+  // 名前を変えるときは、今の名前を選んで、すぐ打ち直せるようにする（#150）
+  const opened = onCancel !== undefined;
   useEffect(() => {
-    if (onCancel) input.current?.focus();
-  }, [onCancel]);
+    if (!opened) return;
+    input.current?.focus();
+    input.current?.select();
+  }, [opened]);
   const add = async (event: FormEvent) => {
     event.preventDefault();
     if (name.trim() === "") return;
