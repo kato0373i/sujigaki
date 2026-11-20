@@ -31,6 +31,8 @@ type Proposal =
   | { readonly state: "invalid"; readonly issues: readonly ReadIssue[] }
   | {
       readonly state: "ready";
+      /** 提案の要素。新しい要素の名前を引くのに使う（#116） */
+      readonly elements: readonly ElementSnapshot[];
       readonly diff: ImportDiff;
       readonly questions: readonly ProposedQuestion[];
       readonly violations: readonly Violation[];
@@ -244,6 +246,7 @@ function ProposalTab({
     }).filter((v) => proposedIds.has(v.elementId));
     setProposal({
       state: "ready",
+      elements: read.elements,
       diff: diffElements(snapshot.elements, read.elements, {
         removeMissing: false,
       }),
@@ -276,7 +279,12 @@ function ProposalTab({
     }
   };
 
-  const names = new Map(snapshot.elements.map((e) => [e.id as string, e.name]));
+  // 提案の中の新しい要素も ID でなく名前で出す（#116）
+  const known = [
+    ...snapshot.elements,
+    ...(proposal.state === "ready" ? proposal.elements : []),
+  ];
+  const names = new Map(known.map((e) => [e.id as string, e.name]));
 
   return (
     <div className="io-section" role="tabpanel" aria-label="提案を取り込む">
@@ -335,7 +343,7 @@ function ProposalTab({
           )}
           <ImportDiffView
             diff={proposal.diff}
-            known={snapshot.elements}
+            known={known}
             busy={busy}
             onApply={(adopted) =>
               run(
