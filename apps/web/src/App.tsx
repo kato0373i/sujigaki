@@ -34,7 +34,7 @@ import { ProjectSettingsScreen } from "./screens/ProjectSettingsScreen.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 import { StateDiagramScreen } from "./screens/StateDiagram.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
-import { rememberElements, undoable } from "./undo-store.ts";
+import { knownElement, rememberElements, undoable } from "./undo-store.ts";
 
 /** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
 const LOCAL_ACTOR: Actor = { userId: null, role: "admin" };
@@ -433,7 +433,7 @@ function FlowScreen({
     view && can(LOCAL_ACTOR, "editElement")
       ? {
           // 活動を作り、業務フローの子にして、レーンの担当者につなぐ
-          onAdd: async (actorId, name, newActor) => {
+          onAdd: async (actorId, name, newActor, after) => {
             const added = await attempt(async () => {
               const created = await createElement(LOCAL_PROJECT_ID, {
                 kind: "activity",
@@ -450,7 +450,12 @@ function FlowScreen({
                   ).id
                 : actorId;
               if (actor) await addRelation(LOCAL_PROJECT_ID, created, actor);
-              return { actorId: actor };
+              // 直前の活動の次に続ける（#147）。次の活動へのつながりは、前の活動が持つ
+              // 続けて足したときは画面の要素がまだ古いため、操作で覚えた最新の要素を使う
+              const previous = after ? knownElement(after) : null;
+              if (previous)
+                await addRelation(LOCAL_PROJECT_ID, previous, created.id);
+              return { actorId: actor, activityId: created.id };
             });
             return added ?? { failed: true as const };
           },

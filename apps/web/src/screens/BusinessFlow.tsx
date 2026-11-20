@@ -208,13 +208,18 @@ export interface FlowEditing {
   /**
    * 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null。
    * newActor を渡したときは、その名前の登場人物を作って担当者にする（#118）。
-   * 足せたら担当者の ID を、足せなかったら failed を返す
+   * after を渡したときは、その活動の次に続ける（#147）。
+   * 足せたら担当者と活動の ID を、足せなかったら failed を返す
    */
   readonly onAdd: (
     actorId: string | null,
     name: string,
     newActor?: string,
-  ) => Promise<{ readonly actorId: string | null } | { readonly failed: true }>;
+    after?: string | null,
+  ) => Promise<
+    | { readonly actorId: string | null; readonly activityId: string }
+    | { readonly failed: true }
+  >;
   /** カードを横に動かした */
   readonly onMove: (elementId: string, x: number) => void;
   /** カードの端から別のカードへつないだ */
@@ -339,7 +344,7 @@ export function BusinessFlow({
       <h1>業務フロー: {view.buc.name}</h1>
       {editing && (
         <div className="flow-tools">
-          <AddActivityForm lanes={view.lanes} onAdd={editing.onAdd} />
+          <AddActivityForm view={view} onAdd={editing.onAdd} />
           <button
             type="button"
             className="relayout"
@@ -413,13 +418,35 @@ export function BusinessFlow({
   );
 }
 
+/**
+ * 次に足す活動を続ける先。直前に足した活動があればそれを、なければ流れの最後の活動を選ぶ。
+ * 流れの最後は、次の活動のない活動のうち、いちばん右のもの
+ */
+function previousActivity(view: BusinessFlowView, lastAdded: string | null) {
+  const added = view.cards.find((c) => c.element.id === lastAdded);
+  if (added) return added.element;
+  const ends = view.cards.filter(
+    (c) => !view.edges.some((e) => e.from === c.element.id),
+  );
+  return (
+    [...(ends.length > 0 ? ends : view.cards)].sort(
+      (a, b) => b.position.x - a.position.x,
+    )[0]?.element ?? null
+  );
+}
+
 function AddActivityForm({
-  lanes,
+  view,
   onAdd,
 }: {
-  lanes: BusinessFlowView["lanes"];
+  view: BusinessFlowView;
   onAdd: FlowEditing["onAdd"];
 }) {
+  const lanes = view.lanes;
+  // 足した活動を、直前の活動の次に続ける（#147）
+  const [follow, setFollow] = useState(true);
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const previous = previousActivity(view, lastAdded);
   // レーンは担当者の ID で覚える。担当者が増えるとレーンの順が変わるため、番号では覚えない（#143）
   const [chosen, setChosen] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -440,13 +467,15 @@ function AddActivityForm({
     const submitted = name.trim();
     const newActor = creatingActor ? actorName.trim() : undefined;
     const actorId = lanes.find((l) => laneKey(l) === lane)?.actorId ?? null;
+    const after = follow ? (previous?.id ?? null) : null;
     setName("");
     const next = queue.current.then(async () => {
-      const result = await onAdd(actorId, submitted, newActor);
+      const result = await onAdd(actorId, submitted, newActor, after);
       if ("failed" in result) {
         setName((current) => (current === "" ? submitted : current));
         return;
       }
+      setLastAdded(result.activityId);
       if (newActor !== undefined) {
         // 作った担当者を選んだままにして、続けて足せるようにする（#143）
         setActorName("");
@@ -485,6 +514,16 @@ function AddActivityForm({
       <button type="submit" disabled={!ready}>
         ＋ 活動を追加
       </button>
+      {previous && (
+        <label className="follow">
+          <input
+            type="checkbox"
+            checked={follow}
+            onChange={(e) => setFollow(e.target.checked)}
+          />{" "}
+          「{previous.name}」の次に続ける
+        </label>
+      )}
       <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>
     </form>
   );
