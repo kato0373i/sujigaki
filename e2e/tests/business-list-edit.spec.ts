@@ -13,6 +13,8 @@ test.describe("#124 業務一覧で名前を変え、削除する", () => {
     const row = page.locator(".business-row", { hasText: "仮の業務" });
     await expect(row).toBeVisible();
 
+    // 名前の変更と削除は、カードのメニューから選ぶ（#159）
+    await row.getByLabel("業務「仮の業務」の操作").click();
     await row
       .getByRole("button", { name: "業務「仮の業務」の名前を変える" })
       .click();
@@ -27,8 +29,8 @@ test.describe("#124 業務一覧で名前を変え、削除する", () => {
     await expect(
       renamed.getByRole("heading", { name: "試しの業務" }),
     ).toBeVisible();
+    await renamed.getByLabel("業務「試しの業務」の操作").click();
     await page.screenshot({ path: `${screenshots}/s-03-edit.png` });
-
     await renamed
       .getByRole("button", { name: "業務「試しの業務」を削除" })
       .click();
