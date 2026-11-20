@@ -110,7 +110,7 @@ questions:
       source: "AI 提案",
       reviewState: "unreviewed",
     });
-    // 仮の ID は、取り込むときに付け替える（#110）
+    // 仮の ID は取り込むときに付け替える（#110）
     expect(accounting.id).not.toMatch(/^new-/);
     expect(
       snapshot.questions.find(
