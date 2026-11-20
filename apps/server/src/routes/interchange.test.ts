@@ -294,6 +294,33 @@ describe("FR-034 FR-050 変更の一式を反映する", () => {
     expect(missingRemove.status).toBe(404);
   });
 
+  it("#130 追加を含まなければ origin を省ける。追加を含むのに origin がなければ反映しない", async () => {
+    const { call } = await restored();
+    const updated = await call("POST", "/change-sets", {
+      body: {
+        changes: [
+          {
+            type: "update",
+            baseVersion: 1,
+            element: elementOf(activity, { name: "確認する" }),
+          },
+        ],
+      },
+    });
+    expect(updated.status).toBe(200);
+    const added = await call("POST", "/change-sets", {
+      body: {
+        changes: [
+          {
+            type: "add",
+            element: { id: "p1", kind: "actor", name: "新しい担当" },
+          },
+        ],
+      },
+    });
+    expect(added.status).toBe(400);
+  });
+
   it("1回の反映の操作の記録には、同じ変更の一式の ID を付ける", async () => {
     const { call, projects } = await restored();
     await call("POST", "/change-sets", {

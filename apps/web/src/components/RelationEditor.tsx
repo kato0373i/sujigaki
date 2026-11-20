@@ -7,6 +7,7 @@ import {
   relationCandidates,
   relationRows,
 } from "../model/relation-editor.ts";
+import { undoable } from "../undo-store.ts";
 
 /**
  * 詳細パネルのつながり（画面設計書 P-01）。つながりを外し、「＋ つなぐ」でつなげる種類の要素だけを探してつなぐ。
@@ -40,7 +41,8 @@ export function RelationEditor({
   const run = async (task: () => Promise<unknown>) => {
     onError(null);
     try {
-      await task();
+      // 要素を作ってつなぐ操作は、まとめて元に戻せるようにする（FR-014）
+      await undoable(task);
       setAdding(false);
       setQuery("");
       onChanged();

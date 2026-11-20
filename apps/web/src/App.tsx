@@ -12,6 +12,7 @@ import {
 import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { ElementPanel } from "./components/ElementPanel.tsx";
 import { SearchBox } from "./components/SearchBox.tsx";
+import { UndoControl } from "./components/UndoControl.tsx";
 import { UpdateBanner, useUpdateNotice } from "./components/UpdateNotice.tsx";
 import {
   autoPositions,
@@ -33,6 +34,7 @@ import { ProjectSettingsScreen } from "./screens/ProjectSettingsScreen.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 import { StateDiagramScreen } from "./screens/StateDiagram.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
+import { rememberElements, undoable } from "./undo-store.ts";
 
 /** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
 const LOCAL_ACTOR: Actor = { userId: null, role: "admin" };
@@ -96,6 +98,10 @@ export function App() {
     snapshot?.revision ?? null,
     LOCAL_ACTOR,
   );
+  // 変更の一式を反映したときに、操作の前の要素として使う（FR-014）
+  useEffect(() => {
+    if (snapshot) rememberElements(snapshot.elements);
+  }, [snapshot]);
   const showsPanel =
     route.screen === "flow" ||
     route.screen === "board" ||
@@ -139,6 +145,13 @@ export function App() {
                   navigate(hrefOf({ screen: "chain", originId: elementId }));
               })
             }
+          />
+        )}
+        {snapshot && (
+          <UndoControl
+            projectId={LOCAL_PROJECT_ID}
+            confirmFirst={confirmFirst}
+            onChanged={reload}
           />
         )}
         {notice && (
@@ -406,7 +419,8 @@ function FlowScreen({
   const attempt = async (task: () => Promise<unknown>) => {
     setError(null);
     try {
-      await task();
+      // 活動を作ってつなぐなど、1回の操作で行った変更をまとめて元に戻せるようにする（FR-014）
+      await undoable(task);
     } catch (problem) {
       setError((problem as Error).message);
     } finally {

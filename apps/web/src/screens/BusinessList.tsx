@@ -12,6 +12,7 @@ import { ReviewStateMark } from "../components/status.tsx";
 import type { BusinessRow } from "../model/business-list.ts";
 import { connectedElements } from "../model/relation-editor.ts";
 import { hrefOf } from "../route.ts";
+import { undoable } from "../undo-store.ts";
 
 /**
  * S-03 業務一覧。業務ごとに業務フローと、確認状態ごとの要素の数を出す。
@@ -38,7 +39,8 @@ export function BusinessList({
   const attempt = async (task: () => Promise<unknown>) => {
     setError(null);
     try {
-      await task();
+      // 業務フローを作ってつなぐなど、1回の操作で行った変更をまとめて元に戻せるようにする（FR-014）
+      await undoable(task);
       return true;
     } catch (problem) {
       setError((problem as Error).message);
