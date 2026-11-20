@@ -1,4 +1,8 @@
-import { type ElementSnapshot, REVIEW_STATES } from "@sujigaki/domain";
+import {
+  type ElementSnapshot,
+  REVIEW_STATES,
+  type ReviewState,
+} from "@sujigaki/domain";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import {
   addRelation,
@@ -96,34 +100,38 @@ export function BusinessList({
                   <h2>{row.business?.name ?? "業務に属さない業務フロー"}</h2>
                 )}
                 {canEdit && row.business && renaming !== row.business.id && (
-                  <span className="business-actions">
-                    <button
-                      type="button"
-                      className="link"
-                      aria-label={`業務「${row.business.name}」の名前を変える`}
-                      onClick={() => setRenaming(row.business?.id ?? null)}
-                    >
-                      名前を変える
-                    </button>
-                    <button
-                      type="button"
-                      className="link danger"
-                      aria-label={`業務「${row.business.name}」を削除`}
-                      onClick={() => setRemoving(row.business)}
-                    >
-                      削除
-                    </button>
-                  </span>
+                  // 名前の変更と削除は、目立たないようにメニューにまとめる（#159）
+                  <details className="row-menu">
+                    <summary aria-label={`業務「${row.business.name}」の操作`}>
+                      …
+                    </summary>
+                    <div className="row-menu-items">
+                      <button
+                        type="button"
+                        aria-label={`業務「${row.business.name}」の名前を変える`}
+                        onClick={(event) => {
+                          closeMenu(event.currentTarget);
+                          setRenaming(row.business?.id ?? null);
+                        }}
+                      >
+                        名前を変える
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        aria-label={`業務「${row.business.name}」を削除`}
+                        onClick={(event) => {
+                          closeMenu(event.currentTarget);
+                          setRemoving(row.business);
+                        }}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </details>
                 )}
-                <ul className="counts" aria-label="確認状態ごとの要素の数">
-                  {REVIEW_STATES.map((state) => (
-                    <li key={state}>
-                      <ReviewStateMark state={state} />
-                      <span className="count">{row.counts[state]}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
+              <ReviewProgress counts={row.counts} />
               {row.flows.length === 0 ? (
                 <p className="empty">業務フローがありません。</p>
               ) : (
@@ -133,6 +141,9 @@ export function BusinessList({
                       <a href={hrefOf({ screen: "flow", bucId: flow.id })}>
                         {flow.name}
                       </a>
+                      <span className="muted flow-size">
+                        活動 {row.activities[flow.id] ?? 0}
+                      </span>
                       {canEdit && !row.business && (
                         // 業務に属さない業務フローは、ここで業務に入れる（#149）
                         <select
@@ -195,6 +206,58 @@ export function BusinessList({
         </ConfirmDialog>
       )}
     </section>
+  );
+}
+
+/** メニューの操作を選んだら、メニューを閉じる */
+function closeMenu(button: HTMLElement) {
+  const menu = button.closest("details");
+  if (menu) menu.open = false;
+}
+
+/** 表示の順。確認済みを左に置き、進み具合として読めるようにする */
+const PROGRESS_ORDER: readonly ReviewState[] = [
+  "approved",
+  "needs_check",
+  "needs_fix",
+  "unreviewed",
+];
+
+/**
+ * 確認の進み具合（#159）。確認状態ごとの割合を帯で示し、確認済みの数と、0でない確認状態の数を文字でも出す（NFR-017）
+ */
+function ReviewProgress({
+  counts,
+}: {
+  counts: Readonly<Record<ReviewState, number>>;
+}) {
+  const total = REVIEW_STATES.reduce((sum, s) => sum + counts[s], 0);
+  if (total === 0) return null;
+  return (
+    <div className="review-progress">
+      <div className="progress-bar" aria-hidden="true">
+        {PROGRESS_ORDER.filter((s) => counts[s] > 0).map((state) => (
+          <span
+            key={state}
+            className={`progress-${state}`}
+            style={{ width: `${(counts[state] / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <span className="progress-text">
+        確認済み {counts.approved} / {total}
+      </span>
+      <ul className="counts" aria-label="確認状態ごとの要素の数">
+        {PROGRESS_ORDER.filter((s) => s !== "approved" && counts[s] > 0).map(
+          (state) => (
+            <li key={state}>
+              <ReviewStateMark state={state} />
+              <span className="count">{counts[state]}</span>
+            </li>
+          ),
+        )}
+      </ul>
+    </div>
   );
 }
 

@@ -8,6 +8,8 @@ export interface BusinessRow {
   /** 業務。どの業務にも属さない業務フローの行は null */
   readonly business: ElementSnapshot | null;
   readonly flows: readonly ElementSnapshot[];
+  /** 業務フローごとの、削除されていない活動の数（#159） */
+  readonly activities: Readonly<Record<string, number>>;
   /** 業務とその下の業務フロー・活動の、確認状態ごとの数 */
   readonly counts: Readonly<Record<ReviewState, number>>;
 }
@@ -24,6 +26,10 @@ export function businessListView(
       .filter((e): e is ElementSnapshot => e?.kind === kind)
       .sort(byName);
 
+  const activityCounts = (flows: readonly ElementSnapshot[]) =>
+    Object.fromEntries(
+      flows.map((f) => [f.id as string, children(f, "activity").length]),
+    );
   const assigned = new Set<string>();
   const rows: BusinessRow[] = active
     .filter((e) => e.kind === "business")
@@ -36,7 +42,12 @@ export function businessListView(
         ...flows,
         ...flows.flatMap((f) => children(f, "activity")),
       ];
-      return { business, flows, counts: countByState(members) };
+      return {
+        business,
+        flows,
+        activities: activityCounts(flows),
+        counts: countByState(members),
+      };
     });
 
   const unassigned = active
@@ -50,6 +61,7 @@ export function businessListView(
     rows.push({
       business: null,
       flows: unassigned,
+      activities: activityCounts(unassigned),
       counts: countByState(members),
     });
   }

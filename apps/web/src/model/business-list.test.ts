@@ -31,6 +31,9 @@ describe("FR-010 業務一覧", () => {
       needs_fix: 0,
       approved: 1,
     });
+    // 業務フローごとの活動の数も出す（#159）
+    expect(rows[1]?.activities).toEqual({ f1: 1 });
+    expect(rows[2]?.activities).toEqual({ f2: 0 });
   });
 
   it("削除済みの要素は出さない", () => {

@@ -1346,25 +1346,115 @@ button.badge {
   cursor: pointer;
 }
 
-.business-actions {
-  display: flex;
-  gap: 12px;
-  margin-left: auto;
-  margin-right: 16px;
-  font-size: 13px;
+/* 名前の変更と削除は、カードの右上のメニューにまとめる（#159） */
+.row-menu {
+  position: relative;
 }
 
-.business-actions .link {
+.row-menu summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.row-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-menu summary:hover,
+.row-menu[open] summary {
+  background: var(--background);
+}
+
+.row-menu-items {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgb(31 35 40 / 12%);
+}
+
+.row-menu-items button {
   border: none;
   background: none;
-  padding: 0;
+  padding: 6px 10px;
+  text-align: left;
   font: inherit;
-  color: var(--accent);
+  font-size: 13px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
-.business-actions .link.danger {
+.row-menu-items button:hover {
+  background: var(--background);
+}
+
+.row-menu-items button.danger {
   color: var(--red);
+}
+
+/* 確認の進み具合。色の帯に加えて、数を文字でも出す（NFR-017） */
+.review-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.progress-bar {
+  display: flex;
+  width: 160px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--background);
+}
+
+.progress-approved {
+  background: var(--green);
+}
+
+.progress-needs_check {
+  background: #d4a72c;
+}
+
+.progress-needs_fix {
+  background: var(--red);
+}
+
+.progress-unreviewed {
+  background: #afb8c1;
+}
+
+.progress-text {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.flows a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.flows a:hover {
+  text-decoration: underline;
+}
+
+.flow-size {
+  margin-left: 6px;
+  font-size: 12px;
 }
 
 .start-guide {
