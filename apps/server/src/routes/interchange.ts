@@ -55,10 +55,13 @@ const elementInput = z.strictObject({
 });
 
 const changeSetSchema = z.strictObject({
-  origin: z.strictObject({
-    authorType: z.enum(["ai", "import"]),
-    source: z.string().trim().min(1),
-  }),
+  // 追加を含むときだけ必要。元に戻すときのように、変更と削除だけなら省ける（FR-014）
+  origin: z
+    .strictObject({
+      authorType: z.enum(["ai", "import"]),
+      source: z.string().trim().min(1),
+    })
+    .optional(),
   changes: z
     .array(
       z.discriminatedUnion("type", [
@@ -272,7 +275,13 @@ export function registerInterchangeRoutes(app: Hono, deps: RouteDependencies) {
     });
 
     const applied = unwrapOrThrow(
-      applyImport(stored.document.elements, changes, actor, at, body.origin),
+      applyImport(
+        stored.document.elements,
+        changes,
+        actor,
+        at,
+        body.origin ?? null,
+      ),
     );
     const after = new Map(applied.elements.map((e) => [e.id, e]));
     const touched = new Set(applied.events.map((e) => e.elementId));

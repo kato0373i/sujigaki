@@ -35,7 +35,8 @@ export function applyImport(
   changes: readonly ImportChange[],
   actor: Actor,
   at: Date,
-  origin: ImportOrigin,
+  /** 追加した要素の作成者の種類と出所。追加を含まないときは null でよい */
+  origin: ImportOrigin | null,
 ): Result<AppliedImport> {
   const allowed = checkPermission(actor, "editElement", "取り込みを反映できる");
   if (!allowed.ok) return allowed;
@@ -91,8 +92,14 @@ function add(
   incoming: ElementSnapshot,
   actor: Actor,
   at: Date,
-  origin: ImportOrigin,
+  origin: ImportOrigin | null,
 ): Result<ElementChange> {
+  if (!origin) {
+    return fail(
+      "VALIDATION_FAILED",
+      `要素「${incoming.name}」を追加するには、作成者の種類と出所が必要です。`,
+    );
+  }
   if (elements.has(incoming.id)) {
     return fail(
       "VERSION_CONFLICT",
