@@ -200,7 +200,12 @@ export function App() {
           </p>
         )}
         {snapshot && route.screen === "businesses" && (
-          <BusinessList rows={rows} />
+          <BusinessList
+            projectId={LOCAL_PROJECT_ID}
+            rows={rows}
+            canEdit={can(LOCAL_ACTOR, "editElement")}
+            onChanged={reload}
+          />
         )}
         {snapshot && route.screen === "board" && (
           <ReviewBoard

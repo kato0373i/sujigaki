@@ -1,11 +1,16 @@
 import type { ElementSnapshot } from "@sujigaki/domain";
 import { useState } from "react";
-import { addRelation, removeRelation } from "../api.ts";
-import { relationCandidates, relationRows } from "../model/relation-editor.ts";
+import { addRelation, createElement, removeRelation } from "../api.ts";
+import {
+  creatableKinds,
+  relationCandidates,
+  relationRows,
+} from "../model/relation-editor.ts";
 
 /**
  * 詳細パネルのつながり（画面設計書 P-01）。つながりを外し、「＋ つなぐ」でつなげる種類の要素だけを探してつなぐ。
- * つながりは持つ側の要素に保存するため、相手の側で持つ組は相手の要素からつなぐ（設計書 ADR-004）
+ * つながりは持つ側の要素に保存するため、相手の側で持つ組は相手の要素からつなぐ（設計書 ADR-004）。
+ * 探した名前で新しい要素を作り、そのままつなぐこともできる（FR-010）
  */
 export function RelationEditor({
   projectId,
@@ -26,6 +31,10 @@ export function RelationEditor({
   const [query, setQuery] = useState("");
   const rows = relationRows(element, elements);
   const candidates = adding ? relationCandidates(element, elements, query) : [];
+  const kinds = creatableKinds(element);
+  const [kind, setKind] = useState(kinds[0]?.kind ?? "");
+  const name = query.trim();
+  const chosen = kinds.find((k) => k.kind === kind) ?? kinds[0];
 
   const run = async (task: () => Promise<unknown>) => {
     onError(null);
@@ -102,6 +111,38 @@ export function RelationEditor({
                   </li>
                 ))}
               </ul>
+            )}
+            {name !== "" && chosen && (
+              <div className="relation-create">
+                <label htmlFor="relation-kind">新しく作る種類</label>
+                <select
+                  id="relation-kind"
+                  value={chosen.kind}
+                  onChange={(e) => setKind(e.target.value)}
+                >
+                  {kinds.map((k) => (
+                    <option key={k.kind} value={k.kind}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() =>
+                    run(async () => {
+                      const created = await createElement(projectId, {
+                        kind: chosen.kind,
+                        name,
+                      });
+                      await (chosen.reversed
+                        ? addRelation(projectId, created, element.id)
+                        : addRelation(projectId, element, created.id));
+                    })
+                  }
+                >
+                  「{name}」を新しく作ってつなぐ
+                </button>
+              </div>
             )}
             <button type="button" onClick={() => setAdding(false)}>
               やめる

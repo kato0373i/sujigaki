@@ -2,6 +2,7 @@ import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
 import {
   connectedElements,
+  creatableKinds,
   relationCandidates,
   relationRows,
 } from "./relation-editor.ts";
@@ -99,5 +100,23 @@ describe("D-02 削除の確認", () => {
 
   it("つながりのない要素では、空にする", () => {
     expect(connectedElements(screen, elements)).toEqual([]);
+  });
+});
+
+describe("FR-010 新しく作ってつなぐ", () => {
+  it("つなげる種類を出し、相手の側でつながりを持つ種類は逆向きとして示す", () => {
+    expect(
+      creatableKinds(activity).filter((k) =>
+        ["actor", "buc", "usecase"].includes(k.kind),
+      ),
+    ).toEqual([
+      { kind: "actor", label: "登場人物", reversed: false },
+      { kind: "buc", label: "業務フロー", reversed: true },
+      { kind: "usecase", label: "システム操作", reversed: false },
+    ]);
+    expect(creatableKinds(requirement).map((k) => k.kind)).toEqual([
+      "actor",
+      "business",
+    ]);
   });
 });

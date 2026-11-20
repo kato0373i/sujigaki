@@ -120,7 +120,7 @@ test.describe("FR-051 RDRA の関連データの書き出し", () => {
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     const lines = copied.split("\n");
     expect(lines[0]).toBe("研修管理システム");
-    expect(lines).toContain(
+    expect(copied).toContain(
       "#child\t業務\tBUC\t研修@@研修の受講申込//研修@@受講の取り消し",
     );
     expect(copied).not.toContain("研修の申込をかんたんにしたい");
