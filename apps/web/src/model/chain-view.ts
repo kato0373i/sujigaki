@@ -41,12 +41,33 @@ export function columnOf(kind: ElementKind): number {
 
 export const DEFAULT_DEPTH = 2;
 export const MAX_NODES = 200;
+/**
+ * これより多くの要素とつながる要素からは、先をたどらない（#151）。
+ * 多くのシステム操作から使われる情報などを通ると、2段でもほぼ全体に広がり、読めなくなるためである
+ */
+export const HUB_LIMIT = 8;
+
+/**
+ * 表示しないときに通り抜ける種類。親子のつながりの親になる種類だけにする（#151）。
+ * 業務と活動が業務フローを挟んでつながるようにする一方、情報・画面・登場人物のように
+ * 多くの要素とつながる種類は通り抜けない
+ */
+const PASS_THROUGH: ReadonlySet<ElementKind> = new Set([
+  "business",
+  "buc",
+  "context",
+  "stateModel",
+  "actorGroup",
+  "externalSystemGroup",
+]);
 
 export interface ChainNode {
   readonly element: ElementSnapshot;
   /** 起点からの段数。表示していない種類の要素は数えない */
   readonly depth: number;
   readonly column: number;
+  /** つながりが多いため、先をたどらなかった要素の数（#151） */
+  readonly stopped: number;
   /** 表示していない種類の要素が、直接つながっている数（FR-023） */
   readonly hidden: readonly {
     readonly kind: ElementKind;
@@ -87,7 +108,8 @@ function neighbors(
 
 /**
  * 連鎖ビューに描く内容を計算する（FR-021）。起点から、表示する種類の要素を数えて前後 depth 段までをたどる。
- * 表示していない種類の要素は、段数に数えずに通り抜ける。業務の流れのプリセットでも、業務と活動が業務フローを挟んでつながるようにするためである
+ * 表示していない種類の要素は、段数に数えずに通り抜ける。業務の流れのプリセットでも、業務と活動が業務フローを挟んでつながるようにするためである。
+ * 通り抜けるのは親子のつながりの親になる種類だけにし、つながりの多い要素からは先をたどらない（#151）
  */
 export function chainView(
   elements: readonly ElementSnapshot[],
@@ -102,6 +124,11 @@ export function chainView(
   const graph = neighbors(elements);
   const shows = (id: string) =>
     id === originId || visible.has(byId.get(id)?.kind ?? "actor");
+  const passes = (id: string) =>
+    PASS_THROUGH.has(byId.get(id)?.kind ?? "actor");
+  // つながりの多い要素。起点のほかは、その先をたどらない
+  const hub = (id: string) =>
+    id !== originId && (graph.get(id)?.size ?? 0) > HUB_LIMIT;
 
   // 表示する要素だけを段数に数える幅優先の探索。表示しない要素は同じ段のまま通り抜ける
   const distance = new Map<string, number>([[originId, 0]]);
@@ -109,7 +136,9 @@ export function chainView(
   while (queue.length > 0) {
     const current = queue.shift() as string;
     const d = distance.get(current) ?? 0;
+    if (shows(current) && hub(current)) continue;
     for (const next of graph.get(current) ?? []) {
+      if (!shows(next) && !passes(next)) continue;
       const nd = shows(next) ? d + 1 : d;
       if (nd > depth || (distance.get(next) ?? Number.POSITIVE_INFINITY) <= nd)
         continue;
@@ -153,10 +182,17 @@ export function chainView(
       if (kind && !visible.has(kind))
         counts.set(kind, (counts.get(kind) ?? 0) + 1);
     }
+    // 先をたどらなかったために、ほかの経路でも届かなかった要素の数
+    const stopped = hub(id)
+      ? [...(graph.get(id) ?? [])].filter(
+          (n) => !distance.has(n) && (shows(n) || passes(n)),
+        ).length
+      : 0;
     return {
       element,
       depth: distance.get(id) ?? 0,
       column: columnOf(element.kind),
+      stopped,
       hidden: [...counts].map(([kind, count]) => ({
         kind,
         label: ELEMENT_KIND_LABELS[kind],

@@ -1,7 +1,12 @@
 import { ELEMENT_KINDS, type ElementKind } from "@sujigaki/domain";
 import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
-import { chainView, highlightedPath, VIEW_PRESETS } from "./chain-view.ts";
+import {
+  chainView,
+  HUB_LIMIT,
+  highlightedPath,
+  VIEW_PRESETS,
+} from "./chain-view.ts";
 
 const all = new Set<ElementKind>(ELEMENT_KINDS);
 const flow = new Set<ElementKind>(VIEW_PRESETS.flow.kinds);
@@ -112,5 +117,35 @@ describe("FR-021 連鎖ビュー", () => {
     expect(chainView(elements, "none", 2, all)).toBeNull();
     const removed = { ...screen, deletedAt: "2026-11-20T00:00:00.000Z" };
     expect(chainView([removed], "s1", 2, all)).toBeNull();
+  });
+
+  it("#151 表示しない情報や登場人物は通り抜けない", () => {
+    // 2つの活動が同じ情報を使っていても、業務の流れのプリセットでは情報を通ってたどらない
+    const other = elementSnapshot("a2", "activity", {
+      name: "申込を確かめる",
+      relations: [relationTo(info, "activity")],
+    });
+    expect(names(chainView([...elements, other], "a1", 2, flow))).not.toContain(
+      "a2",
+    );
+  });
+
+  it("#151 つながりの多い要素からは先をたどらず、たどらなかった数を返す", () => {
+    const clerk = elementSnapshot("p1", "actor", { name: "カウンター職員" });
+    const activities = Array.from({ length: HUB_LIMIT + 2 }, (_, i) =>
+      elementSnapshot(`x${i}`, "activity", {
+        name: `活動${i}`,
+        relations: [relationTo(clerk, "activity")],
+      }),
+    );
+    const view = chainView([clerk, ...activities], "x0", 3, all);
+    expect(names(view)).toEqual(["p1", "x0"]);
+    expect(view?.nodes.find((n) => n.element.id === "p1")?.stopped).toBe(
+      HUB_LIMIT + 1,
+    );
+    // 起点なら、つながりが多くても先をたどる
+    expect(chainView([clerk, ...activities], "p1", 1, all)?.nodes).toHaveLength(
+      HUB_LIMIT + 3,
+    );
   });
 });
