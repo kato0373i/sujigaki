@@ -19,7 +19,9 @@ test.describe("#124 業務一覧で名前を変え、削除する", () => {
     // 名前の欄を開くと見出しが欄に替わるため、欄は画面全体から探す
     const name = page.getByLabel("業務「仮の業務」の新しい名前");
     await expect(name).toHaveValue("仮の業務");
-    await name.fill("試しの業務");
+    // 今の名前を選んだ状態で開くため、そのまま打つと置き換わる（#150）
+    await expect(name).toBeFocused();
+    await name.pressSequentially("試しの業務");
     await name.press("Enter");
     const renamed = page.locator(".business-row", { hasText: "試しの業務" });
     await expect(
@@ -54,6 +56,50 @@ test.describe("#124 業務一覧で名前を変え、削除する", () => {
       },
     );
     expect(purged.status()).toBe(204);
+  });
+
+  test("#142 続けて追加しても、追加しているあいだに打った名前は消えない", async ({
+    page,
+  }) => {
+    await page.goto("/#/");
+    const input = page.getByLabel("新しい業務の名前");
+    await input.fill("続けて足す業務1");
+    await input.press("Enter");
+    // 追加が終わるのを待たずに、次の名前を打って送る
+    await input.pressSequentially("続けて足す業務2");
+    await expect(input).toHaveValue("続けて足す業務2");
+    await input.press("Enter");
+    for (const name of ["続けて足す業務1", "続けて足す業務2"]) {
+      await expect(
+        page.getByRole("heading", { name, exact: true }),
+      ).toBeVisible();
+    }
+    await expect(input).toHaveValue("");
+
+    // 後の E2E が業務の数を変えないよう、作った業務は完全に削除して片付ける
+    const headers = (version: number) => ({
+      "X-Sujigaki-Request": "1",
+      "If-Match": `"${version}"`,
+    });
+    const snapshot = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    const created = snapshot.elements.filter((e: { name: string }) =>
+      e.name.startsWith("続けて足す業務"),
+    );
+    expect(created).toHaveLength(2);
+    for (const e of created) {
+      const deleted = await page.request.delete(
+        `/api/projects/local/elements/${e.id}`,
+        { headers: headers(e.version) },
+      );
+      const after = await deleted.json();
+      const purged = await page.request.post(
+        `/api/projects/local/elements/${e.id}/purge`,
+        { headers: headers(after.version) },
+      );
+      expect(purged.status()).toBe(204);
+    }
   });
 
   test("連鎖ビューの起点が見つからないときは、戻る先を出す", async ({

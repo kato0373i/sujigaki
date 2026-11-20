@@ -32,7 +32,10 @@ test.describe("#118 #120 業務フローの担当者と問い", () => {
     await expect(
       page.getByTestId("activity-card").filter({ hasText: "番号札を渡す" }),
     ).toBeVisible();
-    await expect(form.getByLabel("担当")).toHaveValue("0");
+    // 作った担当者を選んだままにして、続けて足す活動も同じレーンに入れる（#143）
+    await expect(form.getByLabel("担当").locator("option:checked")).toHaveText(
+      "受付係",
+    );
   });
 
   test("未回答の問いがある活動のカードに、問いの数を出す", async ({ page }) => {
