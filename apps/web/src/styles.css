@@ -1175,3 +1175,10 @@ button.badge {
   cursor: pointer;
   margin-top: 8px;
 }
+
+.io-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}

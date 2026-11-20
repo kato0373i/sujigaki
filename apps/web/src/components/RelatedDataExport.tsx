@@ -1,10 +1,12 @@
 import {
+  businessScope,
   exportRelatedData,
   type RelatedDataWarning,
 } from "@sujigaki/interchange";
 import { useMemo, useState } from "react";
 import type { Snapshot } from "../api.ts";
 import { downloadText } from "../download.ts";
+import { type IoScope, scopedFileName } from "../model/io-scope.ts";
 
 const WARNING_HEADINGS: Readonly<Record<RelatedDataWarning["type"], string>> = {
   duplicateName: "名前が重なる要素（関連データでは同じ要素として扱われます）",
@@ -13,10 +15,22 @@ const WARNING_HEADINGS: Readonly<Record<RelatedDataWarning["type"], string>> = {
 };
 
 /** S-09 の関連データの書き出し（FR-051）。書き出す前に、知らせることを出す */
-export function RelatedDataExport({ snapshot }: { snapshot: Snapshot }) {
+export function RelatedDataExport({
+  snapshot,
+  scope,
+}: {
+  snapshot: Snapshot;
+  scope: IoScope;
+}) {
   const result = useMemo(
-    () => exportRelatedData(snapshot.project.systemName, snapshot.elements),
-    [snapshot],
+    () =>
+      exportRelatedData(
+        snapshot.project.systemName,
+        scope
+          ? businessScope(snapshot, scope.businessId).elements
+          : snapshot.elements,
+      ),
+    [snapshot, scope],
   );
   const [copied, setCopied] = useState(false);
   const groups = (
@@ -69,7 +83,7 @@ export function RelatedDataExport({ snapshot }: { snapshot: Snapshot }) {
           type="button"
           onClick={() =>
             downloadText(
-              `${snapshot.project.name}.rdra.tsv`,
+              scopedFileName(snapshot.project.name, scope, "rdra.tsv"),
               result.text,
               "text/tab-separated-values",
             )
