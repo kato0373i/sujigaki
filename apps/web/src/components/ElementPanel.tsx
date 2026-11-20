@@ -8,7 +8,7 @@ import {
   REVIEW_TRANSITIONS,
   ROLE_LABELS,
 } from "@sujigaki/domain";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ApiProblem,
   changeReviewState,
@@ -34,6 +34,12 @@ import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
 
 const AUTHOR_TAGS = { ai: "AI", import: "読み込み" } as const;
+
+/**
+ * 最後に開いていたパネルのスクロールの位置。保存のたびにパネルを作り直しても、
+ * 同じ要素なら同じ位置に戻す（#123）
+ */
+let lastScroll: { id: string; top: number } | null = null;
 
 /**
  * P-01 要素の詳細パネル。見出し・確認状態・内容・つながり・外部リンク・問いと決定記録を並べる。
@@ -66,6 +72,12 @@ export function ElementPanel({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const changes = changesOf(element, draft);
   const canEdit = can(actor, "editElement");
+  const panelRef = useRef<HTMLElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 作り直したときに1回だけ戻すため、依存を持たない
+  useLayoutEffect(() => {
+    if (panelRef.current && lastScroll?.id === element.id)
+      panelRef.current.scrollTop = lastScroll.top;
+  }, []);
   const dirty = changes !== null;
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -126,7 +138,14 @@ export function ElementPanel({
   const summaryMax = snapshot.project.summaryMaxLength;
 
   return (
-    <aside className="panel" aria-label="要素の詳細">
+    <aside
+      className="panel"
+      aria-label="要素の詳細"
+      ref={panelRef}
+      onScroll={(e) => {
+        lastScroll = { id: element.id, top: e.currentTarget.scrollTop };
+      }}
+    >
       <div className="panel-head">
         <span className="panel-kind">{ELEMENT_KIND_LABELS[element.kind]}</span>
         <button

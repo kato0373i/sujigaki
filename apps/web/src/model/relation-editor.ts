@@ -3,6 +3,7 @@ import {
   ELEMENT_KIND_LABELS,
   type ElementKind,
   type ElementSnapshot,
+  RELATION_TYPES,
   resolveRelation,
 } from "@sujigaki/domain";
 
@@ -17,6 +18,12 @@ export interface RelationRow {
   readonly relationId: string;
 }
 
+/** 向きのあるつながり（#arrow）なら、「次の活動」「前の活動」のように向きを添える（#123） */
+function directed(typeId: string, label: string, prefix: string): string {
+  const tag = RELATION_TYPES.find((t) => t.id === typeId)?.tag;
+  return tag === "#arrow" ? `${prefix}${label}` : label;
+}
+
 export function relationRows(
   element: ElementSnapshot,
   elements: readonly ElementSnapshot[],
@@ -26,7 +33,7 @@ export function relationRows(
   const outgoing = element.relations.map((r) => ({
     key: `out-${r.id}`,
     other: byId.get(r.to) ?? null,
-    kindLabel: ELEMENT_KIND_LABELS[r.toKind],
+    kindLabel: directed(r.typeId, ELEMENT_KIND_LABELS[r.toKind], "次の"),
     owner: element,
     relationId: r.id,
   }));
@@ -36,7 +43,7 @@ export function relationRows(
       .map((r) => ({
         key: `in-${owner.id}-${r.id}`,
         other: owner,
-        kindLabel: ELEMENT_KIND_LABELS[owner.kind],
+        kindLabel: directed(r.typeId, ELEMENT_KIND_LABELS[owner.kind], "前の"),
         owner,
         relationId: r.id,
       })),
