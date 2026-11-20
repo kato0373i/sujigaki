@@ -863,6 +863,11 @@ button.link:hover {
   text-align: left;
 }
 
+/* 上の行と同じ要素のセルは薄く出す（#155） */
+.trace-wrap table.trace td.repeated .link {
+  color: var(--muted);
+}
+
 /* 途切れているセルは、色に加えて「なし」と斜線の模様で示す（NFR-017） */
 .trace-wrap table.trace td.gap {
   background: repeating-linear-gradient(
