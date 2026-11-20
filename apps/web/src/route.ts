@@ -1,3 +1,4 @@
+import { type ElementKind, isElementKind } from "@sujigaki/domain";
 import { useEffect, useRef, useState } from "react";
 
 /** 画面の場所。URL の # のあとに書く */
@@ -9,6 +10,8 @@ export type Route =
   | { readonly screen: "ai" }
   | { readonly screen: "deleted" }
   | { readonly screen: "settings" }
+  /** kind が null なら、要素のある最初の種類を出す */
+  | { readonly screen: "elements"; readonly kind: ElementKind | null }
   | { readonly screen: "flow"; readonly bucId: string }
   | { readonly screen: "chain"; readonly originId: string };
 
@@ -19,6 +22,9 @@ export function parseRoute(hash: string): Route {
   if (hash === "#/ai") return { screen: "ai" };
   if (hash === "#/deleted") return { screen: "deleted" };
   if (hash === "#/settings") return { screen: "settings" };
+  if (hash === "#/elements") return { screen: "elements", kind: null };
+  const kind = /^#\/elements\/([A-Za-z]+)$/.exec(hash)?.[1];
+  if (kind && isElementKind(kind)) return { screen: "elements", kind };
   const chain = /^#\/chain\/([A-Za-z0-9_-]+)$/.exec(hash);
   if (chain?.[1]) return { screen: "chain", originId: chain[1] };
   const match = /^#\/flows\/([A-Za-z0-9_-]+)$/.exec(hash);
@@ -30,6 +36,8 @@ export function parseRoute(hash: string): Route {
 export function hrefOf(route: Route): string {
   if (route.screen === "flow") return `#/flows/${route.bucId}`;
   if (route.screen === "chain") return `#/chain/${route.originId}`;
+  if (route.screen === "elements")
+    return route.kind ? `#/elements/${route.kind}` : "#/elements";
   if (route.screen === "board") return "#/board";
   if (route.screen === "trace") return "#/trace";
   if (route.screen === "ai") return "#/ai";
