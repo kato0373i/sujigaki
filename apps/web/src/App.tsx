@@ -19,6 +19,7 @@ import {
   positionsAfterMove,
 } from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
+import { defaultKind } from "./model/kind-list.ts";
 import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
 import { AiExchange } from "./screens/AiExchange.tsx";
@@ -27,6 +28,7 @@ import { BusinessList } from "./screens/BusinessList.tsx";
 import { ChainViewScreen } from "./screens/ChainView.tsx";
 import { DeletedElements } from "./screens/DeletedElements.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
+import { KindList } from "./screens/KindList.tsx";
 import { ProjectSettingsScreen } from "./screens/ProjectSettingsScreen.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
@@ -97,6 +99,7 @@ export function App() {
     route.screen === "flow" ||
     route.screen === "board" ||
     route.screen === "trace" ||
+    route.screen === "elements" ||
     route.screen === "chain";
   const selected = showsPanel
     ? snapshot?.elements.find(
@@ -168,6 +171,13 @@ export function App() {
           aria-current={route.screen === "trace" ? "page" : undefined}
         >
           トレース表
+        </a>
+        <a
+          href={hrefOf({ screen: "elements", kind: null })}
+          className="nav-top"
+          aria-current={route.screen === "elements" ? "page" : undefined}
+        >
+          要素の一覧
         </a>
         <a
           href={hrefOf({ screen: "ai" })}
@@ -264,6 +274,17 @@ export function App() {
         )}
         {snapshot && route.screen === "trace" && (
           <TraceTable elements={snapshot.elements} onSelect={select} />
+        )}
+        {snapshot && route.screen === "elements" && (
+          <KindList
+            key={route.kind ?? "default"}
+            projectId={LOCAL_PROJECT_ID}
+            elements={snapshot.elements}
+            kind={route.kind ?? defaultKind(snapshot.elements)}
+            canEdit={can(LOCAL_ACTOR, "editElement")}
+            onSelect={select}
+            onChanged={reload}
+          />
         )}
         {snapshot && route.screen === "ai" && (
           <AiExchange

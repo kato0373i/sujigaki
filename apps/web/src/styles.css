@@ -1361,3 +1361,53 @@ button.badge {
   display: block;
   margin: 8px 0;
 }
+
+.kind-list {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.kind-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 200px;
+}
+
+.kind-choices a {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.kind-choices a:hover,
+.kind-choices a[aria-current="page"] {
+  background: #ddf4ff;
+}
+
+.kind-choices a[aria-current="page"] {
+  font-weight: 700;
+}
+
+.kind-choices a.kind-empty {
+  color: var(--muted);
+}
+
+.kind-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.screen .kind-body h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+
+.kind-connections {
+  text-align: right;
+}

@@ -13,6 +13,8 @@ describe("画面の場所", () => {
       "#/io",
       "#/flows/buc-1",
       "#/chain/a-1",
+      "#/elements",
+      "#/elements/information",
     ]) {
       expect(hrefOf(parseRoute(hash))).toBe(hash);
     }
@@ -21,5 +23,6 @@ describe("画面の場所", () => {
   it("知らない場所は業務一覧にする", () => {
     expect(parseRoute("#/unknown")).toEqual({ screen: "businesses" });
     expect(parseRoute("")).toEqual({ screen: "businesses" });
+    expect(parseRoute("#/elements/robot")).toEqual({ screen: "businesses" });
   });
 });
