@@ -1,26 +1,38 @@
 import { type ElementSnapshot, REVIEW_STATES } from "@sujigaki/domain";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { addRelation, createElement } from "../api.ts";
+import {
+  addRelation,
+  createElement,
+  deleteElement,
+  type Snapshot,
+  updateElement,
+} from "../api.ts";
+import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { ReviewStateMark } from "../components/status.tsx";
 import type { BusinessRow } from "../model/business-list.ts";
+import { connectedElements } from "../model/relation-editor.ts";
 import { hrefOf } from "../route.ts";
 
 /**
  * S-03 業務一覧。業務ごとに業務フローと、確認状態ごとの要素の数を出す。
- * 編集者以上は、業務と業務フローを追加できる（FR-010）
+ * 編集者以上は、業務と業務フローを追加し、業務の名前を変えたり削除したりできる（FR-010、#124）
  */
 export function BusinessList({
   projectId,
+  snapshot,
   rows,
   canEdit,
   onChanged,
 }: {
   projectId: string;
+  snapshot: Snapshot;
   rows: readonly BusinessRow[];
   canEdit: boolean;
   onChanged: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<ElementSnapshot | null>(null);
 
   /** 作る操作をして、終わったら読み直す。失敗したら理由を出す */
   const attempt = async (task: () => Promise<unknown>) => {
@@ -60,7 +72,46 @@ export function BusinessList({
           {rows.map((row) => (
             <li key={row.business?.id ?? "unassigned"} className="business-row">
               <div className="business-head">
-                <h2>{row.business?.name ?? "業務に属さない業務フロー"}</h2>
+                {row.business && renaming === row.business.id ? (
+                  <AddForm
+                    label={`業務「${row.business.name}」の新しい名前`}
+                    submit="名前を変える"
+                    initial={row.business.name}
+                    onAdd={async (name) => {
+                      const business = row.business as ElementSnapshot;
+                      const ok = await attempt(() =>
+                        updateElement(projectId, business, business.version, {
+                          name,
+                        }),
+                      );
+                      if (ok) setRenaming(null);
+                      return ok;
+                    }}
+                    onCancel={() => setRenaming(null)}
+                  />
+                ) : (
+                  <h2>{row.business?.name ?? "業務に属さない業務フロー"}</h2>
+                )}
+                {canEdit && row.business && renaming !== row.business.id && (
+                  <span className="business-actions">
+                    <button
+                      type="button"
+                      className="link"
+                      aria-label={`業務「${row.business.name}」の名前を変える`}
+                      onClick={() => setRenaming(row.business?.id ?? null)}
+                    >
+                      名前を変える
+                    </button>
+                    <button
+                      type="button"
+                      className="link danger"
+                      aria-label={`業務「${row.business.name}」を削除`}
+                      onClick={() => setRemoving(row.business)}
+                    >
+                      削除
+                    </button>
+                  </span>
+                )}
                 <ul className="counts" aria-label="確認状態ごとの要素の数">
                   {REVIEW_STATES.map((state) => (
                     <li key={state}>
@@ -102,7 +153,48 @@ export function BusinessList({
           ))}
         </ul>
       )}
+      {removing && (
+        <ConfirmDialog
+          title={`「${removing.name}」を削除しますか`}
+          confirmLabel="削除する"
+          onConfirm={() => {
+            const target = removing;
+            setRemoving(null);
+            void attempt(() => deleteElement(projectId, target));
+          }}
+          onCancel={() => setRemoving(null)}
+        >
+          <RemovalNotice element={removing} elements={snapshot.elements} />
+        </ConfirmDialog>
+      )}
     </section>
+  );
+}
+
+/** 削除するとつながりが表示から消える要素（D-02 と同じ） */
+function RemovalNotice({
+  element,
+  elements,
+}: {
+  element: ElementSnapshot;
+  elements: readonly ElementSnapshot[];
+}) {
+  const connected = connectedElements(element, elements);
+  if (connected.length === 0) return <p>つながっている要素はありません。</p>;
+  return (
+    <>
+      <p>
+        次の{connected.length}
+        件の要素とのつながりが、表示から消えます。削除済みの要素から復元すると、つながりも戻ります。
+      </p>
+      <ul className="plain">
+        {connected.map((c) => (
+          <li key={c.element.id}>
+            <span className="muted">{c.kindLabel}</span> {c.element.name}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -110,16 +202,19 @@ export function BusinessList({
 function AddForm({
   label,
   submit,
+  initial,
   onAdd,
   onCancel,
 }: {
   label: string;
   submit: string;
+  /** 欄の最初の値。名前を変えるときに今の名前を入れる */
+  initial?: string;
   onAdd: (name: string) => Promise<boolean>;
   /** 押して開いた欄のときに渡す。開いたら入力にフォーカスを移す */
   onCancel?: () => void;
 }) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initial ?? "");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (onCancel) input.current?.focus();
