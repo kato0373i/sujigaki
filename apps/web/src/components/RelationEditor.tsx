@@ -1,6 +1,7 @@
 import type { ElementSnapshot } from "@sujigaki/domain";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { addRelation, createElement, removeRelation } from "../api.ts";
+import { useFocusFirst } from "../focus.ts";
 import {
   creatableKinds,
   relationCandidates,
@@ -81,7 +82,7 @@ export function RelationEditor({
       )}
       {canEdit &&
         (adding ? (
-          <div className="relation-search">
+          <RelationSearch>
             <label htmlFor="relation-query">つなぐ要素を名前で探す</label>
             <input
               id="relation-query"
@@ -147,12 +148,22 @@ export function RelationEditor({
             <button type="button" onClick={() => setAdding(false)}>
               やめる
             </button>
-          </div>
+          </RelationSearch>
         ) : (
           <button type="button" onClick={() => setAdding(true)}>
             ＋ つなぐ
           </button>
         ))}
     </section>
+  );
+}
+
+/** 「＋ つなぐ」で開く検索の欄。開いたら検索の入力にフォーカスを移す */
+function RelationSearch({ children }: { children: ReactNode }) {
+  const ref = useFocusFirst<HTMLDivElement>();
+  return (
+    <div className="relation-search" ref={ref}>
+      {children}
+    </div>
   );
 }

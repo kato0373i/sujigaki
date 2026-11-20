@@ -53,6 +53,8 @@ questions:
   - elementId: act-request-cancel
     body: 取り消しはいつまで受け付けますか
     recommendation: 開講の3日前
+  - elementId: new-accounting
+    body: 経理の締め日はいつですか
 \`\`\`
 `;
 
@@ -81,10 +83,17 @@ questions:
     await page.getByLabel("AI の返答").fill(reply);
     await page.getByRole("button", { name: "差分を見る" }).click();
     await expect(
-      page.locator(".diff-row", { hasText: "経理担当" }),
+      page.locator(".diff-row", { hasText: "登場人物 経理担当" }),
     ).toContainText("追加");
     await expect(page.locator(".ai-questions")).toContainText(
       "取り消しはいつまで受け付けますか",
+    );
+    // 提案の中の新しい要素も ID でなく名前で出す（#116）
+    await expect(page.locator(".ai-questions")).toContainText(
+      "経理担当 経理の締め日はいつですか",
+    );
+    await expect(page.locator(".ai-questions")).not.toContainText(
+      "new-accounting",
     );
     await page.screenshot({ path: `${screenshots}/s-08-ai-proposal.png` });
 
@@ -94,9 +103,9 @@ questions:
     await expect(page.getByRole("status")).toHaveText(
       "1件の変更を反映しました。",
     );
-    await page.getByRole("button", { name: "選んだ問いを保存（1件）" }).click();
+    await page.getByRole("button", { name: "選んだ問いを保存（2件）" }).click();
     await expect(page.getByRole("status")).toHaveText(
-      "1件の問いを保存しました。",
+      "2件の問いを保存しました。",
     );
 
     const snapshot = await (

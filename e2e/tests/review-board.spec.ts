@@ -55,7 +55,8 @@ test.describe("FR-024 確認ボード", () => {
       .locator(".board-question-group", { hasText: "受講結果をまとめる" })
       .locator(".board-question", { hasText: "担当者は誰ですか" });
     await question.getByLabel("「担当者は誰ですか」への回答").fill("研修担当");
-    await question.getByRole("button", { name: "回答する" }).click();
+    // Enter でも送れる（#115）
+    await question.getByLabel("「担当者は誰ですか」への回答").press("Enter");
     await expect(question).toHaveCount(0);
     const snapshot = await (
       await page.request.get("/api/projects/local/snapshot")

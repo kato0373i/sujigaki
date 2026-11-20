@@ -14,6 +14,7 @@ import {
   recordDecision,
   type Snapshot,
 } from "../api.ts";
+import { useFocusFirst } from "../focus.ts";
 import {
   type DecisionDraft,
   draftFromQuestion,
@@ -142,6 +143,7 @@ function RecordDecision({
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DecisionDraft>(EMPTY_DECISION);
+  const recordRef = useFocusFirst<HTMLFormElement>(open);
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}>
@@ -162,7 +164,7 @@ function RecordDecision({
     }
   };
   return (
-    <form className="record-decision" onSubmit={submit}>
+    <form className="record-decision" onSubmit={submit} ref={recordRef}>
       {questions.length > 0 && (
         <label className="field">
           <span>もとにする問い（任意）</span>
@@ -319,6 +321,7 @@ function AskQuestion({
 }) {
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
+  const askRef = useFocusFirst<HTMLFormElement>(open);
   const [recommendation, setRecommendation] = useState("");
   if (!open) {
     return (
@@ -338,7 +341,7 @@ function AskQuestion({
     }
   };
   return (
-    <form className="ask-question" onSubmit={submit}>
+    <form className="ask-question" onSubmit={submit} ref={askRef}>
       <label className="field">
         <span>問い</span>
         <input value={body} onChange={(e) => setBody(e.target.value)} />
