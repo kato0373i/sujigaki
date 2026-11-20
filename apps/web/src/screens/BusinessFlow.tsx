@@ -146,6 +146,9 @@ const nodeTypes = { lane: LaneView, activity: ActivityView };
 
 /** S-04 業務フロー。担当者ごとのレーンに、活動を流れの順に並べる（FR-020） */
 /** 活動を分ける目安（FR-002）。活動を追加する入力欄の近くに出す */
+/** 担当の選択肢の「＋ 新しい担当者」 */
+const NEW_ACTOR = "new";
+
 const SPLIT_HINTS = [
   "担当者や判断する人が変わる所",
   "待ちが発生する所",
@@ -153,8 +156,15 @@ const SPLIT_HINTS = [
 ];
 
 export interface FlowEditing {
-  /** 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null */
-  readonly onAdd: (actorId: string | null, name: string) => Promise<void>;
+  /**
+   * 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null。
+   * newActor を渡したときは、その名前の登場人物を作って担当者にする（#118）
+   */
+  readonly onAdd: (
+    actorId: string | null,
+    name: string,
+    newActor?: string,
+  ) => Promise<void>;
   /** カードを横に動かした */
   readonly onMove: (elementId: string, x: number) => void;
   /** カードの端から別のカードへつないだ */
@@ -333,13 +343,23 @@ function AddActivityForm({
 }) {
   const [lane, setLane] = useState("0");
   const [name, setName] = useState("");
+  const [actorName, setActorName] = useState("");
   const [busy, setBusy] = useState(false);
+  const creatingActor = lane === NEW_ACTOR;
+  const ready =
+    name.trim() !== "" && (!creatingActor || actorName.trim() !== "");
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (name.trim() === "") return;
+    if (!ready) return;
     setBusy(true);
     try {
-      await onAdd(lanes[Number(lane)]?.actorId ?? null, name);
+      if (creatingActor) {
+        await onAdd(null, name, actorName.trim());
+        setActorName("");
+        setLane("0");
+      } else {
+        await onAdd(lanes[Number(lane)]?.actorId ?? null, name);
+      }
       setName("");
     } finally {
       setBusy(false);
@@ -355,13 +375,23 @@ function AddActivityForm({
               {l.name}
             </option>
           ))}
+          <option value={NEW_ACTOR}>＋ 新しい担当者</option>
         </select>
       </label>
+      {creatingActor && (
+        <label>
+          新しい担当者の名前{" "}
+          <input
+            value={actorName}
+            onChange={(e) => setActorName(e.target.value)}
+          />
+        </label>
+      )}
       <label>
         活動の名前{" "}
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <button type="submit" disabled={busy || name.trim() === ""}>
+      <button type="submit" disabled={busy || !ready}>
         ＋ 活動を追加
       </button>
       <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>
