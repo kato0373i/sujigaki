@@ -1265,3 +1265,13 @@ button.badge {
 .record-decision {
   margin-top: 8px;
 }
+
+.activity-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-weight: 700;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}

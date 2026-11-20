@@ -7,6 +7,7 @@ import {
   LOCAL_PROJECT_ID,
   type Snapshot,
   saveLayout,
+  updateElement,
 } from "./api.ts";
 import { ElementPanel } from "./components/ElementPanel.tsx";
 import { SearchBox } from "./components/SearchBox.tsx";
@@ -346,6 +347,15 @@ function FlowScreen({
             const source = snapshot.elements.find((e) => e.id === from);
             if (source)
               void attempt(() => addRelation(LOCAL_PROJECT_ID, source, to));
+          },
+          onRename: (elementId, name) => {
+            const element = snapshot.elements.find((e) => e.id === elementId);
+            if (element)
+              void attempt(() =>
+                updateElement(LOCAL_PROJECT_ID, element, element.version, {
+                  name,
+                }),
+              );
           },
         }
       : undefined;
