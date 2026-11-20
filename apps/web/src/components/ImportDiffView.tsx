@@ -21,6 +21,8 @@ export function ImportDiffView({
   const rows = changeRows(diff.changes, known);
   const [rejected, setRejected] = useState<ReadonlySet<string>>(new Set());
   const adopted = rows.filter((r) => !rejected.has(r.key));
+  // 採用した変更で外れるつながりの数。反映する前に知らせる（#146）
+  const removing = adopted.reduce((sum, r) => sum + r.removedRelations, 0);
   const toggle = (key: string) => {
     const next = new Set(rejected);
     if (next.has(key)) next.delete(key);
@@ -61,6 +63,11 @@ export function ImportDiffView({
                     </span>{" "}
                     <span className="muted">{row.kindLabel}</span> {row.name}
                   </label>
+                  {row.removedRelations > 0 && (
+                    <span className="tag tag-removal">
+                      つながりを{row.removedRelations}件外す
+                    </span>
+                  )}
                 </div>
                 {row.differences.length > 0 && (
                   <table className="diff-table">
@@ -73,7 +80,10 @@ export function ImportDiffView({
                     </thead>
                     <tbody>
                       {row.differences.map((d) => (
-                        <tr key={d.label}>
+                        <tr
+                          key={d.label}
+                          className={d.removal ? "diff-removal" : undefined}
+                        >
                           <th scope="row">{d.label}</th>
                           <td>{d.before}</td>
                           <td>{d.after}</td>
@@ -86,6 +96,12 @@ export function ImportDiffView({
             );
           })}
         </ul>
+      )}
+      {removing > 0 && (
+        <p className="notice" role="status">
+          採用した変更で、{removing}
+          件のつながりが外れます。「外すつながり」の行を確かめてから反映してください。
+        </p>
       )}
       {rows.length > 0 && (
         <button
