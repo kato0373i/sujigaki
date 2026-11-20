@@ -99,14 +99,18 @@ export function renameKey(element: Pick<ElementSnapshot, "kind" | "name">) {
 /**
  * RDRA の関連データを読み、取り込んだあとの要素を組み立てる（FR-052、設計書 5.9 節）。
  * 種類と名前が同じ今の要素は ID を引き継ぎ、関連データで表せる内容だけを合わせる。
- * renames には、利用者が同じ要素と選んだ組（新しい要素の鍵から、今の要素の ID へ）を渡す
+ * options.renames には、利用者が同じ要素と選んだ組（新しい要素の鍵から、今の要素の ID へ）を渡す。
+ * options.scope には、業務の範囲の関連データのときに、今のモデルでその範囲に入る要素の ID を渡す
  */
 export function readRelatedData(
   text: string,
   current: readonly ElementSnapshot[],
   at: Date,
   newId: () => string,
-  renames: ReadonlyMap<string, string> = new Map(),
+  options: {
+    readonly renames?: ReadonlyMap<string, string>;
+    readonly scope?: ReadonlySet<string>;
+  } = {},
 ): RelatedDataRead {
   const issues: ReadIssue[] = [];
   const issue = (line: number, message: string) =>
@@ -207,7 +211,7 @@ export function readRelatedData(
       );
       continue;
     }
-    const renamed = renames.get(key);
+    const renamed = options.renames?.get(key);
     const before =
       candidates[0] ??
       (renamed === undefined
@@ -275,7 +279,7 @@ export function readRelatedData(
     return element;
   });
 
-  // 今のモデルを書き出しても関連データに出てこない要素（要求、つながりのない要素）は、そのまま残す
+  // 今のモデルを書き出しても関連データに出てこない要素（要求、つながりのない要素）と、業務の範囲の外の要素は、そのまま残す
   const notExported = new Set(
     exportRelatedData("", current)
       .warnings.filter((w) => w.type === "notExported")
@@ -285,7 +289,9 @@ export function readRelatedData(
   const kept = active.filter(
     (e) =>
       !importedIds.has(e.id) &&
-      (e.kind === "requirement" || notExported.has(e.id)),
+      (e.kind === "requirement" ||
+        notExported.has(e.id) ||
+        (options.scope !== undefined && !options.scope.has(e.id))),
   );
   return { ok: true, elements: [...kept, ...imported] };
 }

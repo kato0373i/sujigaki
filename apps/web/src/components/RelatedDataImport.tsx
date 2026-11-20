@@ -91,13 +91,9 @@ export function RelatedDataImport({
         key === SEPARATE ? [] : [[key, elementId] as const],
       ),
     );
-    const read = readRelatedData(
-      text,
-      snapshot.elements,
-      new Date(),
-      newId,
+    const read = readRelatedData(text, snapshot.elements, new Date(), newId, {
       renames,
-    );
+    });
     if (read.ok) showDiff(read.elements);
     else setLoaded({ state: "invalid", issues: read.issues });
   };
