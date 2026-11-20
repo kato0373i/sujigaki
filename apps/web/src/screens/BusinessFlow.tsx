@@ -156,6 +156,8 @@ export interface FlowEditing {
   readonly onConnect: (from: string, to: string) => void;
   /** カードの名前をその場で直した（US-001） */
   readonly onRename: (elementId: string, name: string) => void;
+  /** 保存した位置を捨てて、自動の配置で並べ直す（#111） */
+  readonly onRelayout: () => Promise<void>;
 }
 
 /**
@@ -252,7 +254,22 @@ export function BusinessFlow({
   return (
     <section className="screen screen-flow">
       <h1>業務フロー: {view.buc.name}</h1>
-      {editing && <AddActivityForm lanes={view.lanes} onAdd={editing.onAdd} />}
+      {editing && (
+        <div className="flow-tools">
+          <AddActivityForm lanes={view.lanes} onAdd={editing.onAdd} />
+          <button
+            type="button"
+            className="relayout"
+            onClick={async () => {
+              await editing.onRelayout();
+              // 並べ直したカードが図に収まるよう、表示の範囲を合わせ直す
+              window.setTimeout(() => void flow?.fitView(), 100);
+            }}
+          >
+            自動で並べ直す
+          </button>
+        </div>
+      )}
       {view.cards.length === 0 && (
         <p className="empty">活動がありません。活動を追加してください。</p>
       )}

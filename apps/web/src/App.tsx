@@ -12,7 +12,11 @@ import {
 import { ElementPanel } from "./components/ElementPanel.tsx";
 import { SearchBox } from "./components/SearchBox.tsx";
 import { UpdateBanner, useUpdateNotice } from "./components/UpdateNotice.tsx";
-import { businessFlowView, positionsAfterMove } from "./model/business-flow.ts";
+import {
+  autoPositions,
+  businessFlowView,
+  positionsAfterMove,
+} from "./model/business-flow.ts";
 import { businessListView } from "./model/business-list.ts";
 import { defaultFilter } from "./model/review-board.ts";
 import { hrefOf, useRoute } from "./route.ts";
@@ -348,6 +352,15 @@ function FlowScreen({
             if (source)
               void attempt(() => addRelation(LOCAL_PROJECT_ID, source, to));
           },
+          onRelayout: () =>
+            attempt(() =>
+              saveLayout(
+                LOCAL_PROJECT_ID,
+                bucId,
+                layout?.version ?? 0,
+                autoPositions(snapshot.elements, bucId),
+              ),
+            ),
           onRename: (elementId, name) => {
             const element = snapshot.elements.find((e) => e.id === elementId);
             if (element)
