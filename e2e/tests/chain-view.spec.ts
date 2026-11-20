@@ -43,7 +43,7 @@ test.describe("FR-021 連鎖ビュー", () => {
     page,
   }) => {
     await page.goto("/#/chain/act-notify");
-    await page.getByLabel("表示").selectOption("screens");
+    await page.getByRole("combobox", { name: "表示" }).selectOption("screens");
     await expect(
       page.getByTestId("chain-node").filter({ hasText: "受講案内の画面" }),
     ).toBeVisible();
@@ -51,7 +51,9 @@ test.describe("FR-021 連鎖ビュー", () => {
       page.getByTestId("chain-node").filter({ hasText: "研修" }),
     ).toHaveCount(0);
     await page.reload();
-    await expect(page.getByLabel("表示")).toHaveValue("screens");
+    await expect(page.getByRole("combobox", { name: "表示" })).toHaveValue(
+      "screens",
+    );
   });
 
   test("FR-023 表示していない種類の要素の数をバッジで出し、押すとその種類も描く", async ({

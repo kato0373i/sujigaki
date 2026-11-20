@@ -118,4 +118,16 @@ test.describe("#144 #158 業務フローのレーン", () => {
       page.locator(".lane-name", { hasText: "担当者が未設定" }),
     ).toHaveCount(0);
   });
+
+  test("#161 図の操作ボタンは日本語で読み上げ、カードには種類と名前を付ける", async ({
+    page,
+  }) => {
+    await page.goto("/#/flows/buc-cancel");
+    for (const name of ["拡大", "縮小", "全体を表示"]) {
+      await expect(page.getByRole("button", { name })).toBeVisible();
+    }
+    await expect(
+      page.getByRole("group", { name: "活動「取り消しを受け付ける」" }),
+    ).toBeVisible();
+  });
 });
