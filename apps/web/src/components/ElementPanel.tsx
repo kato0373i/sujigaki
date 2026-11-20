@@ -218,6 +218,11 @@ export function ElementPanel({
                 {f.input === "lines" && (
                   <span className="muted">（1行に1つ）</span>
                 )}
+                {f.input === "items" && (
+                  <span className="muted">
+                    （1行に1つ。説明は「：」のあとに書く）
+                  </span>
+                )}
               </label>
               {f.input === "select" ? (
                 <select

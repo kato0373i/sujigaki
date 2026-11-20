@@ -70,9 +70,9 @@ test.describe("FR-010 要素を新しく作る", () => {
     await flowPanel
       .getByRole("button", { name: "「窓口で受け付ける」を新しく作ってつなぐ" })
       .click();
-    await expect(flowPanel.locator(".relations")).toContainText(
-      "窓口で受け付ける",
-    );
+    await expect(
+      flowPanel.getByRole("region", { name: "つながり" }).locator(".relations"),
+    ).toContainText("窓口で受け付ける");
 
     // 要求は業務とのつながりを持つ側なので、新しい要求の側からつなぐ
     const businessPanel = await openBySearch(page, "受付業務");
@@ -86,9 +86,11 @@ test.describe("FR-010 要素を新しく作る", () => {
     await businessPanel
       .getByRole("button", { name: "「受付を早くしたい」を新しく作ってつなぐ" })
       .click();
-    await expect(businessPanel.locator(".relations")).toContainText(
-      "受付を早くしたい",
-    );
+    await expect(
+      businessPanel
+        .getByRole("region", { name: "つながり" })
+        .locator(".relations"),
+    ).toContainText("受付を早くしたい");
 
     const business = await elementNamed(page, "受付業務");
     const requirement = await elementNamed(page, "受付を早くしたい");
