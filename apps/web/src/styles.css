@@ -331,11 +331,13 @@ body {
 
 .activity-badges {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 6px;
 }
 
 .badge {
+  white-space: nowrap;
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0 6px;
@@ -1539,4 +1541,11 @@ button.badge {
   font: inherit;
   font-size: 12px;
   padding: 2px 4px;
+}
+
+.badge-stopped {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--accent);
+  text-decoration: none;
 }

@@ -34,7 +34,8 @@ import {
 import { hrefOf } from "../route.ts";
 
 const COLUMN_WIDTH = 230;
-const ROW_HEIGHT = 96;
+/** 行の間隔。バッジが2行に折り返したカードでも重ならない高さにする */
+const ROW_HEIGHT = 124;
 
 type ChainFlowNode = Node<
   {
@@ -59,6 +60,17 @@ function ChainNodeView({ data }: NodeProps<ChainFlowNode>) {
         <ReviewStateMark state={node.element.reviewState} withText={false} />
       </div>
       <div className="activity-name">{node.element.name}</div>
+      {node.stopped > 0 && (
+        // つながりが多いため先をたどらなかった要素は、この要素を起点に開いて見る（#151）
+        <a
+          className="badge badge-stopped nodrag"
+          href={hrefOf({ screen: "chain", originId: node.element.id })}
+          title={`「${node.element.name}」を起点に開く`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          ほか {node.stopped}件
+        </a>
+      )}
       {node.hidden.length > 0 && (
         <div className="activity-badges">
           {node.hidden.map((h) => (
@@ -112,8 +124,8 @@ export function ChainViewScreen({
     [elements, originId, settings.depth, visible],
   );
 
-  const { nodes, edges } = useMemo(() => {
-    if (!view) return { nodes: [] as Node[], edges: [] as Edge[] };
+  const { nodes, edges, rows } = useMemo(() => {
+    if (!view) return { nodes: [] as Node[], edges: [] as Edge[], rows: 0 };
     const focus =
       selectedId && view.nodes.some((n) => n.element.id === selectedId)
         ? selectedId
@@ -164,7 +176,11 @@ export function ChainViewScreen({
           : { strokeWidth: 1, stroke: "#8c959f" },
       };
     });
-    return { nodes: flowNodes as Node[], edges: flowEdges };
+    return {
+      nodes: flowNodes as Node[],
+      edges: flowEdges,
+      rows: Math.max(0, ...rowsInColumn.values()),
+    };
   }, [view, selectedId, originId]);
 
   if (!view)
@@ -251,7 +267,15 @@ export function ChainViewScreen({
           件まで描いています）。段数を減らすか、表示する種類を絞ってください。
         </p>
       )}
-      <div className="flow-canvas">
+      <div
+        className="flow-canvas"
+        // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
+        style={{
+          flex: "0 1 auto",
+          minHeight: 240,
+          height: rows * ROW_HEIGHT + 120,
+        }}
+      >
         <ReactFlow
           // 段数や表示する種類、詳細パネルの開閉で描く範囲が変わるため、描き直して全体が入るように合わせる
           key={`${originId}-${settings.depth}-${settings.kinds.join()}-${selectedId === null}`}
@@ -259,6 +283,8 @@ export function ChainViewScreen({
           edges={edges}
           nodeTypes={nodeTypes}
           fitView
+          // 小さな図は少し大きく描き、文字を読みやすくする（#156）
+          fitViewOptions={{ maxZoom: 1.25, padding: 0.08 }}
           nodesConnectable={false}
           onNodeClick={(_, node) => onSelect(node.id)}
           proOptions={{ hideAttribution: true }}
