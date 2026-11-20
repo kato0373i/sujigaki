@@ -255,13 +255,32 @@ body {
   pointer-events: none;
 }
 
-.lane-name {
+.lane-spacer {
   height: 100%;
+}
+
+/* レーンの名前は図の左端に重ねる。図を動かしても左に残る（#144） */
+.lane-labels {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 120px;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lane-name {
+  position: absolute;
+  left: 0;
+  box-sizing: border-box;
   padding: 8px;
   color: var(--muted);
   font-weight: 700;
+  font-size: 13px;
   border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   background: var(--background);
+  overflow-wrap: anywhere;
 }
 
 .activity {

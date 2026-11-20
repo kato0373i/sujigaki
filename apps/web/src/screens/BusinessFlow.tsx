@@ -12,6 +12,7 @@ import {
   Position,
   ReactFlow,
   type ReactFlowInstance,
+  useViewport,
 } from "@xyflow/react";
 import {
   createContext,
@@ -40,20 +41,59 @@ const CARD_WIDTH = 190;
  * 図全体を収めるときの倍率。カードの文字が読めなくなるほどは縮めない（#119）。
  * 収まらない分はドラッグやホイールで動かして見る
  */
-const FIT_OPTIONS = { minZoom: 0.8, maxZoom: 1, padding: 0.1 };
+const FIT_OPTIONS = { minZoom: 0.8, maxZoom: 1.25, padding: 0.08 };
 /** クリックとダブルクリックを見分けるために待つミリ秒 */
 const DOUBLE_CLICK_MS = 250;
 const LANE_LABEL_WIDTH = 120;
+/**
+ * 図の全体を枠に合わせる。収まらずに左が切れるときは、カードがレーンの名前の下に隠れないよう、
+ * 図の左端をレーンの名前の右にそろえる（#144）
+ */
+async function fitFlow(flow: ReactFlowInstance) {
+  await flow.fitView(FIT_OPTIONS);
+  const { x, y, zoom } = flow.getViewport();
+  // 帯の左の空き（名前の分の幅）の右端が、重ねた名前の右端に来る位置
+  const left = LANE_LABEL_WIDTH + 20 * zoom;
+  if (x < left) await flow.setViewport({ x: left, y, zoom });
+}
 
-type LaneNode = Node<{ name: string; width: number }, "lane">;
+/** 流れの線の色 */
+const EDGE_COLOR = "#57606a";
+
+type LaneNode = Node<{ width: number }, "lane">;
 type ActivityNode = Node<{ card: ActivityCard }, "activity">;
 
+/** レーンの帯。名前は LaneLabels で図の左に重ねて出す。帯の左には名前の分の幅を空けておく */
 function LaneView({ data }: NodeProps<LaneNode>) {
   return (
     <div className="lane" style={{ width: data.width, height: LANE_HEIGHT }}>
-      <div className="lane-name" style={{ width: LANE_LABEL_WIDTH }}>
-        {data.name}
-      </div>
+      <div className="lane-spacer" style={{ width: LANE_LABEL_WIDTH }} />
+    </div>
+  );
+}
+
+/**
+ * レーンの名前。図を横に動かしたり、幅が狭くて図の左が切れたりしても見えるよう、図の左端に重ねて出す（#144）。
+ * 縦の位置と高さは、図の表示の位置と倍率に合わせる
+ */
+function LaneLabels({ names }: { names: readonly string[] }) {
+  const { y, zoom } = useViewport();
+  return (
+    <div className="lane-labels">
+      {names.map((name, index) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: 同じ名前の担当者がいてもレーンは順で決まる
+          key={index}
+          className="lane-name"
+          style={{
+            top: y + index * LANE_HEIGHT * zoom,
+            height: LANE_HEIGHT * zoom,
+            width: LANE_LABEL_WIDTH,
+          }}
+        >
+          {name}
+        </div>
+      ))}
     </div>
   );
 }
@@ -203,14 +243,24 @@ export function BusinessFlow({
   // 編集の操作は描くたびに作り直されるため、編集できるかどうかだけで描き直しを決める。
   // 描き直すとカードの位置が戻り、ドラッグの途中で動きが止まるためである
   const editable = editing !== undefined;
+  // 担当者が未設定のレーンは、そこに活動があるときだけ描く（#158）
+  const shownLanes = useMemo(
+    () =>
+      view.lanes.filter(
+        (lane, index) =>
+          lane.actorId !== null ||
+          view.cards.some((c) => c.laneIndex === index),
+      ),
+    [view],
+  );
   const initial = useMemo(() => {
     const right =
       Math.max(0, ...view.cards.map((c) => c.position.x)) + COLUMN_WIDTH + 80;
-    const lanes: LaneNode[] = view.lanes.map((lane, index) => ({
+    const lanes: LaneNode[] = shownLanes.map((_, index) => ({
       id: `lane-${index}`,
       type: "lane",
       position: { x: -LANE_LABEL_WIDTH - 20, y: index * LANE_HEIGHT },
-      data: { name: lane.name, width: right + LANE_LABEL_WIDTH + 20 },
+      data: { width: right + LANE_LABEL_WIDTH + 20 },
       draggable: false,
       selectable: false,
       zIndex: -1,
@@ -224,7 +274,7 @@ export function BusinessFlow({
       selected: card.element.id === selectedId,
     }));
     return [...lanes, ...cards] as Node[];
-  }, [view, selectedId, editable]);
+  }, [view, shownLanes, selectedId, editable]);
   const [nodes, setNodes] = useState<Node[]>(initial);
   // 詳細パネルを開け閉めすると図の幅が変わるため、表示の範囲を合わせ直す。
   // 図を作り直すと、ダブルクリックの途中でカードが入れ替わり、名前を直せないためである
@@ -234,7 +284,7 @@ export function BusinessFlow({
   // biome-ignore lint/correctness/useExhaustiveDependencies: パネルの開け閉めと活動の数の変化で合わせ直すため、panelOpen と cardCount の変化で動かす
   useEffect(() => {
     if (!flow) return;
-    const timer = window.setTimeout(() => void flow.fitView(FIT_OPTIONS), 50);
+    const timer = window.setTimeout(() => void fitFlow(flow), 50);
     return () => window.clearTimeout(timer);
   }, [flow, panelOpen, cardCount]);
   // 編集できるときは、クリックでパネルを開くのを少し待つ。開くと図がずれ、ダブルクリックの2回目が別の場所に当たるためである
@@ -254,7 +304,14 @@ export function BusinessFlow({
         id: `${e.from}-${e.to}`,
         source: e.from,
         target: e.to,
-        markerEnd: { type: MarkerType.ArrowClosed },
+        // 流れの向きが読めるよう、線を太くして矢印を大きくする（#157）
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 18,
+          height: 18,
+          color: EDGE_COLOR,
+        },
+        style: { stroke: EDGE_COLOR, strokeWidth: 2 },
       })),
     [view],
   );
@@ -289,7 +346,7 @@ export function BusinessFlow({
             onClick={async () => {
               await editing.onRelayout();
               // 並べ直したカードが図に収まるよう、表示の範囲を合わせ直す
-              window.setTimeout(() => void flow?.fitView(FIT_OPTIONS), 100);
+              window.setTimeout(() => flow && void fitFlow(flow), 100);
             }}
           >
             自動で並べ直す
@@ -299,7 +356,15 @@ export function BusinessFlow({
       {view.cards.length === 0 && (
         <p className="empty">活動がありません。活動を追加してください。</p>
       )}
-      <div className="flow-canvas">
+      <div
+        className="flow-canvas"
+        // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
+        style={{
+          flex: "0 1 auto",
+          minHeight: 240,
+          height: shownLanes.length * LANE_HEIGHT + 120,
+        }}
+      >
         <RenameContext.Provider value={editable ? rename : null}>
           <ReactFlow
             nodes={nodes}
@@ -338,7 +403,9 @@ export function BusinessFlow({
             proOptions={{ hideAttribution: true }}
           >
             <Background />
-            <Controls showInteractive={false} />
+            {/* 左下はレーンの名前と重なるため、右下に置く */}
+            <Controls showInteractive={false} position="bottom-right" />
+            <LaneLabels names={shownLanes.map((l) => l.name)} />
           </ReactFlow>
         </RenameContext.Provider>
       </div>
