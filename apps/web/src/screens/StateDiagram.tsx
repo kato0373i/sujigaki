@@ -33,7 +33,9 @@ function StateNodeView({ data }: NodeProps<StateFlowNode>) {
       className={isState ? "state-node" : "state-node state-usecase"}
       data-testid="state-node"
     >
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Left} id="in" />
+      {/* 前の列へ戻る線は、カードの下からつなぐ（#157） */}
+      <Handle type="target" position={Position.Bottom} id="back-in" />
       <div className="chain-head">
         <span className="muted">{ELEMENT_KIND_LABELS[node.element.kind]}</span>
         <ReviewStateMark state={node.element.reviewState} withText={false} />
@@ -45,7 +47,8 @@ function StateNodeView({ data }: NodeProps<StateFlowNode>) {
           {node.end && <span className="tag">終わり</span>}
         </div>
       )}
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Right} id="out" />
+      <Handle type="source" position={Position.Bottom} id="back-out" />
     </div>
   );
 }
@@ -87,13 +90,28 @@ export function StateDiagramScreen({
       draggable: false,
       selected: node.element.id === selectedId,
     }));
-    const flowEdges: Edge[] = diagram.edges.map(({ from, to }) => ({
-      id: `${from}-${to}`,
-      source: from,
-      target: to,
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#57606a" },
-      style: { strokeWidth: 1.5, stroke: "#57606a" },
-    }));
+    const columnOf = new Map(
+      diagram.nodes.map((n) => [n.element.id as string, n.column]),
+    );
+    const flowEdges: Edge[] = diagram.edges.map(({ from, to }) => {
+      // 前の列や同じ列へ戻る線は、カードの下を回して、カードの後ろを通らないようにする（#157）
+      const back = (columnOf.get(to) ?? 0) <= (columnOf.get(from) ?? 0);
+      return {
+        id: `${from}-${to}`,
+        source: from,
+        target: to,
+        sourceHandle: back ? "back-out" : "out",
+        targetHandle: back ? "back-in" : "in",
+        ...(back && { type: "smoothstep", pathOptions: { offset: 28 } }),
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 18,
+          height: 18,
+          color: "#57606a",
+        },
+        style: { strokeWidth: 2, stroke: "#57606a" },
+      };
+    });
     return { nodes: flowNodes as Node[], edges: flowEdges };
   }, [diagram, selectedId]);
 
@@ -159,7 +177,18 @@ export function StateDiagramScreen({
           つなぐ」で状態を加えてください。
         </p>
       ) : (
-        <div className="flow-canvas">
+        <div
+          className="flow-canvas"
+          // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
+          style={{
+            flex: "0 1 auto",
+            minHeight: 240,
+            height:
+              (Math.max(0, ...diagram.nodes.map((n) => n.row)) + 1) *
+                ROW_HEIGHT +
+              160,
+          }}
+        >
           <ReactFlow
             // 状態の流れや詳細パネルの開閉で描く範囲が変わるため、描き直して全体が入るように合わせる
             key={`${diagram.model.id}-${selectedId === null}`}
@@ -167,6 +196,8 @@ export function StateDiagramScreen({
             edges={edges}
             nodeTypes={nodeTypes}
             fitView
+            // 小さな図は少し大きく描き、文字を読みやすくする（#156）
+            fitViewOptions={{ maxZoom: 1.25, padding: 0.08 }}
             nodesConnectable={false}
             onNodeClick={(_, node) => onSelect(node.id)}
             proOptions={{ hideAttribution: true }}
