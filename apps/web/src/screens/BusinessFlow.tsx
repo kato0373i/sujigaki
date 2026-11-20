@@ -68,8 +68,8 @@ async function fitFlow(flow: ReactFlowInstance, canvas: HTMLElement | null) {
   });
 }
 
-/** 流れの線の色 */
-const EDGE_COLOR = "#57606a";
+/** 流れの線の色。矢印の色と合わせるため値で持ち、明るさの設定のどちらでも読める灰色にする */
+const EDGE_COLOR = "#6e7781";
 
 type LaneNode = Node<{ width: number }, "lane">;
 type ActivityNode = Node<{ card: ActivityCard }, "activity">;
@@ -393,6 +393,8 @@ export function BusinessFlow({
         <RenameContext.Provider value={editable ? rename : null}>
           <ReactFlow
             ariaLabelConfig={FLOW_ARIA_LABELS}
+            // 図の部品の色を、OS の明るさの設定に合わせる（#162）
+            colorMode="system"
             nodes={nodes}
             onInit={setFlow}
             // ダブルクリックはカードの名前を直すのに使うため、図の拡大には使わない
