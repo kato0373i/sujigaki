@@ -29,6 +29,7 @@ import { hrefOf } from "../route.ts";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { ConflictDialog } from "./ConflictDialog.tsx";
 import { DeliberationSection } from "./DeliberationSection.tsx";
+import { LinksSection } from "./LinksSection.tsx";
 import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
 
@@ -276,22 +277,13 @@ export function ElementPanel({
         onError={setError}
       />
 
-      <section aria-labelledby="links-heading">
-        <h3 id="links-heading">外部リンク</h3>
-        {element.links.length === 0 ? (
-          <p className="muted">外部リンクはありません。</p>
-        ) : (
-          <ul className="plain">
-            {element.links.map((link) => (
-              <li key={link.id}>
-                <a href={link.url} target="_blank" rel="noreferrer noopener">
-                  {link.label ?? link.url}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <LinksSection
+        projectId={projectId}
+        element={element}
+        canEdit={canEdit}
+        onChanged={onChanged}
+        onError={setError}
+      />
 
       <DeliberationSection
         projectId={projectId}
