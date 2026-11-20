@@ -69,7 +69,15 @@ describe("FR-050 YAML に書き出す", () => {
     expect(result).toEqual({
       ok: true,
       document: { ...document, elements: [activity, actor] },
+      scope: null,
     });
+  });
+
+  it("業務の範囲のファイルは scope を書き、読み込むと範囲を返す", () => {
+    const yaml = writeProjectYaml(document, { businessId: "b1" });
+    expect(yaml).toContain("scope:\n  businessId: b1\n");
+    const result = readProjectYaml(yaml);
+    expect(result.ok && result.scope).toEqual({ businessId: "b1" });
   });
 
   it("要約の上限が既定と違うときだけ書く", () => {

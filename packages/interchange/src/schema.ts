@@ -131,6 +131,10 @@ export const documentSchema = z.strictObject({
   questions: z.array(questionSchema).optional(),
   decisions: z.array(decisionSchema).optional(),
   layouts: z.array(layoutSchema).optional(),
+  scope: z.strictObject({ businessId: id }).optional().meta({
+    description:
+      "業務の範囲だけを書き出したファイルのとき、その業務の ID（設計書 5.5 節）",
+  }),
 });
 
 export type DocumentYaml = z.input<typeof documentSchema>;

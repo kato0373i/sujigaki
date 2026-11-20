@@ -1,5 +1,6 @@
 export * from "./ai-prompt.ts";
 export * from "./ai-proposal.ts";
+export * from "./business-scope.ts";
 export * from "./document.ts";
 export * from "./import-apply.ts";
 export * from "./import-diff.ts";

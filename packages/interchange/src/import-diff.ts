@@ -54,6 +54,8 @@ export interface DiffOptions {
    * モデル全体を書き出したファイルなら true、AI の提案のように一部だけのときは false にする。
    */
   readonly removeMissing: boolean;
+  /** removeMissing のとき、削除の変更にしてよい要素。業務の範囲のファイルで、範囲の外の要素を消さないために使う */
+  readonly removeOnly?: ReadonlySet<string>;
 }
 
 export const relationKey = (r: { typeId: string; to: string }) =>
@@ -135,7 +137,11 @@ export function diffElements(
 
   if (options.removeMissing) {
     for (const before of current) {
-      if (before.deletedAt === null && !incomingIds.has(before.id)) {
+      if (
+        before.deletedAt === null &&
+        !incomingIds.has(before.id) &&
+        (options.removeOnly?.has(before.id) ?? true)
+      ) {
         changes.push(removal(before));
       }
     }
