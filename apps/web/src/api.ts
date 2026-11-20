@@ -315,3 +315,16 @@ export async function fetchChanges(
     throw await problemOf(response, "更新を確かめられませんでした。");
   return (await response.json()) as ChangesResponse;
 }
+
+/** 問いの回答を取り消す、解決にする、取り下げる（FR-031、要件定義書 7.2 節） */
+export function changeQuestionState(
+  projectId: string,
+  questionId: string,
+  action: "retract" | "resolve" | "withdraw",
+): Promise<QuestionSnapshot> {
+  return post(
+    `/api/projects/${projectId}/questions/${questionId}/state`,
+    { action },
+    "問いの状態を変えられませんでした。",
+  );
+}

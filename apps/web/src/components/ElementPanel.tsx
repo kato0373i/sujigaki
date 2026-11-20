@@ -4,7 +4,6 @@ import {
   ELEMENT_KIND_LABELS,
   type ElementSnapshot,
   PERMISSIONS,
-  QUESTION_STATE_LABELS,
   REVIEW_STATE_LABELS,
   REVIEW_TRANSITIONS,
   ROLE_LABELS,
@@ -29,6 +28,7 @@ import { connectedElements } from "../model/relation-editor.ts";
 import { hrefOf } from "../route.ts";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { ConflictDialog } from "./ConflictDialog.tsx";
+import { DeliberationSection } from "./DeliberationSection.tsx";
 import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
 
@@ -293,32 +293,14 @@ export function ElementPanel({
         )}
       </section>
 
-      <section aria-labelledby="deliberation-heading">
-        <h3 id="deliberation-heading">問いと決定記録</h3>
-        {snapshot.questions.every((q) => q.elementId !== element.id) &&
-          snapshot.decisions.every(
-            (d) => !d.elementIds.includes(element.id),
-          ) && <p className="muted">問いと決定記録はありません。</p>}
-        <ul className="plain">
-          {snapshot.questions
-            .filter((q) => q.elementId === element.id)
-            .map((q) => (
-              <li key={q.id}>
-                <span className="muted">
-                  問い（{QUESTION_STATE_LABELS[q.state]}）
-                </span>{" "}
-                {q.body}
-              </li>
-            ))}
-          {snapshot.decisions
-            .filter((d) => d.elementIds.includes(element.id))
-            .map((d) => (
-              <li key={d.id}>
-                <span className="muted">決定</span> {d.topic}: {d.conclusion}
-              </li>
-            ))}
-        </ul>
-      </section>
+      <DeliberationSection
+        projectId={projectId}
+        element={element}
+        snapshot={snapshot}
+        actor={actor}
+        onChanged={onChanged}
+        onError={setError}
+      />
 
       <section aria-labelledby="delete-heading">
         <h3 id="delete-heading">削除</h3>
