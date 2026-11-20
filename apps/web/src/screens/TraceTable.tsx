@@ -70,12 +70,17 @@ export function TraceTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row, index) => (
               <tr key={row.key}>
                 {TRACE_COLUMNS.map((column) => (
                   <Cell
                     key={column.key}
                     cell={row.cells[column.key]}
+                    // 上の行と同じ要素は薄く出し、どこで区切れるかを読み取りやすくする（#155）
+                    repeated={sameCell(
+                      rows[index - 1]?.cells[column.key],
+                      row.cells[column.key],
+                    )}
                     onSelect={onSelect}
                   />
                 ))}
@@ -91,11 +96,22 @@ export function TraceTable({
   );
 }
 
+/** 上の行のセルと同じ要素を出しているか。途切れや説明のセルは比べない */
+function sameCell(above: TraceCell | undefined, cell: TraceCell): boolean {
+  if (!above || cell.elements.length === 0) return false;
+  return (
+    above.elements.length === cell.elements.length &&
+    above.elements.every((e, i) => e.id === cell.elements[i]?.id)
+  );
+}
+
 function Cell({
   cell,
+  repeated,
   onSelect,
 }: {
   cell: TraceCell;
+  repeated: boolean;
   onSelect: (elementId: string) => void;
 }) {
   if (cell.gap) {
@@ -107,7 +123,7 @@ function Cell({
   }
   if (cell.note) return <td className="muted">{cell.note}</td>;
   return (
-    <td>
+    <td className={repeated ? "repeated" : undefined}>
       {cell.elements.map((element, index) => (
         <span key={element.id}>
           {index > 0 && "、"}
