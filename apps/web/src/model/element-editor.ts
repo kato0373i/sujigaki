@@ -10,8 +10,11 @@ import {
 export interface AttributeField {
   readonly key: string;
   readonly label: string;
-  /** text: 1行、textarea: 複数行、lines: 1行に1つずつの一覧、select: 選択肢 */
-  readonly input: "text" | "textarea" | "lines" | "select";
+  /**
+   * text: 1行、textarea: 複数行、lines: 1行に1つずつの一覧、select: 選択肢、
+   * items: 情報の項目。1行に1つずつ書き、説明は「：」のあとに書く
+   */
+  readonly input: "text" | "textarea" | "lines" | "select" | "items";
   readonly choices?: readonly {
     readonly value: string;
     readonly label: string;
@@ -54,7 +57,28 @@ export const ATTRIBUTE_FIELDS: Partial<
     field("originalText", "textarea"),
   ],
   state: [field("stereotype", "text")],
+  information: [field("items", "items")],
+  variation: [field("values", "lines")],
 };
+
+interface Item {
+  readonly name: string;
+  readonly description?: string;
+}
+
+/** 情報の項目を、入力欄の1行にする */
+function itemLine(item: Item): string {
+  return item.description ? `${item.name}：${item.description}` : item.name;
+}
+
+/** 入力欄の1行を情報の項目にする。説明は最初の「：」（半角の「:」も可）のあと */
+function parseItem(line: string): Item {
+  const at = line.search(/[：:]/);
+  if (at < 0) return { name: line };
+  const name = line.slice(0, at).trim();
+  const description = line.slice(at + 1).trim();
+  return description === "" ? { name } : { name, description };
+}
 
 /** 入力中の内容。属性は入力欄の文字列のまま持つ */
 export interface Draft {
@@ -74,7 +98,9 @@ export function draftOf(element: ElementSnapshot): Draft {
   for (const f of ATTRIBUTE_FIELDS[element.kind] ?? []) {
     const value = element.attributes[f.key];
     attributes[f.key] = Array.isArray(value)
-      ? value.join("\n")
+      ? value
+          .map((v) => (typeof v === "string" ? v : itemLine(v as Item)))
+          .join("\n")
       : typeof value === "string"
         ? value
         : "";
@@ -94,12 +120,17 @@ function attributesOf(
   }
   for (const f of fields) {
     const text = draft.attributes[f.key] ?? "";
-    if (f.input === "lines") {
+    if (f.input === "lines" || f.input === "items") {
       const lines = text
         .split("\n")
         .map((line) => line.trim())
         .filter((line) => line !== "");
-      if (lines.length > 0) result[f.key] = lines;
+      if (lines.length > 0) {
+        result[f.key] =
+          f.input === "items"
+            ? lines.map((line) => parseItem(line) as unknown as JsonValue)
+            : lines;
+      }
     } else if (text.trim() !== "") {
       result[f.key] = text.trim();
     }

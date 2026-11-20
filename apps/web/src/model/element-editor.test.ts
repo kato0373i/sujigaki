@@ -95,3 +95,51 @@ describe("P-01 詳細パネルの編集", () => {
     ]);
   });
 });
+
+describe("FR-011 情報の項目と区分の値", () => {
+  const info = elementSnapshot("i1", "information", {
+    name: "申込",
+    attributes: {
+      items: [
+        { name: "申込日", description: "受け付けた日" },
+        { name: "氏名" },
+      ],
+    },
+  });
+
+  it("情報の項目を1行に1つにし、説明は「：」のあとに書く", () => {
+    expect(draftOf(info).attributes.items).toBe("申込日：受け付けた日\n氏名");
+  });
+
+  it("書いた行を項目にする。説明がない行は名前だけにし、半角の「:」も区切りにする", () => {
+    const draft = {
+      ...draftOf(info),
+      attributes: {
+        items: "申込日：受け付けた日\n氏名\n 電話番号: 日中の連絡先 \n\n住所：",
+      },
+    };
+    expect(changesOf(info, draft)).toEqual({
+      attributes: {
+        items: [
+          { name: "申込日", description: "受け付けた日" },
+          { name: "氏名" },
+          { name: "電話番号", description: "日中の連絡先" },
+          { name: "住所" },
+        ],
+      },
+    });
+  });
+
+  it("区分の値は1行に1つずつ書く", () => {
+    const variation = elementSnapshot("v1", "variation", {
+      attributes: { values: ["個人", "法人"] },
+    });
+    expect(draftOf(variation).attributes.values).toBe("個人\n法人");
+    expect(
+      changesOf(variation, {
+        ...draftOf(variation),
+        attributes: { values: "個人\n法人\n団体" },
+      }),
+    ).toEqual({ attributes: { values: ["個人", "法人", "団体"] } });
+  });
+});
