@@ -31,6 +31,7 @@ import {
   toggleKind,
   type ViewSettings,
 } from "../model/view-settings.ts";
+import { hrefOf } from "../route.ts";
 
 const COLUMN_WIDTH = 230;
 const ROW_HEIGHT = 96;
@@ -166,7 +167,20 @@ export function ChainViewScreen({
     return { nodes: flowNodes as Node[], edges: flowEdges };
   }, [view, selectedId, originId]);
 
-  if (!view) return <p className="error">起点の要素が見つかりません。</p>;
+  if (!view)
+    return (
+      <section className="screen">
+        <p className="error" role="alert">
+          起点の要素が見つかりません。削除された可能性があります。
+        </p>
+        {/* 戻る先を出す（#124） */}
+        <p>
+          <a href={hrefOf({ screen: "businesses" })}>業務一覧へ戻る</a>
+          {"　"}
+          <a href={hrefOf({ screen: "deleted" })}>削除済みの要素を見る</a>
+        </p>
+      </section>
+    );
 
   return (
     <section className="screen screen-flow">

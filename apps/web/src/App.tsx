@@ -237,6 +237,7 @@ export function App() {
         {snapshot && route.screen === "businesses" && (
           <BusinessList
             projectId={LOCAL_PROJECT_ID}
+            snapshot={snapshot}
             rows={rows}
             canEdit={can(LOCAL_ACTOR, "editElement")}
             onChanged={reload}

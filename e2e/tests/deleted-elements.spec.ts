@@ -50,7 +50,9 @@ test.describe("FR-012 要素を削除し、復元する", () => {
     await page.getByRole("button", { name: "削除する" }).click();
     await expect(panel).toHaveCount(0);
 
-    await page.getByRole("link", { name: "削除済みの要素" }).click();
+    await page
+      .getByRole("link", { name: "削除済みの要素", exact: true })
+      .click();
     const row = page.getByRole("row", { name: /研修の申込をかんたんにしたい/ });
     await expect(row).toContainText("要求");
     // ローカルモードには利用者がいないため、削除した人の列を出さない

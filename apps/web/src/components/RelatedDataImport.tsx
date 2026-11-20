@@ -11,7 +11,12 @@ import {
   renameKey,
 } from "@sujigaki/interchange";
 import { type ChangeEvent, useState } from "react";
-import { ApiProblem, applyChangeSet, type Snapshot } from "../api.ts";
+import {
+  ApiProblem,
+  applyChangeSet,
+  type Snapshot,
+  updateProjectSettings,
+} from "../api.ts";
 import { changeSetBody } from "../model/import-review.ts";
 import type { IoScope } from "../model/io-scope.ts";
 import { ImportDiffView } from "./ImportDiffView.tsx";
@@ -56,6 +61,10 @@ export function RelatedDataImport({
     null,
   );
 
+  // 空のプロジェクトでは、1行目のシステム名をプロジェクトのシステム名にするかを選べる（#117）
+  const [newSystemName, setNewSystemName] = useState<string | null>(null);
+  const [useSystemName, setUseSystemName] = useState(true);
+
   const readFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setMessage(null);
@@ -68,6 +77,14 @@ export function RelatedDataImport({
       setLoaded({ state: "invalid", issues: read.issues });
       return;
     }
+    setNewSystemName(
+      snapshot.elements.length === 0 &&
+        read.systemName &&
+        read.systemName !== snapshot.project.systemName
+        ? read.systemName
+        : null,
+    );
+    setUseSystemName(true);
     const rows = renameCandidates(snapshot.elements, read.elements);
     if (rows.length > 0) {
       setLoaded({ state: "rename", text, rows });
@@ -120,10 +137,16 @@ export function RelatedDataImport({
           source: RELATED_DATA_SOURCE,
         }),
       );
+      const renamed = newSystemName !== null && useSystemName;
+      if (renamed)
+        await updateProjectSettings(projectId, { systemName: newSystemName });
       setLoaded({ state: "none" });
+      setNewSystemName(null);
       setMessage({
         ok: true,
-        text: `${adopted.length}件の変更を反映しました。`,
+        text:
+          `${adopted.length}件の変更を反映しました。` +
+          (renamed ? `システム名を「${newSystemName}」にしました。` : ""),
       });
       onChanged();
     } catch (problem) {
@@ -177,6 +200,17 @@ export function RelatedDataImport({
           rows={loaded.rows}
           onDecide={(choices) => decideRenames(loaded.text, choices)}
         />
+      )}
+      {loaded.state === "import" && newSystemName && (
+        <label className="system-name-choice">
+          <input
+            type="checkbox"
+            checked={useSystemName}
+            onChange={(e) => setUseSystemName(e.target.checked)}
+          />{" "}
+          1行目のシステム名「{newSystemName}
+          」を、このプロジェクトのシステム名にする
+        </label>
       )}
       {loaded.state === "import" && (
         <ImportDiffView

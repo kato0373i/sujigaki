@@ -1324,3 +1324,40 @@ button.badge {
   font: inherit;
   cursor: pointer;
 }
+
+.business-actions {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+  margin-right: 16px;
+  font-size: 13px;
+}
+
+.business-actions .link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.business-actions .link.danger {
+  color: var(--red);
+}
+
+.start-guide {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.screen .start-guide ul {
+  margin: 8px 0;
+}
+
+.system-name-choice {
+  display: block;
+  margin: 8px 0;
+}
