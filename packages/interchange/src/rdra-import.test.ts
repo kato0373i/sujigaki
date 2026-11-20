@@ -292,3 +292,22 @@ describe("FR-052 名前の変更が疑われる要素", () => {
     ]);
   });
 });
+
+describe("#117 関連データのシステム名", () => {
+  it("1行目のシステム名を返す。タグの行から始まれば null にする", () => {
+    const named = readRelatedData(
+      "図書館システム\n#edge\tUC\t画面\t貸出を登録する@@貸出画面\n",
+      [],
+      at,
+      newId,
+    );
+    expect(named.ok && named.systemName).toBe("図書館システム");
+    const unnamed = readRelatedData(
+      "#edge\tUC\t画面\t貸出を登録する@@貸出画面\n",
+      [],
+      at,
+      newId,
+    );
+    expect(unnamed.ok && unnamed.systemName).toBeNull();
+  });
+});

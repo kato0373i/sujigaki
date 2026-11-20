@@ -88,6 +88,8 @@ export type RelatedDataRead =
       readonly ok: true;
       /** 取り込んだあとの要素。今の要素と同じ ID を引き継ぐ。差分は diffElements で出す */
       readonly elements: readonly ElementSnapshot[];
+      /** 1行目のシステム名。なければ null。空のプロジェクトのシステム名に使える（#117） */
+      readonly systemName: string | null;
     }
   | { readonly ok: false; readonly issues: readonly ReadIssue[] };
 
@@ -126,13 +128,15 @@ export function readRelatedData(
   };
 
   let seenRow = false;
+  let systemName: string | null = null;
   text.split(/\r?\n/).forEach((raw, index) => {
     const line = index + 1;
     if (raw.trim() === "") return;
     if (!raw.startsWith("#")) {
-      // 最初の行はシステム名。プロジェクトのシステム名は変えない
+      // 最初の行はシステム名。プロジェクトのシステム名を変えるかは、呼び出し側が決める
       if (!seenRow) {
         seenRow = true;
+        systemName = raw.trim();
         return;
       }
       issue(line, "タグ（#child など）で始まらない行です。");
@@ -293,7 +297,7 @@ export function readRelatedData(
         notExported.has(e.id) ||
         (options.scope !== undefined && !options.scope.has(e.id))),
   );
-  return { ok: true, elements: [...kept, ...imported] };
+  return { ok: true, elements: [...kept, ...imported], systemName };
 }
 
 /** 関連データで表せる属性だけを関連データに合わせ、ほかの属性は今のまま残す */
