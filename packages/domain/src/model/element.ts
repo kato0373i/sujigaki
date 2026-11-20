@@ -29,6 +29,17 @@ export const EXTERNAL_LINK_KINDS = [
 
 export type ExternalLinkKind = (typeof EXTERNAL_LINK_KINDS)[number];
 
+/** 外部リンクの種類の表示名（FR-004） */
+export const EXTERNAL_LINK_KIND_LABELS: Readonly<
+  Record<ExternalLinkKind, string>
+> = {
+  manual: "マニュアル",
+  spec: "詳細仕様",
+  design: "デザイン",
+  ticket: "チケット",
+  other: "その他",
+};
+
 export interface ExternalLink {
   readonly id: string;
   readonly kind: ExternalLinkKind;
