@@ -15,6 +15,7 @@ import {
   ReactFlow,
 } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
+import { FLOW_ARIA_LABELS, nodeLabel } from "../components/flow-labels.ts";
 import { ReviewStateMark } from "../components/status.tsx";
 import {
   type ChainNode,
@@ -140,6 +141,7 @@ export function ChainViewScreen({
       return {
         id: node.element.id,
         type: "chain",
+        ariaLabel: nodeLabel(node.element),
         position: { x: node.column * COLUMN_WIDTH, y: row * ROW_HEIGHT },
         data: {
           node,
@@ -277,6 +279,7 @@ export function ChainViewScreen({
         }}
       >
         <ReactFlow
+          ariaLabelConfig={FLOW_ARIA_LABELS}
           // 段数や表示する種類、詳細パネルの開閉で描く範囲が変わるため、描き直して全体が入るように合わせる
           key={`${originId}-${settings.depth}-${settings.kinds.join()}-${selectedId === null}`}
           nodes={nodes}

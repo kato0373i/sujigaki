@@ -24,6 +24,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { FLOW_ARIA_LABELS, nodeLabel } from "../components/flow-labels.ts";
 import {
   ModeMark,
   ReviewStateMark,
@@ -283,6 +284,7 @@ export function BusinessFlow({
     const cards: ActivityNode[] = view.cards.map((card) => ({
       id: card.element.id,
       type: "activity",
+      ariaLabel: nodeLabel(card.element),
       position: { x: card.position.x, y: card.position.y + 16 },
       data: { card },
       draggable: editable,
@@ -390,6 +392,7 @@ export function BusinessFlow({
       >
         <RenameContext.Provider value={editable ? rename : null}>
           <ReactFlow
+            ariaLabelConfig={FLOW_ARIA_LABELS}
             nodes={nodes}
             onInit={setFlow}
             // ダブルクリックはカードの名前を直すのに使うため、図の拡大には使わない

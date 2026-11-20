@@ -11,6 +11,7 @@ import {
   ReactFlow,
 } from "@xyflow/react";
 import { useMemo } from "react";
+import { FLOW_ARIA_LABELS, nodeLabel } from "../components/flow-labels.ts";
 import { ReviewStateMark } from "../components/status.tsx";
 import {
   type StateDiagramNode,
@@ -85,6 +86,7 @@ export function StateDiagramScreen({
     const flowNodes: StateFlowNode[] = diagram.nodes.map((node) => ({
       id: node.element.id,
       type: "state",
+      ariaLabel: nodeLabel(node.element),
       position: { x: node.column * COLUMN_WIDTH, y: node.row * ROW_HEIGHT },
       data: { node },
       draggable: false,
@@ -190,6 +192,7 @@ export function StateDiagramScreen({
           }}
         >
           <ReactFlow
+            ariaLabelConfig={FLOW_ARIA_LABELS}
             // 状態の流れや詳細パネルの開閉で描く範囲が変わるため、描き直して全体が入るように合わせる
             key={`${diagram.model.id}-${selectedId === null}`}
             nodes={nodes}
