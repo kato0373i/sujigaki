@@ -22,13 +22,18 @@ test.describe("FR-024 確認ボード", () => {
         .getByRole("button", { name: "受講案内を送る" }),
     ).toBeVisible();
     await expect(training).toContainText("申込の締め切りはいつですか");
-    // 空欄から計算した問いには「自動」のタグを付ける（FR-035）
+    // 空欄から計算した問いには「自動」のタグを付け、問いの文ごとにまとめる（FR-035、#152）
+    const blank = training.locator(".board-question-group", {
+      has: page.locator(".question-body", {
+        hasText: "この活動は何をきっかけに始まりますか",
+      }),
+    });
+    await expect(blank.locator(".question-body").first()).toContainText("自動");
+    await expect(blank).toContainText("受講結果をまとめる");
+    // 要素の一覧には種類を添える
     await expect(
-      training
-        .locator(".board-question-group", { hasText: "受講結果をまとめる" })
-        .locator(".board-question")
-        .first(),
-    ).toContainText("自動");
+      training.locator(".board-column", { hasText: "要確認" }),
+    ).toContainText("活動 受講案内を送る");
     const result = await new AxeBuilder({ page }).analyze();
     expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     await page.screenshot({ path: `${screenshots}/s-06-review-board.png` });
@@ -130,11 +135,14 @@ test.describe("#121 #122 確認ボードの見直し", () => {
   }) => {
     await page.goto("/#/board");
     const reception = page.getByRole("region", { name: "受付業務" });
+    // 空欄から作った問いは、問いの文ごとにまとめて、要素の名前を添える（#152）
     const group = reception.locator(".board-question-group", {
-      hasText: "窓口で受け付ける",
+      has: page.locator(".question-body", {
+        hasText: "この活動は手作業ですか、システムを使いますか",
+      }),
     });
     const question = group.locator(".board-question", {
-      hasText: "この活動は手作業ですか、システムを使いますか",
+      hasText: "窓口で受け付ける",
     });
     await question.getByRole("button", { name: "システム利用" }).click();
     await expect(question).toHaveCount(0);
