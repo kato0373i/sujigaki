@@ -131,3 +131,37 @@ test.describe("#144 #158 業務フローのレーン", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("#162 ダークモード", () => {
+  test("OS が暗い設定なら暗い色で出し、主な画面にアクセシビリティの違反がない", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/#/");
+    await expect(page.locator("body")).toHaveCSS(
+      "background-color",
+      "rgb(13, 17, 23)",
+    );
+    for (const hash of [
+      "/#/",
+      "/#/flows/buc-application",
+      "/#/board",
+      "/#/trace",
+      "/#/elements/activity",
+      "/#/chain/act-apply",
+      "/#/ai",
+      "/#/io",
+      "/#/deleted",
+      "/#/settings",
+    ]) {
+      await page.goto(hash);
+      await expect(page.locator(".screen h1")).toBeVisible();
+      const result = await new AxeBuilder({ page }).analyze();
+      expect(
+        result.violations.map((v) => `${hash} ${v.id}: ${v.help}`),
+      ).toEqual([]);
+    }
+    await page.goto("/#/flows/buc-application");
+    await page.screenshot({ path: `${screenshots}/dark-flow.png` });
+  });
+});
