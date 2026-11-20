@@ -31,10 +31,27 @@ describe("FR-071 更新の通知", () => {
     expect(
       updateNotice(
         10,
-        { revision: 11, operations: [op("ElementEdited", null, 11)] },
-        local,
+        { revision: 11, operations: [op("ElementEdited", "u1", 11)] },
+        me,
       ),
     ).toBeNull();
+  });
+
+  it("#145 ローカルモードでは、読み込んだあとの操作をほかのタブの変更として数える", () => {
+    expect(
+      updateNotice(
+        10,
+        {
+          revision: 12,
+          operations: [
+            op("ElementEdited", null, 10),
+            op("ElementEdited", null, 11),
+            op("RelationAdded", null, 12),
+          ],
+        },
+        local,
+      ),
+    ).toEqual({ count: 2 });
   });
 
   it("ローカルモードでは、外の変更を数える", () => {
