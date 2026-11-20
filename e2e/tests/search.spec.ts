@@ -49,4 +49,27 @@ test.describe("FR-026 要素の検索", () => {
       "「返金」に当てはまる要素はありません。",
     );
   });
+
+  test("#125 候補を↓キーで選び、Enter で開く", async ({ page }) => {
+    await page.goto("/#/flows/buc-application");
+    const box = page.getByRole("searchbox", { name: "要素を検索" });
+    await box.fill("受講申込");
+    const results = page.getByRole("list", { name: "検索の結果" });
+    await expect(results.getByRole("button")).toHaveText([
+      "業務フロー 研修の受講申込",
+      "情報 受講申込",
+    ]);
+    await box.press("ArrowDown");
+    await expect(results.getByRole("button").first()).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(
+      results.getByRole("button", { name: "情報 受講申込" }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(
+      page
+        .getByRole("complementary", { name: "要素の詳細" })
+        .getByRole("heading", { name: "受講申込", level: 2 }),
+    ).toBeVisible();
+  });
 });
