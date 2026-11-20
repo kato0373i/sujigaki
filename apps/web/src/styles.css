@@ -1182,3 +1182,48 @@ button.badge {
   gap: 8px;
   margin-bottom: 12px;
 }
+
+.relation-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.add-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 12px;
+}
+
+.add-form input {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-width: 240px;
+}
+
+.add-form button,
+.add-flow {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.add-form button:disabled {
+  color: var(--gray);
+  cursor: not-allowed;
+}
+
+.add-flow {
+  margin-top: 8px;
+  font-size: 13px;
+}
