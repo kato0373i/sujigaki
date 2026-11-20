@@ -1308,3 +1308,19 @@ button.badge {
   border-color: var(--yellow);
   color: var(--yellow);
 }
+
+.board-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.board-bulk button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  cursor: pointer;
+}
