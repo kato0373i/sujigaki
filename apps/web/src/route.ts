@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** 画面の場所。URL の # のあとに書く */
 export type Route =
@@ -38,10 +38,27 @@ export function hrefOf(route: Route): string {
   return route.screen === "io" ? "#/io" : "#/";
 }
 
-export function useRoute(): Route {
+/**
+ * URL の # から今の画面を返す。canLeave が false を返したら、移る前の URL に戻して画面を変えない。
+ * 詳細パネルの保存していない変更を、画面を移る前に確かめるために使う（画面設計書 P-01）
+ */
+export function useRoute(canLeave?: (nextHash: string) => boolean): Route {
   const [route, setRoute] = useState(() => parseRoute(window.location.hash));
+  const current = useRef(window.location.hash);
+  const guard = useRef(canLeave);
+  guard.current = canLeave;
   useEffect(() => {
-    const update = () => setRoute(parseRoute(window.location.hash));
+    const update = () => {
+      const next = window.location.hash;
+      if (next === current.current) return;
+      if (guard.current && !guard.current(next)) {
+        // 履歴を増やさずに、移る前の URL に戻す
+        window.history.replaceState(null, "", current.current || "#/");
+        return;
+      }
+      current.current = next;
+      setRoute(parseRoute(next));
+    };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
