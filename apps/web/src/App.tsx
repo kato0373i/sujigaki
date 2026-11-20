@@ -416,13 +416,14 @@ function FlowScreen({
   );
 
   /** 編集の操作を行い、終わったら読み直す。失敗したら理由を出す */
-  const attempt = async (task: () => Promise<unknown>) => {
+  const attempt = async <T,>(task: () => Promise<T>): Promise<T | null> => {
     setError(null);
     try {
       // 活動を作ってつなぐなど、1回の操作で行った変更をまとめて元に戻せるようにする（FR-014）
-      await undoable(task);
+      return await undoable(task);
     } catch (problem) {
       setError((problem as Error).message);
+      return null;
     } finally {
       onChanged();
     }
@@ -432,8 +433,8 @@ function FlowScreen({
     view && can(LOCAL_ACTOR, "editElement")
       ? {
           // 活動を作り、業務フローの子にして、レーンの担当者につなぐ
-          onAdd: (actorId, name, newActor) =>
-            attempt(async () => {
+          onAdd: async (actorId, name, newActor) => {
+            const added = await attempt(async () => {
               const created = await createElement(LOCAL_PROJECT_ID, {
                 kind: "activity",
                 name,
@@ -449,7 +450,10 @@ function FlowScreen({
                   ).id
                 : actorId;
               if (actor) await addRelation(LOCAL_PROJECT_ID, created, actor);
-            }),
+              return { actorId: actor };
+            });
+            return added ?? { failed: true as const };
+          },
           onMove: (elementId, x) =>
             void attempt(() =>
               saveLayout(

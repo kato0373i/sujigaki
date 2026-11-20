@@ -153,6 +153,10 @@ const nodeTypes = { lane: LaneView, activity: ActivityView };
 /** 活動を分ける目安（FR-002）。活動を追加する入力欄の近くに出す */
 /** 担当の選択肢の「＋ 新しい担当者」 */
 const NEW_ACTOR = "new";
+/** 担当者が未設定のレーンの選択肢の値 */
+const NONE_LANE = "none";
+const laneKey = (lane: { readonly actorId: string | null } | undefined) =>
+  lane?.actorId ?? NONE_LANE;
 
 const SPLIT_HINTS = [
   "担当者や判断する人が変わる所",
@@ -163,13 +167,14 @@ const SPLIT_HINTS = [
 export interface FlowEditing {
   /**
    * 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null。
-   * newActor を渡したときは、その名前の登場人物を作って担当者にする（#118）
+   * newActor を渡したときは、その名前の登場人物を作って担当者にする（#118）。
+   * 足せたら担当者の ID を、足せなかったら failed を返す
    */
   readonly onAdd: (
     actorId: string | null,
     name: string,
     newActor?: string,
-  ) => Promise<void>;
+  ) => Promise<{ readonly actorId: string | null } | { readonly failed: true }>;
   /** カードを横に動かした */
   readonly onMove: (elementId: string, x: number) => void;
   /** カードの端から別のカードへつないだ */
@@ -177,7 +182,7 @@ export interface FlowEditing {
   /** カードの名前をその場で直した（US-001） */
   readonly onRename: (elementId: string, name: string) => void;
   /** 保存した位置を捨てて、自動の配置で並べ直す（#111） */
-  readonly onRelayout: () => Promise<void>;
+  readonly onRelayout: () => Promise<unknown>;
 }
 
 /**
@@ -348,37 +353,49 @@ function AddActivityForm({
   lanes: BusinessFlowView["lanes"];
   onAdd: FlowEditing["onAdd"];
 }) {
-  const [lane, setLane] = useState("0");
+  // レーンは担当者の ID で覚える。担当者が増えるとレーンの順が変わるため、番号では覚えない（#143）
+  const [chosen, setChosen] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [actorName, setActorName] = useState("");
-  const [busy, setBusy] = useState(false);
+  // 追加しているあいだに送った活動は、前の追加が終わってから順に送る（#142）
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const lane =
+    chosen === NEW_ACTOR || lanes.some((l) => laneKey(l) === chosen)
+      ? (chosen as string)
+      : laneKey(lanes[0]);
   const creatingActor = lane === NEW_ACTOR;
   const ready =
     name.trim() !== "" && (!creatingActor || actorName.trim() !== "");
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!ready) return;
-    setBusy(true);
-    try {
-      if (creatingActor) {
-        await onAdd(null, name, actorName.trim());
-        setActorName("");
-        setLane("0");
-      } else {
-        await onAdd(lanes[Number(lane)]?.actorId ?? null, name);
+    // 送った名前はすぐ欄から消す。足しているあいだに打った文字は残す（#142）
+    const submitted = name.trim();
+    const newActor = creatingActor ? actorName.trim() : undefined;
+    const actorId = lanes.find((l) => laneKey(l) === lane)?.actorId ?? null;
+    setName("");
+    const next = queue.current.then(async () => {
+      const result = await onAdd(actorId, submitted, newActor);
+      if ("failed" in result) {
+        setName((current) => (current === "" ? submitted : current));
+        return;
       }
-      setName("");
-    } finally {
-      setBusy(false);
-    }
+      if (newActor !== undefined) {
+        // 作った担当者を選んだままにして、続けて足せるようにする（#143）
+        setActorName("");
+        setChosen(result.actorId ?? NONE_LANE);
+      }
+    });
+    queue.current = next;
+    await next;
   };
   return (
     <form className="add-activity" onSubmit={submit} aria-label="活動を追加">
       <label>
         担当{" "}
-        <select value={lane} onChange={(e) => setLane(e.target.value)}>
-          {lanes.map((l, index) => (
-            <option key={l.actorId ?? "none"} value={String(index)}>
+        <select value={lane} onChange={(e) => setChosen(e.target.value)}>
+          {lanes.map((l) => (
+            <option key={laneKey(l)} value={laneKey(l)}>
               {l.name}
             </option>
           ))}
@@ -398,7 +415,7 @@ function AddActivityForm({
         活動の名前{" "}
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <button type="submit" disabled={busy || !ready}>
+      <button type="submit" disabled={!ready}>
         ＋ 活動を追加
       </button>
       <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>
