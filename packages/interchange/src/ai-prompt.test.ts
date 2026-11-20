@@ -92,3 +92,50 @@ describe("FR-033 AI に渡すテキスト", () => {
     expect(result.ok).toBe(true);
   });
 });
+
+describe("#114 #127 下書きを頼むとき", () => {
+  it("範囲をプロジェクト全体にすると、要素がなくても作れ、すべての種類とつながりを規則に書く", () => {
+    const text = aiPrompt({
+      systemName: "受注システム",
+      elements: [],
+      questions: [],
+      scope: { type: "project" },
+      template: "draft",
+      note: "  顧客から注文を受けて出荷するまでの業務です。  ",
+    });
+    expect(text).toContain("elements: []");
+    expect(text).toContain(
+      "# 補足\n\n顧客から注文を受けて出荷するまでの業務です。",
+    );
+    expect(text).toContain("- activity-actor: 活動 から 登場人物 へ");
+    expect(text).toContain("- state-usecase: 状態 から システム操作 へ");
+    expect(text).toContain("情報（information）の属性（attributes）:");
+    expect(text).toContain("- items: 項目（name（項目名）と description");
+  });
+
+  it("下書きの作成では、範囲にない種類も規則に書く。抜け漏れの指摘では範囲の種類だけにする", () => {
+    const draft = aiPrompt({
+      systemName: "申込システム",
+      elements: [other],
+      questions: [],
+      scope: { type: "business", id: "biz2" },
+      template: "draft",
+    });
+    expect(draft).toContain("- activity-actor: 活動 から 登場人物 へ");
+    const gaps = aiPrompt({
+      systemName: "申込システム",
+      elements: [other],
+      questions: [],
+      scope: { type: "business", id: "biz2" },
+      template: "gaps",
+    });
+    expect(gaps).not.toContain("- activity-actor: 活動 から 登場人物 へ");
+    expect(gaps).not.toContain("# 補足");
+  });
+
+  it("プロジェクト全体の範囲は、有効な要素をすべて ID の順に含める", () => {
+    expect(
+      scopeElements(elements, { type: "project" }).map((e) => e.id),
+    ).toEqual(["act1", "actor1", "biz1", "biz2", "buc1", "req1", "uc1"]);
+  });
+});

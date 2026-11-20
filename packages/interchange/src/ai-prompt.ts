@@ -12,6 +12,7 @@ import { PROPOSAL_FORMAT } from "./ai-proposal.ts";
 
 /** AI に渡す範囲（FR-033） */
 export type AiScope =
+  | { readonly type: "project" }
   | { readonly type: "business"; readonly id: string }
   | { readonly type: "flow"; readonly id: string }
   | { readonly type: "element"; readonly id: string };
@@ -61,6 +62,10 @@ export function scopeElements(
   scope: AiScope,
 ): ElementSnapshot[] {
   const active = elements.filter((e) => e.deletedAt === null);
+  const byId = (a: ElementSnapshot, b: ElementSnapshot) =>
+    a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  // プロジェクト全体なら、有効な要素をすべて渡す。要素がなくても選べる
+  if (scope.type === "project") return [...active].sort(byId);
   const root = active.find((e) => e.id === scope.id);
   if (!root) return [];
   const children = (parent: ElementSnapshot, kind: ElementKind) =>
@@ -78,9 +83,7 @@ export function scopeElements(
   for (const element of core) {
     for (const next of linked(element, active)) result.set(next.id, next);
   }
-  return [...result.values()].sort((a, b) =>
-    a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
-  );
+  return [...result.values()].sort(byId);
 }
 
 /** 要素を、返答の形式と同じ書き方の値にする。確認状態・バージョン・日時は省く */
@@ -103,13 +106,37 @@ const ATTRIBUTE_VALUES: Readonly<Record<string, string>> = {
   mode: "manual（手作業）か system（システム利用）",
   priority: "must・should・could のどれか",
   exceptions: "文字列の一覧",
+  items: "name（項目名）と description（説明、省略できる）の組の一覧",
+  values: "文字列の一覧",
 };
 
-/** 規則の節。範囲にある種類と、それとつなげる種類だけを書く */
-function rules(kinds: ReadonlySet<ElementKind>): string {
-  const types = RELATION_TYPES.filter(
-    (t) => kinds.has(t.from) || kinds.has(t.to),
-  );
+/** 種類ごとの属性の節。範囲にある種類だけを書く */
+const ATTRIBUTE_SECTIONS: readonly {
+  readonly kind: ElementKind;
+  readonly keys: readonly string[];
+}[] = [
+  {
+    kind: "activity",
+    keys: ["mode", "trigger", "input", "procedure", "exceptions", "outcome"],
+  },
+  {
+    kind: "requirement",
+    keys: ["rationale", "origin", "priority", "originalText"],
+  },
+  { kind: "information", keys: ["items"] },
+  { kind: "variation", keys: ["values"] },
+  { kind: "state", keys: ["stereotype"] },
+];
+
+/**
+ * 規則の節。範囲にある種類と、それとつなげる種類だけを書く。
+ * all のときは、範囲にない種類の要素も作れるよう、すべての種類とつながりを書く（設計書 5.7 節）
+ */
+function rules(kinds: ReadonlySet<ElementKind>, all: boolean): string {
+  const types = all
+    ? RELATION_TYPES
+    : RELATION_TYPES.filter((t) => kinds.has(t.from) || kinds.has(t.to));
+  const described = new Set(types.flatMap((t) => [t.from, t.to]));
   const lines = [
     "要素の種類（kind）と表示名:",
     ...[...new Set(types.flatMap((t) => [t.from, t.to]))].map(
@@ -121,18 +148,16 @@ function rules(kinds: ReadonlySet<ElementKind>): string {
       (t) =>
         `- ${t.id}: ${ELEMENT_KIND_LABELS[t.from]} から ${ELEMENT_KIND_LABELS[t.to]} へ`,
     ),
-    "",
-    "活動（activity）の属性（attributes）:",
-    ...["mode", "trigger", "input", "procedure", "exceptions", "outcome"].map(
-      (key) =>
-        `- ${key}: ${ATTRIBUTE_LABELS[key]}${ATTRIBUTE_VALUES[key] ? `（${ATTRIBUTE_VALUES[key]}）` : ""}`,
-    ),
-    "",
-    "要求（requirement）の属性（attributes）:",
-    ...["rationale", "origin", "priority", "originalText"].map(
-      (key) =>
-        `- ${key}: ${ATTRIBUTE_LABELS[key]}${ATTRIBUTE_VALUES[key] ? `（${ATTRIBUTE_VALUES[key]}）` : ""}`,
-    ),
+    ...ATTRIBUTE_SECTIONS.filter((section) =>
+      described.has(section.kind),
+    ).flatMap((section) => [
+      "",
+      `${ELEMENT_KIND_LABELS[section.kind]}（${section.kind}）の属性（attributes）:`,
+      ...section.keys.map(
+        (key) =>
+          `- ${key}: ${ATTRIBUTE_LABELS[key]}${ATTRIBUTE_VALUES[key] ? `（${ATTRIBUTE_VALUES[key]}）` : ""}`,
+      ),
+    ]),
   ];
   return lines.join("\n");
 }
@@ -163,6 +188,8 @@ export function aiPrompt(input: {
   readonly questions: readonly QuestionSnapshot[];
   readonly scope: AiScope;
   readonly template: AiTemplate;
+  /** 利用者が書いた補足。業務の説明や、AI に伝えたいこと */
+  readonly note?: string;
 }): string {
   const scoped = scopeElements(input.elements, input.scope);
   const ids = new Set(scoped.map((e) => e.id as string));
@@ -182,7 +209,11 @@ export function aiPrompt(input: {
   ];
   return [
     `# 依頼\n\nシステム「${input.systemName}」の業務設計（RDRA のモデル）の一部を、「範囲の要素」の節に書きました。${AI_TEMPLATES[input.template].request}`,
-    `# 規則\n\n${rules(new Set(scoped.map((e) => e.kind)))}`,
+    ...(input.note?.trim() ? [`# 補足\n\n${input.note.trim()}`] : []),
+    `# 規則\n\n${rules(
+      new Set(scoped.map((e) => e.kind)),
+      input.template === "draft" || input.scope.type === "project",
+    )}`,
     `# 範囲の要素\n\n\`\`\`yaml\n${stringify({ elements: scoped.map(elementValue) }, { lineWidth: 0 })}\`\`\``,
     `# 未解決の問い\n\n${open.length > 0 ? open.map((q) => `- ${q}`).join("\n") : "ありません。"}`,
     `# 返答の形式\n\n${RESPONSE_FORMAT}`,
