@@ -14,6 +14,9 @@ export const VALIDATION_RULES = [
   "systemActivityWithoutUsecase",
   "usecaseWithoutScreen",
   "unusedInformation",
+  "unusedScreen",
+  "unusedCondition",
+  "stateWithoutTransition",
   "activityWithoutActor",
   "summaryTooLong",
 ] as const;
@@ -28,6 +31,9 @@ export const VALIDATION_RULE_LABELS: Readonly<Record<ValidationRule, string>> =
     systemActivityWithoutUsecase: "システム操作につながっていない",
     usecaseWithoutScreen: "画面につながっていない",
     unusedInformation: "システム操作から使われていない",
+    unusedScreen: "システム操作から使われていない",
+    unusedCondition: "システム操作から使われていない",
+    stateWithoutTransition: "遷移がない",
     activityWithoutActor: "担当者が未設定",
     summaryTooLong: "要約が長すぎる",
   };
@@ -129,6 +135,29 @@ const CONNECTION_RULES: readonly ConnectionRule[] = [
     applies: (e) => e.kind === "information",
     connected: (m, e) => m.hasIncoming(e, "usecase"),
     message: "この情報を使うシステム操作がありません。",
+  },
+  {
+    rule: "unusedScreen",
+    applies: (e) => e.kind === "screen",
+    connected: (m, e) => m.hasIncoming(e, "usecase"),
+    message: "この画面を使うシステム操作がありません。",
+  },
+  {
+    rule: "unusedCondition",
+    applies: (e) => e.kind === "condition",
+    connected: (m, e) => m.hasIncoming(e, "usecase"),
+    message: "この業務ルールを使うシステム操作がありません。",
+  },
+  {
+    // 状態の流れの中で、どこからも移ってこず、どこへも移らない状態は、遷移を書き忘れている（#153）
+    rule: "stateWithoutTransition",
+    applies: (e) => e.kind === "state",
+    connected: (m, e) =>
+      m.hasIncoming(e, "state") ||
+      m.hasIncoming(e, "usecase") ||
+      m.hasOutgoing(e, "state") ||
+      m.hasOutgoing(e, "usecase"),
+    message: "この状態に出入りする遷移がありません。",
   },
   {
     rule: "activityWithoutActor",

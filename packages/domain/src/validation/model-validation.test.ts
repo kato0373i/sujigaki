@@ -116,6 +116,30 @@ describe("FR-040 つながりの抜け", () => {
     ]);
   });
 
+  it("#153 使われない画面と業務ルール、遷移のない状態を見つける", () => {
+    const lonelyScreen = element("scr2", "screen");
+    const rule = element("cond", "condition");
+    const done = element("st-done", "state");
+    const loaned = element("st-loan", "state", {
+      relations: [relation(done)],
+    });
+    const lonelyState = element("st-lonely", "state");
+    expect(rules([lonelyScreen, rule, done, loaned, lonelyState])).toEqual([
+      ["unusedScreen", "scr2"],
+      ["unusedCondition", "cond"],
+      ["stateWithoutTransition", "st-lonely"],
+    ]);
+    // システム操作から使われていれば違反にしない
+    const usecaseWithRule = element("uc2", "usecase", {
+      relations: [relation(lonelyScreen), relation(rule)],
+    });
+    expect(
+      rules([lonelyScreen, rule, usecaseWithRule]).filter(
+        ([r]) => r !== "usecaseWithoutScreen",
+      ),
+    ).toEqual([]);
+  });
+
   it("削除済みの要素からのつながりは、つながりとして数えない", () => {
     const removedRequirement = element("req", "requirement", {
       deletedAt: at,
