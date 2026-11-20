@@ -1549,3 +1549,32 @@ button.badge {
   color: var(--accent);
   text-decoration: none;
 }
+
+/* つながりを種類ごとにまとめる（#160） */
+.relation-group {
+  margin-bottom: 8px;
+}
+
+.relation-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.relation-group-head .count {
+  border-radius: 8px;
+  padding: 0 6px;
+  background: #eaeef2;
+  font-weight: 400;
+}
+
+.relations .relation-group ul {
+  margin-left: 8px;
+}
+
+.relations li.relation-group {
+  display: block;
+}

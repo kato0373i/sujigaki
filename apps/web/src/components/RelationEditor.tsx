@@ -32,6 +32,13 @@ export function RelationEditor({
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState("");
   const rows = relationRows(element, elements);
+  // 種類の順に並んでいるので、続く同じ種類をまとめる
+  const groups: { label: string; items: typeof rows }[] = [];
+  for (const row of rows) {
+    const last = groups.at(-1);
+    if (last?.label === row.kindLabel) last.items.push(row);
+    else groups.push({ label: row.kindLabel, items: [row] });
+  }
   const candidates = adding ? relationCandidates(element, elements, query) : [];
   const kinds = creatableKinds(element);
   const [kind, setKind] = useState(kinds[0]?.kind ?? "");
@@ -57,27 +64,39 @@ export function RelationEditor({
       {rows.length === 0 ? (
         <p className="muted">つながりはありません。</p>
       ) : (
+        // つながりは種類ごとにまとめ、種類ごとの件数を出す（#160）
         <ul className="plain relations">
-          {rows.map((row) => (
-            <li key={row.key}>
-              <span>
-                <span className="muted">{row.kindLabel}</span>{" "}
-                {row.other?.name ?? "（見つからない要素）"}
-              </span>
-              {canEdit && (
-                <button
-                  type="button"
-                  className="link danger"
-                  aria-label={`「${row.other?.name ?? row.relationId}」とのつながりを外す`}
-                  onClick={() =>
-                    run(() =>
-                      removeRelation(projectId, row.owner, row.relationId),
-                    )
-                  }
-                >
-                  外す
-                </button>
-              )}
+          {groups.map(({ label, items }) => (
+            <li key={label} className="relation-group">
+              <div className="relation-group-head">
+                {label}
+                <span className="count">{items.length}</span>
+              </div>
+              <ul className="plain">
+                {items.map((row) => (
+                  <li key={row.key}>
+                    <span>{row.other?.name ?? "（見つからない要素）"}</span>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        className="link danger"
+                        aria-label={`「${row.other?.name ?? row.relationId}」とのつながりを外す`}
+                        onClick={() =>
+                          run(() =>
+                            removeRelation(
+                              projectId,
+                              row.owner,
+                              row.relationId,
+                            ),
+                          )
+                        }
+                      >
+                        外す
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>
