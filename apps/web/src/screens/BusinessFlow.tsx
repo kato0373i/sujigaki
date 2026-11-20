@@ -46,15 +46,25 @@ const FIT_OPTIONS = { minZoom: 0.8, maxZoom: 1.25, padding: 0.08 };
 const DOUBLE_CLICK_MS = 250;
 const LANE_LABEL_WIDTH = 120;
 /**
- * 図の全体を枠に合わせる。収まらずに左が切れるときは、カードがレーンの名前の下に隠れないよう、
- * 図の左端をレーンの名前の右にそろえる（#144）
+ * 図の全体を枠に合わせる。カードがレーンの名前の下に隠れないよう、図の左端をレーンの名前の右にそろえ、
+ * 残りの幅に収まる倍率にする。文字が読めなくなるほどは縮めない（#144）
  */
-async function fitFlow(flow: ReactFlowInstance) {
+async function fitFlow(flow: ReactFlowInstance, canvas: HTMLElement | null) {
   await flow.fitView(FIT_OPTIONS);
-  const { x, y, zoom } = flow.getViewport();
+  const { x, zoom } = flow.getViewport();
   // 帯の左の空き（名前の分の幅）の右端が、重ねた名前の右端に来る位置
-  const left = LANE_LABEL_WIDTH + 20 * zoom;
-  if (x < left) await flow.setViewport({ x: left, y, zoom });
+  if (!canvas || x >= LANE_LABEL_WIDTH + 20 * zoom) return;
+  const bounds = flow.getNodesBounds(flow.getNodes());
+  // 帯の左の空きの右端（x = -20）から、図の右端までの幅
+  const span = bounds.x + bounds.width + 20;
+  const room = canvas.clientWidth - LANE_LABEL_WIDTH - 16;
+  const fitted = Math.max(FIT_OPTIONS.minZoom, Math.min(zoom, room / span));
+  await flow.setViewport({
+    x: LANE_LABEL_WIDTH + 20 * fitted,
+    // 縦は図の真ん中を枠の真ん中に合わせる
+    y: canvas.clientHeight / 2 - (bounds.y + bounds.height / 2) * fitted,
+    zoom: fitted,
+  });
 }
 
 /** 流れの線の色 */
@@ -208,13 +218,18 @@ export interface FlowEditing {
   /**
    * 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null。
    * newActor を渡したときは、その名前の登場人物を作って担当者にする（#118）。
-   * 足せたら担当者の ID を、足せなかったら failed を返す
+   * after を渡したときは、その活動の次に続ける（#147）。
+   * 足せたら担当者と活動の ID を、足せなかったら failed を返す
    */
   readonly onAdd: (
     actorId: string | null,
     name: string,
     newActor?: string,
-  ) => Promise<{ readonly actorId: string | null } | { readonly failed: true }>;
+    after?: string | null,
+  ) => Promise<
+    | { readonly actorId: string | null; readonly activityId: string }
+    | { readonly failed: true }
+  >;
   /** カードを横に動かした */
   readonly onMove: (elementId: string, x: number) => void;
   /** カードの端から別のカードへつないだ */
@@ -279,12 +294,16 @@ export function BusinessFlow({
   // 詳細パネルを開け閉めすると図の幅が変わるため、表示の範囲を合わせ直す。
   // 図を作り直すと、ダブルクリックの途中でカードが入れ替わり、名前を直せないためである
   const [flow, setFlow] = useState<ReactFlowInstance | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const panelOpen = selectedId !== null;
   const cardCount = view.cards.length;
   // biome-ignore lint/correctness/useExhaustiveDependencies: パネルの開け閉めと活動の数の変化で合わせ直すため、panelOpen と cardCount の変化で動かす
   useEffect(() => {
     if (!flow) return;
-    const timer = window.setTimeout(() => void fitFlow(flow), 50);
+    const timer = window.setTimeout(
+      () => void fitFlow(flow, canvasRef.current),
+      50,
+    );
     return () => window.clearTimeout(timer);
   }, [flow, panelOpen, cardCount]);
   // 編集できるときは、クリックでパネルを開くのを少し待つ。開くと図がずれ、ダブルクリックの2回目が別の場所に当たるためである
@@ -339,14 +358,17 @@ export function BusinessFlow({
       <h1>業務フロー: {view.buc.name}</h1>
       {editing && (
         <div className="flow-tools">
-          <AddActivityForm lanes={view.lanes} onAdd={editing.onAdd} />
+          <AddActivityForm view={view} onAdd={editing.onAdd} />
           <button
             type="button"
             className="relayout"
             onClick={async () => {
               await editing.onRelayout();
               // 並べ直したカードが図に収まるよう、表示の範囲を合わせ直す
-              window.setTimeout(() => flow && void fitFlow(flow), 100);
+              window.setTimeout(
+                () => flow && void fitFlow(flow, canvasRef.current),
+                100,
+              );
             }}
           >
             自動で並べ直す
@@ -357,6 +379,7 @@ export function BusinessFlow({
         <p className="empty">活動がありません。活動を追加してください。</p>
       )}
       <div
+        ref={canvasRef}
         className="flow-canvas"
         // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
         style={{
@@ -413,13 +436,35 @@ export function BusinessFlow({
   );
 }
 
+/**
+ * 次に足す活動を続ける先。直前に足した活動があればそれを、なければ流れの最後の活動を選ぶ。
+ * 流れの最後は、次の活動のない活動のうち、いちばん右のもの
+ */
+function previousActivity(view: BusinessFlowView, lastAdded: string | null) {
+  const added = view.cards.find((c) => c.element.id === lastAdded);
+  if (added) return added.element;
+  const ends = view.cards.filter(
+    (c) => !view.edges.some((e) => e.from === c.element.id),
+  );
+  return (
+    [...(ends.length > 0 ? ends : view.cards)].sort(
+      (a, b) => b.position.x - a.position.x,
+    )[0]?.element ?? null
+  );
+}
+
 function AddActivityForm({
-  lanes,
+  view,
   onAdd,
 }: {
-  lanes: BusinessFlowView["lanes"];
+  view: BusinessFlowView;
   onAdd: FlowEditing["onAdd"];
 }) {
+  const lanes = view.lanes;
+  // 足した活動を、直前の活動の次に続ける（#147）
+  const [follow, setFollow] = useState(true);
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const previous = previousActivity(view, lastAdded);
   // レーンは担当者の ID で覚える。担当者が増えるとレーンの順が変わるため、番号では覚えない（#143）
   const [chosen, setChosen] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -440,13 +485,15 @@ function AddActivityForm({
     const submitted = name.trim();
     const newActor = creatingActor ? actorName.trim() : undefined;
     const actorId = lanes.find((l) => laneKey(l) === lane)?.actorId ?? null;
+    const after = follow ? (previous?.id ?? null) : null;
     setName("");
     const next = queue.current.then(async () => {
-      const result = await onAdd(actorId, submitted, newActor);
+      const result = await onAdd(actorId, submitted, newActor, after);
       if ("failed" in result) {
         setName((current) => (current === "" ? submitted : current));
         return;
       }
+      setLastAdded(result.activityId);
       if (newActor !== undefined) {
         // 作った担当者を選んだままにして、続けて足せるようにする（#143）
         setActorName("");
@@ -485,6 +532,16 @@ function AddActivityForm({
       <button type="submit" disabled={!ready}>
         ＋ 活動を追加
       </button>
+      {previous && (
+        <label className="follow">
+          <input
+            type="checkbox"
+            checked={follow}
+            onChange={(e) => setFollow(e.target.checked)}
+          />{" "}
+          「{previous.name}」の次に続ける
+        </label>
+      )}
       <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>
     </form>
   );

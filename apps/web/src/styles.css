@@ -1504,3 +1504,39 @@ button.badge {
   background: #ffebe9;
   color: var(--red);
 }
+
+.panel-actor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.panel-actor select {
+  flex: 1;
+  font: inherit;
+  font-weight: 400;
+  padding: 4px 6px;
+}
+
+.add-activity .follow {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 流れの順をつなぐハンドルを大きくし、ドラッグしやすくする（#147） */
+.activity .react-flow__handle {
+  width: 12px;
+  height: 12px;
+  background: var(--surface);
+  border: 2px solid #57606a;
+}
+
+.assign-business {
+  margin-left: 8px;
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+}
