@@ -24,6 +24,7 @@ import {
   type BoardQuestion,
   reviewBoardView,
 } from "../model/review-board.ts";
+import { undoable } from "../undo-store.ts";
 
 /**
  * S-06 確認ボード（FR-024）。業務ごとに、要素を確認状態ごとに並べ、問いと検証の違反も同じ画面に出す
@@ -346,7 +347,8 @@ function QuestionItem({
   const submit = async (text: string | null, value?: string) => {
     setError(null);
     try {
-      if (text !== null) await fillBlank(text, value);
+      // 登場人物を作ってつなぐ操作は、まとめて元に戻せるようにする（FR-014）
+      if (text !== null) await undoable(() => fillBlank(text, value));
       // 空欄から計算しただけの問いは、回答するときに保存する（設計書 3章）
       const saved =
         question.saved ??

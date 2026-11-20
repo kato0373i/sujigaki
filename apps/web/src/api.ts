@@ -5,7 +5,9 @@ import type {
   ProjectSettings,
   QuestionSnapshot,
 } from "@sujigaki/domain";
+import { updateLabel } from "./model/undo.ts";
 import type { ChangesResponse } from "./model/update-notice.ts";
+import { knownElement, recordChange } from "./undo-store.ts";
 
 /** スナップショットの API の応答（設計書 5.1 節） */
 export interface Snapshot {
@@ -68,18 +70,20 @@ async function mutateElement(
   return (await response.json()) as ElementSnapshot;
 }
 
-export function updateElement(
+export async function updateElement(
   projectId: string,
   element: ElementSnapshot,
   version: number,
-  changes: unknown,
+  changes: object,
 ): Promise<ElementSnapshot> {
-  return mutateElement(
+  const after = await mutateElement(
     "PATCH",
     `/api/projects/${projectId}/elements/${element.id}`,
     version,
     changes,
   );
+  recordChange(updateLabel(element, changes), [{ before: element, after }]);
+  return after;
 }
 
 export function changeReviewState(
@@ -161,42 +165,59 @@ export function restoreProject(
   );
 }
 
-/** 採用した取り込みの変更を、1つのトランザクションで反映する（FR-034、FR-050） */
-export function applyChangeSet(
+/**
+ * 採用した取り込みの変更を、1つのトランザクションで反映する（FR-034、FR-050）。
+ * 元に戻す操作（FR-014）から呼ぶときは、記録しないよう record を false にする
+ */
+export async function applyChangeSet(
   projectId: string,
-  body: unknown,
+  body: { readonly changes: readonly unknown[] },
+  record = true,
 ): Promise<{ readonly elements: readonly ElementSnapshot[] }> {
-  return post(
+  const result = await post<{ readonly elements: readonly ElementSnapshot[] }>(
     `/api/projects/${projectId}/change-sets`,
     body,
     "反映できませんでした。",
   );
+  if (record)
+    recordChange(
+      `${body.changes.length}件の変更の反映`,
+      result.elements.map((after) => ({
+        before: knownElement(after.id),
+        after,
+      })),
+    );
+  return result;
 }
 
 /** 要素を作る（FR-010） */
-export function createElement(
+export async function createElement(
   projectId: string,
   element: { kind: string; name: string; attributes?: Record<string, unknown> },
 ): Promise<ElementSnapshot> {
-  return post(
+  const created = await post<ElementSnapshot>(
     `/api/projects/${projectId}/elements`,
     element,
     "要素を作れませんでした。",
   );
+  recordChange(`「${created.name}」の追加`, [{ before: null, after: created }]);
+  return created;
 }
 
 /** つながりを追加する。元の要素の読み込んだときのバージョンを付ける（FR-010） */
-export function addRelation(
+export async function addRelation(
   projectId: string,
   from: ElementSnapshot,
   to: string,
 ): Promise<ElementSnapshot> {
-  return mutateElement(
+  const after = await mutateElement(
     "POST",
     `/api/projects/${projectId}/elements/${from.id}/relations`,
     from.version,
     { to },
   );
+  recordChange(`「${from.name}」のつながりの追加`, [{ before: from, after }]);
+  return after;
 }
 
 /** 図の配置を保存する（FR-020）。まだ保存していない配置のバージョンは 0 */
@@ -221,40 +242,46 @@ export async function saveLayout(
 }
 
 /** つながりを外す。つながりを持つ要素の、読み込んだときのバージョンを付ける（FR-010） */
-export function removeRelation(
+export async function removeRelation(
   projectId: string,
   owner: ElementSnapshot,
   relationId: string,
 ): Promise<ElementSnapshot> {
-  return mutateElement(
+  const after = await mutateElement(
     "DELETE",
     `/api/projects/${projectId}/elements/${owner.id}/relations/${relationId}`,
     owner.version,
   );
+  recordChange(`「${owner.name}」のつながりの解除`, [{ before: owner, after }]);
+  return after;
 }
 
 /** 要素を削除する（FR-012）。論理削除のため、削除済みの要素の一覧から復元できる */
-export function deleteElement(
+export async function deleteElement(
   projectId: string,
   element: ElementSnapshot,
 ): Promise<ElementSnapshot> {
-  return mutateElement(
+  const after = await mutateElement(
     "DELETE",
     `/api/projects/${projectId}/elements/${element.id}`,
     element.version,
   );
+  recordChange(`「${element.name}」の削除`, [{ before: element, after }]);
+  return after;
 }
 
 /** 削除した要素を復元する。削除する前のつながりも戻る（FR-012） */
-export function restoreElement(
+export async function restoreElement(
   projectId: string,
   element: ElementSnapshot,
 ): Promise<ElementSnapshot> {
-  return mutateElement(
+  const after = await mutateElement(
     "POST",
     `/api/projects/${projectId}/elements/${element.id}/restore`,
     element.version,
   );
+  recordChange(`「${element.name}」の復元`, [{ before: element, after }]);
+  return after;
 }
 
 /** 削除済みの要素を完全に削除する。管理者だけが行え、元に戻せない（FR-012） */

@@ -1446,3 +1446,28 @@ button.badge {
   background: #eaeef2;
   color: var(--text);
 }
+
+.undo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.undo button {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.undo-label {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
