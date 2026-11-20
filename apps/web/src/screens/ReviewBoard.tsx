@@ -397,7 +397,7 @@ function QuestionItem({
           }}
         >
           <label htmlFor={inputId} className="visually-hidden">
-            「{question.body}」への回答
+            「{question.element.name}」の「{question.body}」への回答
           </label>
           <input
             id={inputId}

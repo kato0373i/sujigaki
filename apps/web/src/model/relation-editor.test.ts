@@ -120,3 +120,25 @@ describe("FR-010 新しく作ってつなぐ", () => {
     ]);
   });
 });
+
+describe("#123 つながりの向き", () => {
+  it("活動の流れの順は、次の活動と前の活動として出す", () => {
+    const next = elementSnapshot("a2", "activity", { name: "審査する" });
+    const first = elementSnapshot("a1", "activity", {
+      name: "申込を受け付ける",
+      relations: [relationTo(next, "activity")],
+    });
+    expect(
+      relationRows(first, [first, next]).map((r) => [
+        r.kindLabel,
+        r.other?.name,
+      ]),
+    ).toEqual([["次の活動", "審査する"]]);
+    expect(
+      relationRows(next, [first, next]).map((r) => [
+        r.kindLabel,
+        r.other?.name,
+      ]),
+    ).toEqual([["前の活動", "申込を受け付ける"]]);
+  });
+});

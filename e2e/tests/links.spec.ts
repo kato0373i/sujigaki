@@ -34,10 +34,14 @@ test.describe("FR-004 外部リンク", () => {
     expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     await links.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${screenshots}/p-01-links.png` });
+    const before = await panel.evaluate((el) => el.scrollTop);
     await links.getByRole("button", { name: "リンクを付ける" }).click();
     await expect(
       links.getByRole("link", { name: "受付の手順書" }),
     ).toHaveAttribute("href", "https://example.com/manual");
+    // 保存でパネルを作り直しても、スクロールの位置は先頭に戻さない（#123）
+    expect(before).toBeGreaterThan(0);
+    expect(await panel.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
     await expect(links).toContainText("マニュアル");
 
     await links.getByRole("button", { name: "＋ リンクを追加" }).click();
