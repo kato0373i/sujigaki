@@ -66,7 +66,7 @@ export function BusinessList({
         </p>
       )}
       {rows.length === 0 ? (
-        <p className="empty">まだ業務がありません。</p>
+        <StartGuide snapshot={snapshot} canEdit={canEdit} />
       ) : (
         <ul className="business-list">
           {rows.map((row) => (
@@ -195,6 +195,41 @@ function RemovalNotice({
         ))}
       </ul>
     </>
+  );
+}
+
+/** 業務がない空のプロジェクトで出す、始め方（#117） */
+function StartGuide({
+  snapshot,
+  canEdit,
+}: {
+  snapshot: Snapshot;
+  canEdit: boolean;
+}) {
+  const { name, systemName } = snapshot.project;
+  return (
+    <div className="start-guide">
+      <p>まだ業務がありません。次のどれかの方法で始めてください。</p>
+      <ul>
+        {canEdit && (
+          <li>上の欄に業務の名前を入れて、「＋ 業務を追加」を押す</li>
+        )}
+        <li>
+          <a href={hrefOf({ screen: "ai" })}>AI 連携</a>
+          で、範囲を「プロジェクト全体」、用途を「下書きの作成」にして、AI
+          に下書きを頼む
+        </li>
+        <li>
+          <a href={hrefOf({ screen: "io" })}>読み込みと書き出し</a>
+          で、YAML や RDRA の関連データを読み込む
+        </li>
+      </ul>
+      <p className="muted">
+        プロジェクトの名前は「{name}」、システム名は「{systemName}」です。
+        <a href={hrefOf({ screen: "settings" })}>プロジェクトの設定</a>
+        で変えられます。
+      </p>
+    </div>
   );
 }
 
