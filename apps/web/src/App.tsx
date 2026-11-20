@@ -248,6 +248,7 @@ export function App() {
             snapshot={snapshot}
             violations={violations}
             initialFilter={defaultFilter(LOCAL_ACTOR)}
+            actor={LOCAL_ACTOR}
             onSelect={select}
             onChanged={reload}
           />

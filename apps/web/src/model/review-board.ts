@@ -1,5 +1,6 @@
 import {
   type Actor,
+  BLANK_RULES,
   blankQuestions,
   can,
   type ElementId,
@@ -18,7 +19,10 @@ export const BOARD_FILTER_LABELS: Readonly<Record<BoardFilter, string>> = {
   all: "すべて",
 };
 
-/** 絞り込みごとに出すもの。「自分が確認するもの」は要確認と未回答の問い、「直すもの」は要修正と検証の違反 */
+/**
+ * 絞り込みごとに出すもの。「自分が確認するもの」は要確認と未レビューの要素と未回答の問い、「直すもの」は要修正と検証の違反。
+ * AI の提案や読み込みで作った要素は未レビューから始まるため、確認するものに入れる（#122）
+ */
 const FILTERS: Readonly<
   Record<
     BoardFilter,
@@ -29,7 +33,11 @@ const FILTERS: Readonly<
     }
   >
 > = {
-  mine: { states: ["needs_check"], questions: true, violations: false },
+  mine: {
+    states: ["needs_check", "unreviewed"],
+    questions: true,
+    violations: false,
+  },
   fix: { states: ["needs_fix"], questions: false, violations: true },
   all: {
     states: ["needs_check", "needs_fix", "unreviewed"],
@@ -52,6 +60,8 @@ export interface BoardQuestion {
   readonly recommendation: string | null;
   /** 空欄から計算した問いか */
   readonly auto: boolean;
+  /** 空欄から作った問いなら、その空欄の名前（属性のキーか actor）。回答で空欄を埋めるのに使う（#121） */
+  readonly blank: string | null;
   /** 保存した問い。計算しただけの問いは null */
   readonly saved: QuestionSnapshot | null;
 }
@@ -70,7 +80,10 @@ export interface BoardGroup {
   }[];
 }
 
-/** 要素から、属する業務を求める。業務フローは業務の子、活動は業務フローの子、要求はつながる業務に属する */
+/**
+ * 要素から、属する業務を求める。業務フローは業務の子、活動は業務フローの子、要求はつながる業務に属する。
+ * 活動から使われている要素はその活動に、システム操作から使われている要素はそのシステム操作に属する（#122）
+ */
 function businessIndex(
   active: readonly ElementSnapshot[],
 ): (id: ElementId) => ElementId | null {
@@ -88,6 +101,15 @@ function businessIndex(
         !parent.has(element.id)
       ) {
         parent.set(element.id, r.to);
+      }
+    }
+  }
+  // 活動とシステム操作から使われている要素は、使っている要素に属する。親がすでにあれば変えない
+  for (const kind of ["activity", "usecase"] as const) {
+    for (const element of active.filter((e) => e.kind === kind)) {
+      for (const r of element.relations) {
+        if (r.toKind !== "activity" && !parent.has(r.to))
+          parent.set(r.to, element.id);
       }
     }
   }
@@ -114,6 +136,7 @@ export function reviewBoardView(
   violations: readonly Violation[],
   filter: BoardFilter,
   businessId: string | null,
+  showBlank = true,
 ): BoardGroup[] {
   const rule = FILTERS[filter];
   const active = elements.filter((e) => e.deletedAt === null);
@@ -134,12 +157,20 @@ export function reviewBoardView(
                     body: q.body,
                     recommendation: q.recommendation,
                     auto: q.authorType === "auto",
+                    blank:
+                      q.authorType === "auto"
+                        ? (BLANK_RULES.find(
+                            (rule) =>
+                              rule.kind === element.kind &&
+                              rule.body === q.body,
+                          )?.blank ?? null)
+                        : null,
                     saved: q,
                   },
                 ]
               : [];
           }),
-        ...blankQuestions(active, questions).flatMap((q) => {
+        ...(showBlank ? blankQuestions(active, questions) : []).flatMap((q) => {
           const element = byId.get(q.elementId);
           return element
             ? [
@@ -149,6 +180,7 @@ export function reviewBoardView(
                   body: q.body,
                   recommendation: null,
                   auto: true,
+                  blank: q.blank,
                   saved: null,
                 },
               ]

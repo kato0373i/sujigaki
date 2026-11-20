@@ -92,3 +92,60 @@ test.describe("FR-024 確認ボード", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("#121 #122 確認ボードの見直し", () => {
+  async function snapshotOf(page: import("@playwright/test").Page) {
+    return (await page.request.get("/api/projects/local/snapshot")).json();
+  }
+
+  test("未レビューの要素を、使っている活動の業務にまとめて出し、まとめて確認済みにできる", async ({
+    page,
+  }) => {
+    await page.goto("/#/board");
+    const training = page.getByRole("region", { name: "研修" });
+    const unreviewed = training.locator(".board-column", {
+      hasText: "未レビュー",
+    });
+    // 情報「受講申込」は、活動「研修に申し込む」から使われているため、研修にまとめる
+    await expect(unreviewed).toContainText("受講申込");
+    await unreviewed.getByLabel("「受講申込」を選ぶ").check();
+    await unreviewed.getByLabel("「受講を申し込む」を選ぶ").check();
+    await page.screenshot({ path: `${screenshots}/s-06-bulk.png` });
+    await page.getByRole("button", { name: "「確認済み」にする" }).click();
+    await expect(page.getByRole("status")).toHaveText(
+      "2件を「確認済み」にしました。",
+    );
+    const snapshot = await snapshotOf(page);
+    expect(
+      snapshot.elements
+        .filter((e: { id: string }) =>
+          ["info-application", "uc-apply"].includes(e.id),
+        )
+        .map((e: { reviewState: string }) => e.reviewState),
+    ).toEqual(["approved", "approved"]);
+  });
+
+  test("区分の空欄の問いは選択肢で回答し、活動の区分に入れる。空欄の問いは隠せる", async ({
+    page,
+  }) => {
+    await page.goto("/#/board");
+    const reception = page.getByRole("region", { name: "受付業務" });
+    const group = reception.locator(".board-question-group", {
+      hasText: "窓口で受け付ける",
+    });
+    const question = group.locator(".board-question", {
+      hasText: "この活動は手作業ですか、システムを使いますか",
+    });
+    await question.getByRole("button", { name: "システム利用" }).click();
+    await expect(question).toHaveCount(0);
+    const snapshot = await snapshotOf(page);
+    expect(
+      snapshot.elements.find(
+        (e: { name: string }) => e.name === "窓口で受け付ける",
+      ).attributes.mode,
+    ).toBe("system");
+
+    await page.getByLabel("空欄から作った問いを出す").uncheck();
+    await expect(page.locator(".tag-auto")).toHaveCount(0);
+  });
+});

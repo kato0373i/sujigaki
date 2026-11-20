@@ -66,6 +66,7 @@ describe("FR-024 確認ボード", () => {
     ]);
     expect(groups[0]?.states).toEqual([
       { state: "needs_check", elements: [check, requirement] },
+      { state: "unreviewed", elements: [] },
     ]);
     expect(groups[0]?.questions).toMatchObject([
       {
@@ -130,5 +131,48 @@ describe("FR-024 確認ボード", () => {
     expect(defaultFilter(ACTORS.admin)).toBe("mine");
     expect(defaultFilter(ACTORS.editor)).toBe("fix");
     expect(defaultFilter(ACTORS.viewer)).toBe("mine");
+  });
+});
+
+describe("#121 #122 確認ボードの見直し", () => {
+  const draft = elementSnapshot("s1", "screen", { name: "申込画面" });
+  const used = elementSnapshot("uc2", "usecase", {
+    name: "申込を受け付ける",
+    relations: [relationTo(draft, "usecase")],
+  });
+  const activity = elementSnapshot("a3", "activity", {
+    name: "申込を受け取る",
+    reviewState: "approved",
+    attributes: { trigger: "申込が届く", outcome: "受付済み" },
+    relations: [relationTo(actor, "activity"), relationTo(used, "activity")],
+  });
+  const flow2 = elementSnapshot("f2", "buc", {
+    reviewState: "approved",
+    relations: [relationTo(activity, "buc")],
+  });
+  const business2 = elementSnapshot("b2", "business", {
+    name: "受付",
+    reviewState: "approved",
+    relations: [relationTo(flow2, "business")],
+  });
+  const model = [actor, activity, flow2, business2, used, draft];
+
+  it("自分が確認するものに未レビューの要素を出し、活動から使われる要素はその業務にまとめる", () => {
+    const groups = reviewBoardView(model, [], [], "mine", null);
+    expect(groups.map((g) => g.business?.name ?? null)).toEqual(["受付"]);
+    expect(groups[0]?.states[1]).toEqual({
+      state: "unreviewed",
+      elements: [used, draft],
+    });
+  });
+
+  it("空欄から作った問いに、空欄の名前を付ける。出さないこともできる", () => {
+    const groups = reviewBoardView(model, [], [], "all", "b2");
+    expect(
+      groups[0]?.questions.map((q) => [q.element.id, q.blank, q.auto]),
+    ).toEqual([["a3", "mode", true]]);
+    expect(
+      reviewBoardView(model, [], [], "all", "b2", false)[0]?.questions,
+    ).toEqual([]);
   });
 });
