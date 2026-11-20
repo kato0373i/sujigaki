@@ -36,6 +36,11 @@ import {
 } from "../model/business-flow.ts";
 
 const CARD_WIDTH = 190;
+/**
+ * 図全体を収めるときの倍率。カードの文字が読めなくなるほどは縮めない（#119）。
+ * 収まらない分はドラッグやホイールで動かして見る
+ */
+const FIT_OPTIONS = { minZoom: 0.8, maxZoom: 1, padding: 0.1 };
 /** クリックとダブルクリックを見分けるために待つミリ秒 */
 const DOUBLE_CLICK_MS = 250;
 const LANE_LABEL_WIDTH = 120;
@@ -73,8 +78,13 @@ function ActivityView({ data, selected }: NodeProps<ActivityNode>) {
       {card.usecases.length > 0 && (
         <div className="activity-usecases">{card.usecases.join("、")}</div>
       )}
-      {card.badges.length > 0 && (
+      {(card.badges.length > 0 || card.openQuestions > 0) && (
         <div className="activity-badges">
+          {card.openQuestions > 0 && (
+            <span className="badge badge-question">
+              問い {card.openQuestions}
+            </span>
+          )}
           {card.badges.map((b) => (
             <span key={b.label} className="badge">
               {b.label} {b.count}
@@ -141,6 +151,9 @@ const nodeTypes = { lane: LaneView, activity: ActivityView };
 
 /** S-04 業務フロー。担当者ごとのレーンに、活動を流れの順に並べる（FR-020） */
 /** 活動を分ける目安（FR-002）。活動を追加する入力欄の近くに出す */
+/** 担当の選択肢の「＋ 新しい担当者」 */
+const NEW_ACTOR = "new";
+
 const SPLIT_HINTS = [
   "担当者や判断する人が変わる所",
   "待ちが発生する所",
@@ -148,8 +161,15 @@ const SPLIT_HINTS = [
 ];
 
 export interface FlowEditing {
-  /** 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null */
-  readonly onAdd: (actorId: string | null, name: string) => Promise<void>;
+  /**
+   * 活動を追加する。actorId はレーンの担当者。担当者が未設定のレーンは null。
+   * newActor を渡したときは、その名前の登場人物を作って担当者にする（#118）
+   */
+  readonly onAdd: (
+    actorId: string | null,
+    name: string,
+    newActor?: string,
+  ) => Promise<void>;
   /** カードを横に動かした */
   readonly onMove: (elementId: string, x: number) => void;
   /** カードの端から別のカードへつないだ */
@@ -205,12 +225,13 @@ export function BusinessFlow({
   // 図を作り直すと、ダブルクリックの途中でカードが入れ替わり、名前を直せないためである
   const [flow, setFlow] = useState<ReactFlowInstance | null>(null);
   const panelOpen = selectedId !== null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: パネルを開け閉めしたときに合わせ直すため、panelOpen の変化で動かす
+  const cardCount = view.cards.length;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: パネルの開け閉めと活動の数の変化で合わせ直すため、panelOpen と cardCount の変化で動かす
   useEffect(() => {
     if (!flow) return;
-    const timer = window.setTimeout(() => void flow.fitView(), 50);
+    const timer = window.setTimeout(() => void flow.fitView(FIT_OPTIONS), 50);
     return () => window.clearTimeout(timer);
-  }, [flow, panelOpen]);
+  }, [flow, panelOpen, cardCount]);
   // 編集できるときは、クリックでパネルを開くのを少し待つ。開くと図がずれ、ダブルクリックの2回目が別の場所に当たるためである
   const clickTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(clickTimer.current), []);
@@ -263,7 +284,7 @@ export function BusinessFlow({
             onClick={async () => {
               await editing.onRelayout();
               // 並べ直したカードが図に収まるよう、表示の範囲を合わせ直す
-              window.setTimeout(() => void flow?.fitView(), 100);
+              window.setTimeout(() => void flow?.fitView(FIT_OPTIONS), 100);
             }}
           >
             自動で並べ直す
@@ -283,6 +304,7 @@ export function BusinessFlow({
             edges={edges}
             nodeTypes={nodeTypes}
             fitView
+            fitViewOptions={FIT_OPTIONS}
             onNodesChange={onNodesChange}
             nodesConnectable={editing !== undefined}
             onConnect={(connection: Connection) => {
@@ -328,13 +350,23 @@ function AddActivityForm({
 }) {
   const [lane, setLane] = useState("0");
   const [name, setName] = useState("");
+  const [actorName, setActorName] = useState("");
   const [busy, setBusy] = useState(false);
+  const creatingActor = lane === NEW_ACTOR;
+  const ready =
+    name.trim() !== "" && (!creatingActor || actorName.trim() !== "");
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (name.trim() === "") return;
+    if (!ready) return;
     setBusy(true);
     try {
-      await onAdd(lanes[Number(lane)]?.actorId ?? null, name);
+      if (creatingActor) {
+        await onAdd(null, name, actorName.trim());
+        setActorName("");
+        setLane("0");
+      } else {
+        await onAdd(lanes[Number(lane)]?.actorId ?? null, name);
+      }
       setName("");
     } finally {
       setBusy(false);
@@ -350,13 +382,23 @@ function AddActivityForm({
               {l.name}
             </option>
           ))}
+          <option value={NEW_ACTOR}>＋ 新しい担当者</option>
         </select>
       </label>
+      {creatingActor && (
+        <label>
+          新しい担当者の名前{" "}
+          <input
+            value={actorName}
+            onChange={(e) => setActorName(e.target.value)}
+          />
+        </label>
+      )}
       <label>
         活動の名前{" "}
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <button type="submit" disabled={busy || name.trim() === ""}>
+      <button type="submit" disabled={busy || !ready}>
         ＋ 活動を追加
       </button>
       <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>

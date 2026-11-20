@@ -1,5 +1,9 @@
-import { elementId } from "@sujigaki/domain";
-import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
+import { elementId, questionId } from "@sujigaki/domain";
+import {
+  elementSnapshot,
+  questionSnapshot,
+  relationTo,
+} from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
 import {
   autoPositions,
@@ -192,5 +196,21 @@ describe("#111 カードを重ねない配置", () => {
       b2: { x: COLUMN_WIDTH, y: 0 },
       b3: { x: 2 * COLUMN_WIDTH, y: 0 },
     });
+  });
+});
+
+describe("#120 カードの未回答の問い", () => {
+  it("活動ごとに、未回答の問いの数を数える", () => {
+    const questions = [
+      questionSnapshot("a1", { id: questionId("q1") }),
+      questionSnapshot("a1", { id: questionId("q2"), state: "answered" }),
+      questionSnapshot("a2", { id: questionId("q3") }),
+    ];
+    const view = businessFlowView(elements, "buc1", undefined, [], questions);
+    expect(view?.cards.map((c) => [c.element.id, c.openQuestions])).toEqual([
+      ["a1", 1],
+      ["a2", 1],
+      ["a3", 0],
+    ]);
   });
 });

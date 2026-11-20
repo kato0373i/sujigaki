@@ -354,7 +354,14 @@ function FlowScreen({
   const [error, setError] = useState<string | null>(null);
   const layout = snapshot.layouts.find((l) => l.bucId === bucId);
   const view = useMemo(
-    () => businessFlowView(snapshot.elements, bucId, layout, violations),
+    () =>
+      businessFlowView(
+        snapshot.elements,
+        bucId,
+        layout,
+        violations,
+        snapshot.questions,
+      ),
     [snapshot, bucId, layout, violations],
   );
 
@@ -374,15 +381,23 @@ function FlowScreen({
     view && can(LOCAL_ACTOR, "editElement")
       ? {
           // 活動を作り、業務フローの子にして、レーンの担当者につなぐ
-          onAdd: (actorId, name) =>
+          onAdd: (actorId, name, newActor) =>
             attempt(async () => {
               const created = await createElement(LOCAL_PROJECT_ID, {
                 kind: "activity",
                 name,
               });
               await addRelation(LOCAL_PROJECT_ID, view.buc, created.id);
-              if (actorId)
-                await addRelation(LOCAL_PROJECT_ID, created, actorId);
+              // 新しい担当者なら、登場人物を作って担当者にする（#118）
+              const actor = newActor
+                ? (
+                    await createElement(LOCAL_PROJECT_ID, {
+                      kind: "actor",
+                      name: newActor,
+                    })
+                  ).id
+                : actorId;
+              if (actor) await addRelation(LOCAL_PROJECT_ID, created, actor);
             }),
           onMove: (elementId, x) =>
             void attempt(() =>
