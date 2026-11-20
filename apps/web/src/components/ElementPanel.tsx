@@ -27,6 +27,7 @@ import {
 import { connectedElements } from "../model/relation-editor.ts";
 import { stateModelOf } from "../model/state-diagram.ts";
 import { hrefOf } from "../route.ts";
+import { ActorPicker } from "./ActorPicker.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { ConflictDialog } from "./ConflictDialog.tsx";
 import { DeliberationSection } from "./DeliberationSection.tsx";
@@ -183,6 +184,17 @@ export function ElementPanel({
           </span>
         )}
       </div>
+      {element.kind === "activity" && (
+        // 担当者は活動の大事な項目なので、つながりより上で選び直せるようにする（#148）
+        <ActorPicker
+          projectId={projectId}
+          element={element}
+          elements={snapshot.elements}
+          canEdit={canEdit}
+          onChanged={onChanged}
+          onError={setError}
+        />
+      )}
 
       {error && (
         <p className="error-inline" role="alert">

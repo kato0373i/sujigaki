@@ -46,10 +46,16 @@ export function recordChange(label: string, changes: readonly UndoChange[]) {
   push({ label, changes });
 }
 
-/** task の中で行った操作を、1回の操作としてまとめて記録する。説明は最初の操作のものにする */
-export async function undoable<T>(task: () => Promise<T>): Promise<T> {
+/**
+ * task の中で行った操作を、1回の操作としてまとめて記録する。
+ * 説明は label を渡せばそれに、渡さなければ最初の操作のものにする
+ */
+export async function undoable<T>(
+  task: () => Promise<T>,
+  label?: string,
+): Promise<T> {
   if (group) return task();
-  group = { label: null, changes: [] };
+  group = { label: label ?? null, changes: [] };
   const current = group;
   try {
     return await task();
