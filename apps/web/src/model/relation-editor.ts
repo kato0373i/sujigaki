@@ -1,6 +1,7 @@
 import {
   connectableKinds,
   ELEMENT_KIND_LABELS,
+  type ElementKind,
   type ElementSnapshot,
   resolveRelation,
 } from "@sujigaki/domain";
@@ -114,5 +115,25 @@ export function connectedElements(
         kindLabel: ELEMENT_KIND_LABELS[row.other.kind],
       },
     ];
+  });
+}
+
+/** 「＋ つなぐ」で新しく作れる種類（P-01、FR-010）。相手の側でつながりを持つ種類は reversed にする */
+export function creatableKinds(element: ElementSnapshot): {
+  readonly kind: ElementKind;
+  readonly label: string;
+  readonly reversed: boolean;
+}[] {
+  return connectableKinds(element.kind).flatMap((kind) => {
+    const resolved = resolveRelation(element.kind, kind);
+    return resolved.ok
+      ? [
+          {
+            kind,
+            label: ELEMENT_KIND_LABELS[kind],
+            reversed: resolved.reversed,
+          },
+        ]
+      : [];
   });
 }
