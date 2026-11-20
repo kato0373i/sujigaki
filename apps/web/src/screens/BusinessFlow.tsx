@@ -46,15 +46,25 @@ const FIT_OPTIONS = { minZoom: 0.8, maxZoom: 1.25, padding: 0.08 };
 const DOUBLE_CLICK_MS = 250;
 const LANE_LABEL_WIDTH = 120;
 /**
- * 図の全体を枠に合わせる。収まらずに左が切れるときは、カードがレーンの名前の下に隠れないよう、
- * 図の左端をレーンの名前の右にそろえる（#144）
+ * 図の全体を枠に合わせる。カードがレーンの名前の下に隠れないよう、図の左端をレーンの名前の右にそろえ、
+ * 残りの幅に収まる倍率にする。文字が読めなくなるほどは縮めない（#144）
  */
-async function fitFlow(flow: ReactFlowInstance) {
+async function fitFlow(flow: ReactFlowInstance, canvas: HTMLElement | null) {
   await flow.fitView(FIT_OPTIONS);
-  const { x, y, zoom } = flow.getViewport();
+  const { x, zoom } = flow.getViewport();
   // 帯の左の空き（名前の分の幅）の右端が、重ねた名前の右端に来る位置
-  const left = LANE_LABEL_WIDTH + 20 * zoom;
-  if (x < left) await flow.setViewport({ x: left, y, zoom });
+  if (!canvas || x >= LANE_LABEL_WIDTH + 20 * zoom) return;
+  const bounds = flow.getNodesBounds(flow.getNodes());
+  // 帯の左の空きの右端（x = -20）から、図の右端までの幅
+  const span = bounds.x + bounds.width + 20;
+  const room = canvas.clientWidth - LANE_LABEL_WIDTH - 16;
+  const fitted = Math.max(FIT_OPTIONS.minZoom, Math.min(zoom, room / span));
+  await flow.setViewport({
+    x: LANE_LABEL_WIDTH + 20 * fitted,
+    // 縦は図の真ん中を枠の真ん中に合わせる
+    y: canvas.clientHeight / 2 - (bounds.y + bounds.height / 2) * fitted,
+    zoom: fitted,
+  });
 }
 
 /** 流れの線の色 */
@@ -284,12 +294,16 @@ export function BusinessFlow({
   // 詳細パネルを開け閉めすると図の幅が変わるため、表示の範囲を合わせ直す。
   // 図を作り直すと、ダブルクリックの途中でカードが入れ替わり、名前を直せないためである
   const [flow, setFlow] = useState<ReactFlowInstance | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const panelOpen = selectedId !== null;
   const cardCount = view.cards.length;
   // biome-ignore lint/correctness/useExhaustiveDependencies: パネルの開け閉めと活動の数の変化で合わせ直すため、panelOpen と cardCount の変化で動かす
   useEffect(() => {
     if (!flow) return;
-    const timer = window.setTimeout(() => void fitFlow(flow), 50);
+    const timer = window.setTimeout(
+      () => void fitFlow(flow, canvasRef.current),
+      50,
+    );
     return () => window.clearTimeout(timer);
   }, [flow, panelOpen, cardCount]);
   // 編集できるときは、クリックでパネルを開くのを少し待つ。開くと図がずれ、ダブルクリックの2回目が別の場所に当たるためである
@@ -351,7 +365,10 @@ export function BusinessFlow({
             onClick={async () => {
               await editing.onRelayout();
               // 並べ直したカードが図に収まるよう、表示の範囲を合わせ直す
-              window.setTimeout(() => flow && void fitFlow(flow), 100);
+              window.setTimeout(
+                () => flow && void fitFlow(flow, canvasRef.current),
+                100,
+              );
             }}
           >
             自動で並べ直す
@@ -362,6 +379,7 @@ export function BusinessFlow({
         <p className="empty">活動がありません。活動を追加してください。</p>
       )}
       <div
+        ref={canvasRef}
         className="flow-canvas"
         // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
         style={{
