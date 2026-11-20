@@ -1493,6 +1493,42 @@ button.badge {
   white-space: nowrap;
 }
 
+/* 情報の項目は表で編集する（#154） */
+.items-table {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.items-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.items-head {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 2px 4px;
+}
+
+.items-cell {
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.items-table input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
 /* 外れるつながりは、気づかずに反映しないよう目立たせる（#146） */
 .diff-row table.diff-table tr.diff-removal th,
 .diff-row table.diff-table tr.diff-removal td {
