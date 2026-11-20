@@ -354,7 +354,14 @@ function FlowScreen({
   const [error, setError] = useState<string | null>(null);
   const layout = snapshot.layouts.find((l) => l.bucId === bucId);
   const view = useMemo(
-    () => businessFlowView(snapshot.elements, bucId, layout, violations),
+    () =>
+      businessFlowView(
+        snapshot.elements,
+        bucId,
+        layout,
+        violations,
+        snapshot.questions,
+      ),
     [snapshot, bucId, layout, violations],
   );
 

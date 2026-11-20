@@ -73,8 +73,13 @@ function ActivityView({ data, selected }: NodeProps<ActivityNode>) {
       {card.usecases.length > 0 && (
         <div className="activity-usecases">{card.usecases.join("、")}</div>
       )}
-      {card.badges.length > 0 && (
+      {(card.badges.length > 0 || card.openQuestions > 0) && (
         <div className="activity-badges">
+          {card.openQuestions > 0 && (
+            <span className="badge badge-question">
+              問い {card.openQuestions}
+            </span>
+          )}
           {card.badges.map((b) => (
             <span key={b.label} className="badge">
               {b.label} {b.count}

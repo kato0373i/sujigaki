@@ -2,6 +2,7 @@ import type {
   ElementId,
   ElementSnapshot,
   LayoutSnapshot,
+  QuestionSnapshot,
   Violation,
 } from "@sujigaki/domain";
 
@@ -26,6 +27,8 @@ export interface ActivityCard {
     readonly count: number;
   }[];
   readonly violations: readonly Violation[];
+  /** 未回答の問いの数（FR-031、#120） */
+  readonly openQuestions: number;
 }
 
 export interface BusinessFlowView {
@@ -59,6 +62,7 @@ export function businessFlowView(
   bucId: string,
   layout: LayoutSnapshot | undefined,
   violations: readonly Violation[],
+  questions: readonly QuestionSnapshot[] = [],
 ): BusinessFlowView | null {
   const active = new Map(
     elements
@@ -138,6 +142,9 @@ export function businessFlowView(
         count: related.filter((e) => e.kind === kind).length,
       })).filter((b) => b.count > 0),
       violations: violations.filter((v) => v.elementId === activity.id),
+      openQuestions: questions.filter(
+        (q) => q.elementId === activity.id && q.state === "open",
+      ).length,
     };
   });
   return { buc, lanes, cards, edges };

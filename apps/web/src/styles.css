@@ -1303,3 +1303,8 @@ button.badge {
   border-radius: 6px;
   margin-bottom: 8px;
 }
+
+.badge.badge-question {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
