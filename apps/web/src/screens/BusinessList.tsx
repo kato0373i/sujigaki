@@ -1,5 +1,5 @@
 import { type ElementSnapshot, REVIEW_STATES } from "@sujigaki/domain";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { addRelation, createElement } from "../api.ts";
 import { ReviewStateMark } from "../components/status.tsx";
 import type { BusinessRow } from "../model/business-list.ts";
@@ -116,9 +116,14 @@ function AddForm({
   label: string;
   submit: string;
   onAdd: (name: string) => Promise<boolean>;
+  /** 押して開いた欄のときに渡す。開いたら入力にフォーカスを移す */
   onCancel?: () => void;
 }) {
   const [name, setName] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (onCancel) input.current?.focus();
+  }, [onCancel]);
   const add = async (event: FormEvent) => {
     event.preventDefault();
     if (name.trim() === "") return;
@@ -127,6 +132,7 @@ function AddForm({
   return (
     <form className="add-form" onSubmit={add}>
       <input
+        ref={input}
         aria-label={label}
         placeholder={label}
         value={name}

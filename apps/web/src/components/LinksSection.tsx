@@ -7,6 +7,7 @@ import {
 } from "@sujigaki/domain";
 import { type FormEvent, useState } from "react";
 import { ApiProblem, updateElement } from "../api.ts";
+import { useFocusFirst } from "../focus.ts";
 
 /**
  * 詳細パネルの外部リンク（画面設計書 P-01、FR-004）。追加と外す操作は押したときにすぐ保存し、確認状態は戻さない
@@ -86,6 +87,7 @@ function AddLink({
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ExternalLinkKind>("manual");
+  const formRef = useFocusFirst<HTMLFormElement>(open);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   if (!open) {
@@ -111,7 +113,7 @@ function AddLink({
     }
   };
   return (
-    <form className="add-link" onSubmit={submit}>
+    <form className="add-link" onSubmit={submit} ref={formRef}>
       <label className="field">
         <span>リンクの種類</span>
         <select
