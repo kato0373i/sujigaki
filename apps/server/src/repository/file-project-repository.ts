@@ -65,7 +65,13 @@ export interface FileProjectRepositoryOptions {
   readonly projectId: string;
   /** 外の変更を記録するときの日時。テストで差し替える */
   readonly now?: () => Date;
+  /** 内容が前回と違うときに、読み直すまで待つミリ秒（設計書 5.4 節）。テストで短くする */
+  readonly settleMs?: number;
 }
+
+/** 内容が落ち着くまで読み直す回数の上限（設計書 5.4 節） */
+const SETTLE_RETRIES = 10;
+const DEFAULT_SETTLE_MS = 100;
 
 /**
  * ローカルモードのフォルダーに保存するリポジトリ（設計書 5.4 節）。
@@ -88,6 +94,7 @@ export class FileProjectRepository implements ProjectRepository {
   /** 起動してからの操作。外の変更は ExternalChange の操作にする。位置がそのままリビジョンになる */
   private readonly operations: OperationRecord[] = [];
   private readonly now: () => Date;
+  private readonly settleMs: number;
   /** 保存を1件ずつ処理するための待ち行列 */
   private queue: Promise<unknown> = Promise.resolve();
 
@@ -95,6 +102,7 @@ export class FileProjectRepository implements ProjectRepository {
     this.folder = options.folder;
     this.projectId = options.projectId;
     this.now = options.now ?? (() => new Date());
+    this.settleMs = options.settleMs ?? DEFAULT_SETTLE_MS;
   }
 
   private get revision(): number {
@@ -178,7 +186,7 @@ export class FileProjectRepository implements ProjectRepository {
     files: Map<string, string>;
     document: ProjectDocument;
   } | null> {
-    const files = await this.readFiles();
+    const files = await this.readSettled();
     if (!files.has(SETTINGS_FILE)) return null;
     const hash = hashOf(files);
     const onDisk = this.parse(files);
@@ -242,6 +250,22 @@ export class FileProjectRepository implements ProjectRepository {
     const run = this.queue.then(task, task);
     this.queue = run.catch(() => undefined);
     return run;
+  }
+
+  /**
+   * 前回と内容が違えば、少し待って読み直し、2回続けて同じ内容になってから返す（設計書 5.4 節）。
+   * エディターや git pull が書いている途中の、書きかけの内容を使わないためである
+   */
+  private async readSettled(): Promise<Map<string, string>> {
+    let files = await this.readFiles();
+    if (!this.known || hashOf(files) === this.known.hash) return files;
+    for (let i = 0; i < SETTLE_RETRIES; i++) {
+      await new Promise((resolve) => setTimeout(resolve, this.settleMs));
+      const again = await this.readFiles();
+      if (hashOf(again) === hashOf(files)) return again;
+      files = again;
+    }
+    return files;
   }
 
   /** フォルダーの中の sujigaki のファイルを読む。ほかのファイルは読まない */

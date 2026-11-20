@@ -28,9 +28,13 @@ const settings = {
   summaryMaxLength: 100,
 };
 
-async function createdRepository() {
+async function createdRepository(settleMs = 10) {
   const folder = await newFolder();
-  const repository = new FileProjectRepository({ folder, projectId: "local" });
+  const repository = new FileProjectRepository({
+    folder,
+    projectId: "local",
+    settleMs,
+  });
   await repository.create("local", settings);
   return { folder, repository };
 }
@@ -155,6 +159,58 @@ describe("ローカルモードのファイルのリポジトリ", () => {
     expect(
       (await repository.changesAfter("local", 1, 200))?.operations,
     ).toEqual([]);
+  });
+
+  describe("#107 書きかけのファイル", () => {
+    /** 書きかけの内容を置き、読み直しの待ちのあいだに書き終える */
+    async function writeInTwoSteps(
+      path: string,
+      partial: string,
+      full: string,
+      read: () => Promise<unknown>,
+    ) {
+      await writeFile(path, partial);
+      const pending = read();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await writeFile(path, full);
+      return pending;
+    }
+
+    it("書きかけを読んでも、書き終えた内容を1件の外の変更として扱う", async () => {
+      const { folder, repository } = await createdRepository(50);
+      await repository.load("local");
+      const path = join(folder, "sujigaki.yaml");
+      const text = await readFile(path, "utf8");
+      const changes = await writeInTwoSteps(
+        path,
+        text.replace("申込管理", "申込の"),
+        text.replace("申込管理", "申込の管理"),
+        () => repository.changesAfter("local", 0, 200),
+      );
+      expect(changes).toMatchObject({
+        revision: 1,
+        operations: [{ type: "ExternalChange" }],
+      });
+      const after = await repository.load("local");
+      expect(after?.document.project.name).toBe("申込の管理");
+      // 書き終えた内容を、もう一度外の変更として数えない
+      expect(after?.revision).toBe(1);
+    });
+
+    it("書きかけが YAML として読めなくても、書き終えた内容を読む", async () => {
+      const { folder, repository } = await createdRepository(50);
+      await repository.load("local");
+      const path = join(folder, "sujigaki.yaml");
+      const text = await readFile(path, "utf8");
+      const loaded = (await writeInTwoSteps(
+        path,
+        `${text.slice(0, text.indexOf("name:"))}name: [`,
+        text.replace("申込管理", "申込の管理"),
+        () => repository.load("local"),
+      )) as Awaited<ReturnType<typeof repository.load>>;
+      expect(loaded?.document.project.name).toBe("申込の管理");
+      expect(loaded?.revision).toBe(1);
+    });
   });
 
   it("外で変わらなかった要素は、バージョンを進めずにそのまま保存できる", async () => {
