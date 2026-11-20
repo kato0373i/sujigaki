@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -15,13 +15,15 @@ test.describe("FR-041 確認したあとに内容が変わった要素", () => {
     page,
   }) => {
     const text = await readFile(training, "utf8");
+    // 書きかけのファイルを読まれないよう、一時ファイルに書いてから置き換える
     await writeFile(
-      training,
+      `${training}.tmp`,
       text.replace(
         "    name: 申込を承認する\n",
         "    name: 申込を承認する\n    summary: 上長がメールで承認する\n",
       ),
     );
+    await rename(`${training}.tmp`, training);
 
     await page.goto("/#/board");
     await page.getByLabel("絞り込み").selectOption("fix");

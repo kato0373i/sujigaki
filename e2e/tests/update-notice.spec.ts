@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -8,7 +8,12 @@ const billing = "e2e/.work/training/businesses/biz-billing.yaml";
 /** エディターで書き換えたときのように、業務「請求」のファイルの名前を外で変える */
 async function renameOutside(from: string, to: string) {
   const text = await readFile(billing, "utf8");
-  await writeFile(billing, text.replace(`name: ${from}\n`, `name: ${to}\n`));
+  // 書きかけのファイルを読まれないよう、一時ファイルに書いてから置き換える
+  await writeFile(
+    `${billing}.tmp`,
+    text.replace(`name: ${from}\n`, `name: ${to}\n`),
+  );
+  await rename(`${billing}.tmp`, billing);
 }
 
 /** タブに戻ったときと同じく、すぐに更新を確かめさせる */
