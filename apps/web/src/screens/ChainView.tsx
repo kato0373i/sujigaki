@@ -280,6 +280,8 @@ export function ChainViewScreen({
       >
         <ReactFlow
           ariaLabelConfig={FLOW_ARIA_LABELS}
+          // 図の部品の色を、OS の明るさの設定に合わせる（#162）
+          colorMode="system"
           // 段数や表示する種類、詳細パネルの開閉で描く範囲が変わるため、描き直して全体が入るように合わせる
           key={`${originId}-${settings.depth}-${settings.kinds.join()}-${selectedId === null}`}
           nodes={nodes}

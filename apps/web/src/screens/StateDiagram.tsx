@@ -109,9 +109,9 @@ export function StateDiagramScreen({
           type: MarkerType.ArrowClosed,
           width: 18,
           height: 18,
-          color: "#57606a",
+          color: "#6e7781",
         },
-        style: { strokeWidth: 2, stroke: "#57606a" },
+        style: { strokeWidth: 2, stroke: "#6e7781" },
       };
     });
     return { nodes: flowNodes as Node[], edges: flowEdges };
@@ -193,6 +193,8 @@ export function StateDiagramScreen({
         >
           <ReactFlow
             ariaLabelConfig={FLOW_ARIA_LABELS}
+            // 図の部品の色を、OS の明るさの設定に合わせる（#162）
+            colorMode="system"
             // 状態の流れや詳細パネルの開閉で描く範囲が変わるため、描き直して全体が入るように合わせる
             key={`${diagram.model.id}-${selectedId === null}`}
             nodes={nodes}

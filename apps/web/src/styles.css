@@ -1,28 +1,93 @@
 :root {
+  /* 色・角丸・影の値（#162）。画面ではこの値だけを使い、ダークモードでは下で値を差し替える */
+  color-scheme: light dark;
   --text: #1f2328;
   --muted: #59636e;
   --line: #d1d9e0;
   --surface: #ffffff;
   --background: #f6f8fa;
   --accent: #0969da;
+  --accent-subtle: #ddf4ff;
+  /* 薄い青の背景の上に置く文字の色 */
+  --accent-on-subtle: #0969da;
   --gray: #6e7781;
   --yellow: #9a6700;
   --red: #cf222e;
   --green: #1a7f37;
   --orange: #bc4c00;
   --blue: #0550ae;
+  --primary: #1f883d;
+  --primary-muted: #94d3a2;
+  --on-primary: #ffffff;
+  --focus: #54aeff;
+  --neutral-subtle: #eaeef2;
+  --edge: #6e7781;
+  --danger-subtle: #ffebe9;
+  --danger-subtle-2: #fff5f4;
+  --warning-subtle: #fff8c5;
+  --success-subtle: #dafbe1;
+  --ai: #8250df;
+  --ai-subtle: #fbefff;
+  --progress-warning: #d4a72c;
+  --progress-neutral: #afb8c1;
+  --radius: 8px;
+  --shadow-sm: 0 1px 2px rgb(31 35 40 / 6%), 0 1px 3px rgb(31 35 40 / 6%);
+  --shadow-md: 0 4px 12px rgb(31 35 40 / 12%);
   color: var(--text);
   background: var(--background);
   font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   font-size: 14px;
 }
 
+/* ダークモード（#162）。OS の設定に合わせる */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e6edf3;
+    --muted: #9198a1;
+    --line: #3d444d;
+    --surface: #151b23;
+    --background: #0d1117;
+    --accent: #4493f8;
+    --accent-subtle: rgb(56 139 253 / 18%);
+    --accent-on-subtle: #79c0ff;
+    --gray: #9198a1;
+    --yellow: #d29922;
+    --red: #f85149;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --blue: #79c0ff;
+    --primary: #238636;
+    --primary-muted: #1c4428;
+    --on-primary: #ffffff;
+    --focus: #1f6feb;
+    --neutral-subtle: #262c36;
+    --edge: #8c959f;
+    --danger-subtle: rgb(248 81 73 / 18%);
+    --danger-subtle-2: rgb(248 81 73 / 9%);
+    --warning-subtle: rgb(187 128 9 / 18%);
+    --success-subtle: rgb(46 160 67 / 18%);
+    --ai: #ab7df8;
+    --ai-subtle: rgb(171 125 248 / 18%);
+    --progress-warning: #bb8009;
+    --progress-neutral: #484f58;
+    --shadow-sm: 0 1px 2px rgb(1 4 9 / 60%);
+    --shadow-md: 0 8px 24px rgb(1 4 9 / 60%);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
 
+/* リンクの色を、明るさの設定に合わせてそろえる（#162） */
+a {
+  color: var(--accent);
+}
+
 body {
   margin: 0;
+  color: var(--text);
+  background: var(--background);
 }
 
 .app {
@@ -77,7 +142,7 @@ body {
 
 .nav a:hover,
 .nav a[aria-current="page"] {
-  background: #ddf4ff;
+  background: var(--accent-subtle);
 }
 
 .nav-top {
@@ -346,7 +411,7 @@ body {
 }
 
 .activity-selected {
-  box-shadow: 0 0 0 3px #54aeff;
+  box-shadow: 0 0 0 3px var(--focus);
 }
 
 .panel {
@@ -400,12 +465,12 @@ body {
 }
 
 .tag-ai {
-  background: #fbefff;
-  color: #8250df;
+  background: var(--ai-subtle);
+  color: var(--ai);
 }
 
 .tag-import {
-  background: #eaeef2;
+  background: var(--neutral-subtle);
   color: var(--muted);
 }
 
@@ -438,15 +503,15 @@ body {
 
 .conflict button.primary,
 .save-row button {
-  background: #1f883d;
-  border-color: #1f883d;
-  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
 }
 
 .save-row button:disabled {
-  background: #94d3a2;
-  border-color: #94d3a2;
-  color: #ffffff;
+  background: var(--primary-muted);
+  border-color: var(--primary-muted);
+  color: var(--on-primary);
 }
 
 .field {
@@ -534,7 +599,7 @@ body {
 }
 
 .conflict tr.differs td {
-  background: #fff8c5;
+  background: var(--warning-subtle);
 }
 
 .differs-text {
@@ -637,7 +702,7 @@ button.link:hover {
 
 .tag-auto {
   margin-left: 6px;
-  background: #ddf4ff;
+  background: var(--accent-subtle);
   color: var(--blue);
 }
 
@@ -684,9 +749,9 @@ button.link:hover {
 
 .io button.primary,
 .diff button.primary {
-  background: #1f883d;
-  border-color: #1f883d;
-  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
   margin-top: 12px;
 }
 
@@ -737,17 +802,17 @@ button.link:hover {
 }
 
 .diff-add .tag {
-  background: #dafbe1;
+  background: var(--success-subtle);
   color: var(--green);
 }
 
 .diff-update .tag {
-  background: #fff8c5;
+  background: var(--warning-subtle);
   color: var(--yellow);
 }
 
 .diff-remove .tag {
-  background: #ffebe9;
+  background: var(--danger-subtle);
   color: var(--red);
 }
 
@@ -783,9 +848,9 @@ button.link:hover {
 }
 
 .add-activity button {
-  border: 1px solid #1f883d;
-  background: #1f883d;
-  color: #ffffff;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
   border-radius: 6px;
   padding: 4px 12px;
   font: inherit;
@@ -872,10 +937,10 @@ button.link:hover {
 .trace-wrap table.trace td.gap {
   background: repeating-linear-gradient(
     135deg,
-    #ffebe9,
-    #ffebe9 6px,
-    #fff5f4 6px,
-    #fff5f4 12px
+    var(--danger-subtle),
+    var(--danger-subtle) 6px,
+    var(--danger-subtle-2) 6px,
+    var(--danger-subtle-2) 12px
   );
 }
 
@@ -899,7 +964,7 @@ button.link:hover {
 }
 
 .chain-origin {
-  background: #ddf4ff;
+  background: var(--accent-subtle);
 }
 
 .chain-head {
@@ -1020,7 +1085,7 @@ button.badge {
 .panel button.delete-element {
   background: var(--red);
   border-color: var(--red);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .panel button.delete-element:disabled {
@@ -1071,9 +1136,9 @@ button.badge {
 }
 
 .settings-form button.primary {
-  border: 1px solid #1f883d;
-  background: #1f883d;
-  color: #ffffff;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
   border-radius: 6px;
   padding: 5px 16px;
   font: inherit;
@@ -1081,8 +1146,8 @@ button.badge {
 }
 
 .settings-form button.primary:disabled {
-  background: #94d3a2;
-  border-color: #94d3a2;
+  background: var(--primary-muted);
+  border-color: var(--primary-muted);
   cursor: not-allowed;
 }
 
@@ -1111,7 +1176,7 @@ button.badge {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.15);
+  box-shadow: var(--shadow-md);
   padding: 4px;
 }
 
@@ -1192,9 +1257,9 @@ button.badge {
 }
 
 .rename-step button.primary {
-  border: 1px solid #1f883d;
-  background: #1f883d;
-  color: #ffffff;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
   border-radius: 6px;
   padding: 5px 12px;
   font: inherit;
@@ -1386,7 +1451,7 @@ button.badge {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgb(31 35 40 / 12%);
+  box-shadow: var(--shadow-md);
 }
 
 .row-menu-items button {
@@ -1431,7 +1496,7 @@ button.badge {
 }
 
 .progress-needs_check {
-  background: #d4a72c;
+  background: var(--progress-warning);
 }
 
 .progress-needs_fix {
@@ -1439,7 +1504,7 @@ button.badge {
 }
 
 .progress-unreviewed {
-  background: #afb8c1;
+  background: var(--progress-neutral);
 }
 
 .progress-text {
@@ -1503,7 +1568,7 @@ button.badge {
 
 .kind-choices a:hover,
 .kind-choices a[aria-current="page"] {
-  background: #ddf4ff;
+  background: var(--accent-subtle);
 }
 
 .kind-choices a[aria-current="page"] {
@@ -1535,7 +1600,7 @@ button.badge {
 .state-node {
   width: 190px;
   background: var(--surface);
-  border: 1.5px solid #57606a;
+  border: 1.5px solid var(--edge);
   border-radius: 16px;
   padding: 6px 12px;
   font-size: 13px;
@@ -1545,7 +1610,7 @@ button.badge {
 .state-node.state-usecase {
   border: 1px dashed var(--line);
   border-radius: 2px;
-  background: #f6f8fa;
+  background: var(--background);
 }
 
 .react-flow__node.selected .state-node {
@@ -1559,7 +1624,7 @@ button.badge {
 }
 
 .state-tags .tag {
-  background: #eaeef2;
+  background: var(--neutral-subtle);
   color: var(--text);
 }
 
@@ -1627,14 +1692,14 @@ button.badge {
 /* 外れるつながりは、気づかずに反映しないよう目立たせる（#146） */
 .diff-row table.diff-table tr.diff-removal th,
 .diff-row table.diff-table tr.diff-removal td {
-  background: #ffebe9;
+  background: var(--danger-subtle);
   color: var(--red);
   font-weight: 700;
 }
 
 .diff-row .tag.tag-removal {
   margin-left: auto;
-  background: #ffebe9;
+  background: var(--danger-subtle);
   color: var(--red);
 }
 
@@ -1664,7 +1729,7 @@ button.badge {
   width: 12px;
   height: 12px;
   background: var(--surface);
-  border: 2px solid #57606a;
+  border: 2px solid var(--edge);
 }
 
 .assign-business {
@@ -1698,7 +1763,7 @@ button.badge {
 .relation-group-head .count {
   border-radius: 8px;
   padding: 0 6px;
-  background: #eaeef2;
+  background: var(--neutral-subtle);
   font-weight: 400;
 }
 
@@ -1708,4 +1773,53 @@ button.badge {
 
 .relations li.relation-group {
   display: block;
+}
+
+/*
+ * 画面全体の仕上げ（#162）。カードに淡い影と大きめの角丸を付け、見出しの強弱を付ける。
+ * 各画面の規則より後に置き、角丸と影だけをそろえる
+ */
+.business-row,
+.board-group,
+.io-section,
+.trace-wrap,
+.flow-canvas,
+.start-guide,
+.diff-row {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.screen h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.header {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 20;
+}
+
+.nav a[aria-current="page"] {
+  color: var(--accent-on-subtle);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* キーボードで操作したときの位置を、どの画面でも同じ輪で示す */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* 図の部品の色も、明るさの設定に合わせる */
+.react-flow {
+  --xy-background-color: var(--surface);
+  --xy-node-background-color: var(--surface);
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-border-color: var(--line);
 }
