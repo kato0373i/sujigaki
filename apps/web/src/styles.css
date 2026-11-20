@@ -1227,3 +1227,30 @@ button.badge {
   margin-top: 8px;
   font-size: 13px;
 }
+
+.questions .question {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.question-answer {
+  display: flex;
+  gap: 6px;
+}
+
+.question-answer input,
+.ask-question input {
+  flex: 1;
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.question-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
