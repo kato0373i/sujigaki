@@ -153,3 +153,43 @@ questions:
     });
   });
 });
+
+test.describe("#146 外れるつながりを目立たせる", () => {
+  test("提案がつながりを書き落とすと、差分で外すつながりと件数を出す", async ({
+    page,
+  }) => {
+    await page.goto("/#/ai");
+    await page.getByRole("tab", { name: "提案を取り込む" }).click();
+    // 既存の活動を直す提案で、次の活動へのつながりを書き落とす
+    await page
+      .getByLabel("AI の返答")
+      .fill(
+        [
+          "format: sujigaki-proposal",
+          "version: 1",
+          "elements:",
+          "  - id: act-request-cancel",
+          "    kind: activity",
+          "    name: 取り消しを申し出る",
+          "    attributes: { mode: system }",
+          "    relations:",
+          "      - { type: activity-actor, to: actor-applicant }",
+          "",
+        ].join("\n"),
+      );
+    await page.getByRole("button", { name: "差分を見る" }).click();
+    const row = page.locator(".diff-row", { hasText: "取り消しを申し出る" });
+    await expect(row.locator(".tag-removal")).toHaveText("つながりを1件外す");
+    await expect(row.locator("tr.diff-removal")).toContainText(
+      "活動「取り消しを受け付ける」",
+    );
+    await expect(page.locator(".diff .notice")).toContainText(
+      "採用した変更で、1件のつながりが外れます。",
+    );
+    await page.screenshot({ path: `${screenshots}/s-08-removal.png` });
+
+    // 採用しなければ、知らせは消える
+    await row.getByRole("checkbox").uncheck();
+    await expect(page.locator(".diff .notice")).toHaveCount(0);
+  });
+});
