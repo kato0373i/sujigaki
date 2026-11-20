@@ -39,6 +39,7 @@ type Proposal =
     };
 
 function parseScope(value: string): AiScope | null {
+  if (value === "project") return { type: "project" };
   const [type, id] = value.split(":");
   if (!id || (type !== "business" && type !== "flow" && type !== "element"))
     return null;
@@ -102,6 +103,7 @@ function PromptTab({
 }) {
   const [scopeValue, setScopeValue] = useState("");
   const [template, setTemplate] = useState<AiTemplate>("gaps");
+  const [note, setNote] = useState("");
   const [copied, setCopied] = useState(false);
   const active = snapshot.elements.filter((e) => e.deletedAt === null);
   const scope = parseScope(scopeValue);
@@ -112,6 +114,7 @@ function PromptTab({
         questions: snapshot.questions,
         scope,
         template,
+        note,
       })
     : "";
 
@@ -133,6 +136,7 @@ function PromptTab({
             }}
           >
             <option value="">選んでください</option>
+            <option value="project">プロジェクト全体</option>
             {selected && (
               <option value={`element:${selected.id}`}>
                 選んでいる要素「{selected.name}」とつながる要素
@@ -175,6 +179,20 @@ function PromptTab({
           </select>
         </label>
       </div>
+      <label className="prompt-label" htmlFor="ai-note">
+        依頼の補足（任意）
+      </label>
+      <textarea
+        id="ai-note"
+        className="prompt-note"
+        rows={3}
+        value={note}
+        placeholder="業務の説明や、AI に伝えたいことを書きます。依頼のあとに入れます。"
+        onChange={(e) => {
+          setNote(e.target.value);
+          setCopied(false);
+        }}
+      />
       {!scope ? (
         <p className="notice" role="status">
           AI に渡す範囲を選んでください。

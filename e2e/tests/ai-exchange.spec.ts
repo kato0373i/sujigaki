@@ -39,6 +39,27 @@ test.describe("FR-033 AI に渡す", () => {
   });
 });
 
+test.describe("#114 #127 AI に下書きを頼む", () => {
+  test("プロジェクト全体を範囲にし、補足を書くと、補足とすべての種類の規則をテキストに入れる", async ({
+    page,
+  }) => {
+    await page.goto("/#/ai");
+    await page.getByLabel("範囲").selectOption({ label: "プロジェクト全体" });
+    await page.getByLabel("用途").selectOption({ label: "下書きの作成" });
+    await page
+      .getByLabel("依頼の補足（任意）")
+      .fill("研修の申込と取り消しを扱う業務です。");
+    const text = page.getByLabel("AI に渡すテキスト");
+    await expect(text).toHaveValue(
+      /# 補足\n\n研修の申込と取り消しを扱う業務です。/,
+    );
+    await expect(text).toHaveValue(
+      /- state-usecase: 状態 から システム操作 へ/,
+    );
+    await page.screenshot({ path: `${screenshots}/s-08-ai-project.png` });
+  });
+});
+
 test.describe("FR-034 AI の提案を取り込む", () => {
   const reply = `こちらが提案です。
 
