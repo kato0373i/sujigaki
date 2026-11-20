@@ -1,5 +1,5 @@
 import { type Actor, can, validateModel } from "@sujigaki/domain";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addRelation,
   createElement,
@@ -9,6 +9,7 @@ import {
   saveLayout,
   updateElement,
 } from "./api.ts";
+import { ConfirmDialog } from "./components/ConfirmDialog.tsx";
 import { ElementPanel } from "./components/ElementPanel.tsx";
 import { SearchBox } from "./components/SearchBox.tsx";
 import { UpdateBanner, useUpdateNotice } from "./components/UpdateNotice.tsx";
@@ -40,10 +41,40 @@ type Loaded =
 
 /** 画面の共通の構成（画面設計書 4章）。ヘッダー・左のナビゲーション・中央の画面・右の詳細パネル */
 export function App() {
-  const route = useRoute();
   const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  // 詳細パネルの保存していない変更を捨てる操作は、確かめてから行う（画面設計書 P-01）
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+  const allowLeave = useRef(false);
+  const [pending, setPending] = useState<(() => void) | null>(null);
+  const confirmFirst = (proceed: () => void) => {
+    if (dirtyRef.current) setPending(() => proceed);
+    else proceed();
+  };
+  const navigate = (hash: string) => {
+    allowLeave.current = true;
+    window.location.hash = hash;
+  };
+  const route = useRoute((next) => {
+    if (allowLeave.current || !dirtyRef.current) {
+      allowLeave.current = false;
+      return true;
+    }
+    setPending(() => () => navigate(next));
+    return false;
+  });
+  const select = (elementId: string | null) => {
+    if (elementId !== selectedId) confirmFirst(() => setSelectedId(elementId));
+  };
+  useEffect(() => {
+    if (!dirty) return;
+    // ブラウザを閉じたり読み直したりするときは、ブラウザの確認を出す
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   /** 再読み込みで捨てた回数。詳細パネルを作り直して、保存していない内容を捨てる */
   const [discarded, setDiscarded] = useState(0);
 
@@ -95,15 +126,14 @@ export function App() {
         {snapshot && (
           <SearchBox
             elements={snapshot.elements}
-            onSelect={(elementId) => {
-              setSelectedId(elementId);
-              // 詳細パネルを出さない画面では、選んだ要素を起点に連鎖ビューを開く（画面設計書 4章）
-              if (!showsPanel)
-                window.location.hash = hrefOf({
-                  screen: "chain",
-                  originId: elementId,
-                });
-            }}
+            onSelect={(elementId) =>
+              confirmFirst(() => {
+                setSelectedId(elementId);
+                // 詳細パネルを出さない画面では、選んだ要素を起点に連鎖ビューを開く（画面設計書 4章）
+                if (!showsPanel)
+                  navigate(hrefOf({ screen: "chain", originId: elementId }));
+              })
+            }
           />
         )}
         {notice && (
@@ -218,7 +248,7 @@ export function App() {
             snapshot={snapshot}
             violations={violations}
             initialFilter={defaultFilter(LOCAL_ACTOR)}
-            onSelect={setSelectedId}
+            onSelect={select}
             onChanged={reload}
           />
         )}
@@ -227,11 +257,11 @@ export function App() {
             elements={snapshot.elements}
             originId={route.originId}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={select}
           />
         )}
         {snapshot && route.screen === "trace" && (
-          <TraceTable elements={snapshot.elements} onSelect={setSelectedId} />
+          <TraceTable elements={snapshot.elements} onSelect={select} />
         )}
         {snapshot && route.screen === "ai" && (
           <AiExchange
@@ -269,7 +299,7 @@ export function App() {
             bucId={route.bucId}
             violations={violations}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={select}
             onChanged={reload}
           />
         )}
@@ -282,9 +312,25 @@ export function App() {
           snapshot={snapshot}
           actor={LOCAL_ACTOR}
           onChanged={reload}
-          onClose={() => setSelectedId(null)}
+          onClose={() => select(null)}
           onDirtyChange={setDirty}
         />
+      )}
+      {pending && (
+        <ConfirmDialog
+          title="保存していない変更があります"
+          confirmLabel="変更を捨てて移る"
+          onConfirm={() => {
+            const proceed = pending;
+            setPending(null);
+            proceed();
+          }}
+          onCancel={() => setPending(null)}
+        >
+          <p>
+            詳細パネルの変更を保存していません。移ると、変更は消えます。保存するときは、やめてから保存してください。
+          </p>
+        </ConfirmDialog>
       )}
     </div>
   );
