@@ -1293,3 +1293,13 @@ button.badge {
   cursor: pointer;
   white-space: nowrap;
 }
+
+.prompt-note {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
