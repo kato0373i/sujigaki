@@ -20,6 +20,8 @@ export interface FieldDifference {
   readonly label: string;
   readonly before: string;
   readonly after: string;
+  /** 外れるつながりの行か。気づかずに外さないよう、目立たせる（#146） */
+  readonly removal?: boolean;
 }
 
 export interface ChangeRow {
@@ -28,6 +30,8 @@ export interface ChangeRow {
   readonly name: string;
   readonly kindLabel: string;
   readonly differences: readonly FieldDifference[];
+  /** この変更で外れるつながりの数 */
+  readonly removedRelations: number;
 }
 
 const FIELD_LABELS: Readonly<
@@ -54,13 +58,18 @@ export function changeRows(
   known: readonly ElementSnapshot[],
 ): ChangeRow[] {
   const names = new Map(known.map((e) => [e.id as string, e.name]));
-  const relationText = (element: ElementSnapshot) =>
-    element.relations
-      .map(
-        (r) => `${ELEMENT_KIND_LABELS[r.toKind]}「${names.get(r.to) ?? r.to}」`,
-      )
-      .sort()
-      .join("、");
+  const relationName = (r: ElementSnapshot["relations"][number]) =>
+    `${ELEMENT_KIND_LABELS[r.toKind]}「${names.get(r.to) ?? r.to}」`;
+  const relationKey = (r: ElementSnapshot["relations"][number]) =>
+    `${r.typeId}\n${r.to}`;
+  /** a にあって b にないつながりの名前 */
+  const relationsOnlyIn = (a: ElementSnapshot, b: ElementSnapshot) => {
+    const other = new Set(b.relations.map(relationKey));
+    return a.relations
+      .filter((r) => !other.has(relationKey(r)))
+      .map(relationName)
+      .sort();
+  };
 
   return changes.map((change): ChangeRow => {
     if (change.type === "add") {
@@ -70,6 +79,7 @@ export function changeRows(
         name: change.element.name,
         kindLabel: ELEMENT_KIND_LABELS[change.element.kind],
         differences: [],
+        removedRelations: 0,
       };
     }
     if (change.type === "remove") {
@@ -79,6 +89,7 @@ export function changeRows(
         name: change.before.name,
         kindLabel: ELEMENT_KIND_LABELS[change.before.kind],
         differences: [],
+        removedRelations: 0,
       };
     }
     const { before, after } = change;
@@ -108,12 +119,23 @@ export function changeRows(
           });
       }
       if (field === "relations") {
+        // 外れるつながりと足すつながりを分けて出す。全体を並べるだけでは、外れるつながりに気づきにくい（#146）
+        const removed = relationsOnlyIn(before, after);
+        const added = relationsOnlyIn(after, before);
         return [
-          {
-            label: FIELD_LABELS.relations,
-            before: relationText(before),
-            after: relationText(after),
-          },
+          ...(removed.length > 0
+            ? [
+                {
+                  label: "外すつながり",
+                  before: removed.join("、"),
+                  after: "外れる",
+                  removal: true,
+                },
+              ]
+            : []),
+          ...(added.length > 0
+            ? [{ label: "足すつながり", before: "", after: added.join("、") }]
+            : []),
         ];
       }
       if (field === "links") {
@@ -140,6 +162,7 @@ export function changeRows(
       change,
       name: after.name,
       kindLabel: ELEMENT_KIND_LABELS[after.kind],
+      removedRelations: relationsOnlyIn(before, after).length,
       differences: change.restores
         ? [
             { label: "削除", before: "削除済み", after: "復元する" },

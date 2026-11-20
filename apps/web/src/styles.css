@@ -1490,3 +1490,17 @@ button.badge {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 外れるつながりは、気づかずに反映しないよう目立たせる（#146） */
+.diff-row table.diff-table tr.diff-removal th,
+.diff-row table.diff-table tr.diff-removal td {
+  background: #ffebe9;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.diff-row .tag.tag-removal {
+  margin-left: auto;
+  background: #ffebe9;
+  color: var(--red);
+}

@@ -44,11 +44,14 @@ describe("S-09 取り込みの差分", () => {
       { label: "名前", before: "申込を確認する", after: "申込内容を確認する" },
       { label: "区分", before: "手作業", after: "システム利用" },
       {
-        label: "つながり",
+        label: "外すつながり",
         before: "登場人物「受付担当」",
-        after: "登場人物「審査担当」",
+        after: "外れる",
+        removal: true,
       },
+      { label: "足すつながり", before: "", after: "登場人物「審査担当」" },
     ]);
+    expect(changeRows(changes, current)[0]?.removedRelations).toBe(1);
   });
 
   it("採用した変更を、変更の一式の API の本文にする。確認状態とバージョンは送らない", () => {
