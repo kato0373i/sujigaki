@@ -81,4 +81,55 @@ test.describe("FR-071 ほかの人の更新を知らせる", () => {
     await expect(panel.getByLabel("名前")).toHaveValue("取り消しを申し出る");
     await expect(page.locator(".update-notice")).toHaveCount(0);
   });
+
+  test("#145 別のタブで変えた内容も更新として数え、自分の操作は数えない", async ({
+    page,
+  }) => {
+    await page.goto("/#/elements/business");
+    await expect(page.getByRole("button", { name: "請求" })).toBeVisible();
+
+    // このタブでの操作は、すぐ読み直すので数えない
+    await page.getByLabel("新しい業務の名前").fill("タブで足す業務");
+    await page.getByRole("button", { name: "＋ 業務を追加" }).click();
+    // 追加したあとに読み直すのを待つ
+    await expect(
+      page.getByRole("button", { name: "タブで足す業務" }),
+    ).toBeVisible();
+    const notice = page.locator(".update-notice");
+    await returnToTab(page);
+    await expect(notice).toHaveCount(0);
+
+    // 別のタブ（ここでは API）で名前を変えると、更新として数える
+    const snapshot = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    const added = snapshot.elements.find(
+      (e: { name: string }) => e.name === "タブで足す業務",
+    );
+    const headers = (version: number) => ({
+      "X-Sujigaki-Request": "1",
+      "If-Match": `"${version}"`,
+    });
+    const renamed = await page.request.patch(
+      `/api/projects/local/elements/${added.id}`,
+      {
+        headers: headers(added.version),
+        data: { name: "別のタブで直した業務" },
+      },
+    );
+    expect(renamed.ok()).toBe(true);
+    await returnToTab(page);
+    await expect(notice.getByRole("status")).toHaveText("1件の更新があります");
+
+    // 後の E2E に残さないよう、作った業務は完全に削除して片付ける
+    const deleted = await page.request.delete(
+      `/api/projects/local/elements/${added.id}`,
+      { headers: headers((await renamed.json()).version) },
+    );
+    const purged = await page.request.post(
+      `/api/projects/local/elements/${added.id}/purge`,
+      { headers: headers((await deleted.json()).version) },
+    );
+    expect(purged.status()).toBe(204);
+  });
 });
