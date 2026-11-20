@@ -31,6 +31,7 @@ import { ImportExport } from "./screens/ImportExport.tsx";
 import { KindList } from "./screens/KindList.tsx";
 import { ProjectSettingsScreen } from "./screens/ProjectSettingsScreen.tsx";
 import { ReviewBoard } from "./screens/ReviewBoard.tsx";
+import { StateDiagramScreen } from "./screens/StateDiagram.tsx";
 import { TraceTable } from "./screens/TraceTable.tsx";
 
 /** ローカルモードの操作した人。ログインせず、常に管理者として扱う（設計書 5章） */
@@ -100,6 +101,7 @@ export function App() {
     route.screen === "board" ||
     route.screen === "trace" ||
     route.screen === "elements" ||
+    route.screen === "states" ||
     route.screen === "chain";
   const selected = showsPanel
     ? snapshot?.elements.find(
@@ -284,6 +286,18 @@ export function App() {
             canEdit={can(LOCAL_ACTOR, "editElement")}
             onSelect={select}
             onChanged={reload}
+          />
+        )}
+        {snapshot && route.screen === "states" && (
+          <StateDiagramScreen
+            elements={snapshot.elements}
+            modelId={route.modelId}
+            selectedId={selectedId}
+            onSelect={select}
+            onChangeModel={(modelId) => {
+              // 保存していない変更があれば、画面を移るときと同じく確かめる
+              window.location.hash = hrefOf({ screen: "states", modelId });
+            }}
           />
         )}
         {snapshot && route.screen === "ai" && (

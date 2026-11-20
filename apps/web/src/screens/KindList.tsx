@@ -72,6 +72,13 @@ export function KindList({
         </ul>
         <div className="kind-body">
           <h2>{label}</h2>
+          {(kind === "stateModel" || kind === "state") && (
+            <p>
+              <a href={hrefOf({ screen: "states", modelId: null })}>
+                状態遷移図で見る
+              </a>
+            </p>
+          )}
           {canEdit && (
             <form className="add-form" onSubmit={add}>
               <input

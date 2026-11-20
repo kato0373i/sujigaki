@@ -1411,3 +1411,38 @@ button.badge {
 .kind-connections {
   text-align: right;
 }
+
+.chain-link + .chain-link {
+  margin-left: 12px;
+}
+
+.state-node {
+  width: 190px;
+  background: var(--surface);
+  border: 1.5px solid #57606a;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* システム操作は状態と形で区別する。四角い破線の枠にする（NFR-017） */
+.state-node.state-usecase {
+  border: 1px dashed var(--line);
+  border-radius: 2px;
+  background: #f6f8fa;
+}
+
+.react-flow__node.selected .state-node {
+  outline: 2px solid var(--accent);
+}
+
+.state-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.state-tags .tag {
+  background: #eaeef2;
+  color: var(--text);
+}

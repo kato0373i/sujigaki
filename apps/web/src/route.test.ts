@@ -15,6 +15,8 @@ describe("画面の場所", () => {
       "#/chain/a-1",
       "#/elements",
       "#/elements/information",
+      "#/states",
+      "#/states/sm-1",
     ]) {
       expect(hrefOf(parseRoute(hash))).toBe(hash);
     }
