@@ -41,13 +41,15 @@ export function KindList({
     const trimmed = name.trim();
     if (trimmed === "") return;
     setError(null);
+    // 送った名前はすぐ欄から消す。追加しているあいだに打った文字は残す（#142）
+    setName("");
     try {
       const created = await createElement(projectId, { kind, name: trimmed });
-      setName("");
       onChanged();
       // 追加した要素の詳細パネルを開き、そこでつなげるようにする
       onSelect(created.id);
     } catch (problem) {
+      setName((current) => (current === "" ? trimmed : current));
       setError((problem as Error).message);
     }
   };

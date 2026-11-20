@@ -252,6 +252,8 @@ function AddForm({
   onCancel?: () => void;
 }) {
   const [name, setName] = useState(initial ?? "");
+  // 追加しているあいだに送った名前は、前の追加が終わってから順に送る（#142）
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
   const input = useRef<HTMLInputElement>(null);
   // 押して開いた欄なら、開いたときに1回だけ入力にフォーカスを移す。
   // 名前を変えるときは、今の名前を選んで、すぐ打ち直せるようにする（#150）
@@ -263,8 +265,16 @@ function AddForm({
   }, [opened]);
   const add = async (event: FormEvent) => {
     event.preventDefault();
-    if (name.trim() === "") return;
-    if (await onAdd(name.trim())) setName("");
+    const submitted = name.trim();
+    if (submitted === "") return;
+    // 送った名前はすぐ欄から消す。追加しているあいだに打った文字は残す（#142）
+    setName("");
+    const next = queue.current.then(async () => {
+      if (!(await onAdd(submitted)))
+        setName((current) => (current === "" ? submitted : current));
+    });
+    queue.current = next;
+    await next;
   };
   return (
     <form className="add-form" onSubmit={add}>
