@@ -43,7 +43,10 @@ export interface PathIssue {
 }
 
 /** モデル全体を、YAML に書く値にする。既定の値と同じ項目は省く */
-export function encodeDocument(document: ProjectDocument) {
+export function encodeDocument(
+  document: ProjectDocument,
+  scope?: { readonly businessId: string },
+) {
   const doc = normalizeDocument(document);
   return {
     format: "sujigaki",
@@ -64,6 +67,7 @@ export function encodeDocument(document: ProjectDocument) {
       ...optional("updatedAt", l.updatedAt),
       positions: l.positions,
     })),
+    ...(scope && { scope: { businessId: scope.businessId } }),
   };
 }
 

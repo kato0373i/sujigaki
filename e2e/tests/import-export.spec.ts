@@ -236,3 +236,42 @@ test.describe("FR-052 RDRA の関連データの読み込み", () => {
     );
   });
 });
+
+test.describe("FR-050、FR-051 業務の範囲", () => {
+  test("業務を選ぶと、その範囲だけを書き出し、範囲のファイルを取り込んでも範囲の外を消さない", async ({
+    page,
+  }) => {
+    await page.goto("/#/io");
+    await page.getByLabel("範囲").selectOption({ label: "業務「研修」" });
+    await expect(
+      page.getByRole("region", { name: "書き出し", exact: true }),
+    ).toContainText("業務「研修」と、その業務フロー・活動");
+    const result = await new AxeBuilder({ page }).include(".io").analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await page.screenshot({ path: `${screenshots}/s-09-business-scope.png` });
+
+    const yamlDownload = page.waitForEvent("download");
+    await page.getByRole("button", { name: "YAML を書き出す" }).click();
+    const yamlFile = await yamlDownload;
+    expect(yamlFile.suggestedFilename()).toBe("社内研修-研修.sujigaki.yaml");
+    const yaml = await readFile((await yamlFile.path()) ?? "", "utf8");
+    expect(yaml).toContain("scope:\n  businessId: biz-training\n");
+    expect(yaml).not.toContain("id: biz-billing");
+
+    const relatedDownload = page.waitForEvent("download");
+    await page
+      .getByRole("region", { name: "RDRA の関連データの書き出し" })
+      .getByRole("button", { name: "ファイルに書き出す" })
+      .click();
+    expect((await relatedDownload).suggestedFilename()).toBe(
+      "社内研修-研修.rdra.tsv",
+    );
+
+    await choose(page, "training-scope.sujigaki.yaml", yaml);
+    const yamlSection = page.getByRole("region", { name: "YAML の読み込み" });
+    await expect(yamlSection).toContainText(
+      "業務「研修」の範囲のファイルです。",
+    );
+    await expect(yamlSection).toContainText("今のモデルとの違いはありません。");
+  });
+});

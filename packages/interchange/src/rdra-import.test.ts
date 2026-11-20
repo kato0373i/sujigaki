@@ -195,6 +195,25 @@ describe("FR-052 関連データの読み込み", () => {
   });
 });
 
+describe("FR-052 業務の範囲の関連データ", () => {
+  it("範囲を渡すと、範囲の外の要素を削除の変更にしない", () => {
+    const outside = elementSnapshot("u9", "actor", { name: "経理担当" });
+    const billing = elementSnapshot("a9", "activity", {
+      name: "請求する",
+      relations: [relationTo(outside, "activity")],
+    });
+    const current = [...model, outside, billing];
+    const { text } = exportRelatedData("申込システム", model);
+    const result = readRelatedData(text, current, at, newId, {
+      scope: new Set(model.map((e) => e.id as string)),
+    });
+    if (!result.ok) throw new Error("読み込めません");
+    expect(
+      diffElements(current, result.elements, { removeMissing: true }).changes,
+    ).toEqual([]);
+  });
+});
+
 describe("FR-052 名前の変更が疑われる要素", () => {
   const renamed = () =>
     exportRelatedData("申込システム", model).text.replaceAll(
@@ -217,13 +236,9 @@ describe("FR-052 名前の変更が疑われる要素", () => {
     const imported = read(renamed());
     const target = renameCandidates(model, imported)[0]?.preselected;
     if (!target) throw new Error("候補がありません");
-    const result = readRelatedData(
-      renamed(),
-      model,
-      at,
-      newId,
-      new Map([[renameKey(target), "u1"]]),
-    );
+    const result = readRelatedData(renamed(), model, at, newId, {
+      renames: new Map([[renameKey(target), "u1"]]),
+    });
     if (!result.ok) throw new Error("読み込めません");
     const changes = diffElements(model, result.elements, {
       removeMissing: true,

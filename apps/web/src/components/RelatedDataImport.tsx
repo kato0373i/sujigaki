@@ -1,5 +1,6 @@
 import { ELEMENT_KIND_LABELS } from "@sujigaki/domain";
 import {
+  businessScopeIds,
   diffElements,
   type ImportDiff,
   RELATED_DATA_SOURCE,
@@ -12,6 +13,7 @@ import {
 import { type ChangeEvent, useState } from "react";
 import { ApiProblem, applyChangeSet, type Snapshot } from "../api.ts";
 import { changeSetBody } from "../model/import-review.ts";
+import type { IoScope } from "../model/io-scope.ts";
 import { ImportDiffView } from "./ImportDiffView.tsx";
 
 type Loaded =
@@ -36,12 +38,18 @@ const newId = () => `rdra-${crypto.randomUUID()}`;
 export function RelatedDataImport({
   projectId,
   snapshot,
+  scope,
   onChanged,
 }: {
   projectId: string;
   snapshot: Snapshot;
+  /** 業務の範囲の関連データなら、その業務。範囲の外の要素を削除の変更にしない */
+  scope: IoScope;
   onChanged: () => void;
 }) {
+  const scopeIds = scope
+    ? businessScopeIds(snapshot, scope.businessId)
+    : undefined;
   const [loaded, setLoaded] = useState<Loaded>({ state: "none" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
@@ -53,7 +61,9 @@ export function RelatedDataImport({
     setMessage(null);
     if (!file) return;
     const text = await file.text();
-    const read = readRelatedData(text, snapshot.elements, new Date(), newId);
+    const read = readRelatedData(text, snapshot.elements, new Date(), newId, {
+      ...(scopeIds && { scope: scopeIds }),
+    });
     if (!read.ok) {
       setLoaded({ state: "invalid", issues: read.issues });
       return;
@@ -91,13 +101,10 @@ export function RelatedDataImport({
         key === SEPARATE ? [] : [[key, elementId] as const],
       ),
     );
-    const read = readRelatedData(
-      text,
-      snapshot.elements,
-      new Date(),
-      newId,
+    const read = readRelatedData(text, snapshot.elements, new Date(), newId, {
       renames,
-    );
+      ...(scopeIds && { scope: scopeIds }),
+    });
     if (read.ok) showDiff(read.elements);
     else setLoaded({ state: "invalid", issues: read.issues });
   };
@@ -137,6 +144,8 @@ export function RelatedDataImport({
       <h2 id="related-import-heading">RDRA の関連データの読み込み</h2>
       <p className="muted">
         種類と名前が同じ要素を同じ要素とみなし、差分から採用した変更だけを反映します。要求と、つながりのない要素は変えません。
+        {scope &&
+          `業務「${scope.name}」の範囲の関連データとして読み込み、範囲の外の要素は変えません。`}
       </p>
       <label className="file">
         <span>読み込む関連データ</span>

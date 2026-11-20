@@ -1,5 +1,7 @@
 import type { Actor } from "@sujigaki/domain";
 import {
+  businessScope,
+  businessScopeIds,
   diffElements,
   type ImportDiff,
   type ReadIssue,
@@ -18,6 +20,11 @@ import { RelatedDataExport } from "../components/RelatedDataExport.tsx";
 import { RelatedDataImport } from "../components/RelatedDataImport.tsx";
 import { downloadText } from "../download.ts";
 import { changeSetBody, restoreNotice } from "../model/import-review.ts";
+import {
+  type IoScope,
+  scopeChoices,
+  scopedFileName,
+} from "../model/io-scope.ts";
 
 type Loaded =
   | { readonly state: "none" }
@@ -31,6 +38,8 @@ type Loaded =
       readonly state: "import";
       readonly fileName: string;
       readonly diff: ImportDiff;
+      /** 業務の範囲のファイルなら、その業務の名前 */
+      readonly scopeName: string | null;
     };
 
 /** S-09 読み込みと書き出し。このツールの YAML（FR-050）と、RDRA の関連データ（FR-051、FR-052） */
@@ -50,6 +59,9 @@ export function ImportExport({
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
+  const choices = scopeChoices(snapshot.elements);
+  const [scopeId, setScopeId] = useState("");
+  const scope: IoScope = choices.find((c) => c.businessId === scopeId) ?? null;
   const empty =
     snapshot.elements.length +
       snapshot.questions.length +
@@ -59,8 +71,12 @@ export function ImportExport({
 
   const exportYaml = () =>
     downloadText(
-      `${snapshot.project.name}.sujigaki.yaml`,
-      writeProjectYaml(snapshot),
+      scopedFileName(snapshot.project.name, scope, "sujigaki.yaml"),
+      scope
+        ? writeProjectYaml(businessScope(snapshot, scope.businessId), {
+            businessId: scope.businessId,
+          })
+        : writeProjectYaml(snapshot),
       "application/yaml",
     );
 
@@ -79,11 +95,23 @@ export function ImportExport({
         elements: read.document.elements.length,
       });
     } else {
-      // 書き出したファイル全体を取り込むため、ファイルにない要素は削除の変更にする
+      // ファイルにない要素は削除の変更にする。業務の範囲のファイルなら、今のモデルでその範囲にある要素だけにする
+      const fileScope = read.scope;
       const diff = diffElements(snapshot.elements, read.document.elements, {
         removeMissing: true,
+        ...(fileScope && {
+          removeOnly: businessScopeIds(snapshot, fileScope.businessId),
+        }),
       });
-      setLoaded({ state: "import", fileName: file.name, diff });
+      setLoaded({
+        state: "import",
+        fileName: file.name,
+        diff,
+        scopeName: fileScope
+          ? (snapshot.elements.find((e) => e.id === fileScope.businessId)
+              ?.name ?? fileScope.businessId)
+          : null,
+      });
     }
   };
 
@@ -110,18 +138,32 @@ export function ImportExport({
     <section className="screen io">
       <h1>読み込みと書き出し</h1>
 
+      <label className="io-scope">
+        <span>範囲</span>
+        <select value={scopeId} onChange={(e) => setScopeId(e.target.value)}>
+          <option value="">モデル全体</option>
+          {choices.map((c) => (
+            <option key={c.businessId} value={c.businessId}>
+              業務「{c.name}」
+            </option>
+          ))}
+        </select>
+      </label>
+
       <section className="io-section" aria-labelledby="export-heading">
         <h2 id="export-heading">書き出し</h2>
         <p className="muted">
-          モデル全体を、このツールの YAML
-          のファイルにします。削除済みの要素は含めません。
+          {scope
+            ? `業務「${scope.name}」と、その業務フロー・活動、それらに直接つながる要素を、`
+            : "モデル全体を、"}
+          このツールの YAML のファイルにします。削除済みの要素は含めません。
         </p>
         <button type="button" onClick={exportYaml}>
           YAML を書き出す
         </button>
       </section>
 
-      <RelatedDataExport snapshot={snapshot} />
+      <RelatedDataExport snapshot={snapshot} scope={scope} />
 
       <section className="io-section" aria-labelledby="import-heading">
         <h2 id="import-heading">YAML の読み込み</h2>
@@ -181,6 +223,12 @@ export function ImportExport({
           </div>
         )}
 
+        {loaded.state === "import" && loaded.scopeName !== null && (
+          <p className="muted">
+            業務「{loaded.scopeName}
+            」の範囲のファイルです。今のモデルでこの業務の範囲にない要素は、削除の変更にしません。
+          </p>
+        )}
         {loaded.state === "import" && (
           <ImportDiffView
             diff={loaded.diff}
@@ -204,6 +252,7 @@ export function ImportExport({
       <RelatedDataImport
         projectId={projectId}
         snapshot={snapshot}
+        scope={scope}
         onChanged={onChanged}
       />
     </section>
