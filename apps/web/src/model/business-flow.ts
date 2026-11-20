@@ -98,9 +98,27 @@ export function businessFlowView(
   }
   lanes.push({ actorId: null, name: UNASSIGNED_LANE });
 
-  const cards = ordered.map((activity): ActivityCard => {
+  // 同じレーンで列が重ならないよう、使った列を覚えておく。保存した位置の列も避ける（画面設計書 S-04）
+  const laneOf = (activity: ElementSnapshot) => {
     const actor = actorOf(activity);
-    const laneIndex = lanes.findIndex((l) => l.actorId === (actor?.id ?? null));
+    return lanes.findIndex((l) => l.actorId === (actor?.id ?? null));
+  };
+  const used = new Map<number, Set<number>>();
+  const occupy = (lane: number, column: number) =>
+    used.set(lane, (used.get(lane) ?? new Set()).add(column));
+  for (const activity of ordered) {
+    const saved = layout?.positions[activity.id];
+    if (saved) occupy(laneOf(activity), Math.round(saved.x / COLUMN_WIDTH));
+  }
+  const autoX = (activity: ElementSnapshot, lane: number) => {
+    let column = rank.get(activity.id) ?? 0;
+    while (used.get(lane)?.has(column)) column++;
+    occupy(lane, column);
+    return column * COLUMN_WIDTH;
+  };
+
+  const cards = ordered.map((activity): ActivityCard => {
+    const laneIndex = laneOf(activity);
     const related = activity.relations
       .map((r) => active.get(r.to))
       .filter((e): e is ElementSnapshot => e !== undefined);
@@ -111,7 +129,7 @@ export function businessFlowView(
       laneIndex,
       // 横の位置は保存した配置を使い、縦の位置は担当者のレーンで決める。レーンと担当者がずれないようにする
       position: {
-        x: saved?.x ?? (rank.get(activity.id) ?? 0) * COLUMN_WIDTH,
+        x: saved?.x ?? autoX(activity, laneIndex),
         y: laneIndex * LANE_HEIGHT,
       },
       usecases: related.filter((e) => e.kind === "usecase").map((e) => e.name),
@@ -164,5 +182,16 @@ export function positionsAfterMove(
         y: card.position.y,
       },
     ]),
+  );
+}
+
+/** 「自動で並べ直す」で保存する位置（画面設計書 S-04）。保存した位置を使わずに並べる */
+export function autoPositions(
+  elements: readonly ElementSnapshot[],
+  bucId: string,
+): Record<string, { x: number; y: number }> {
+  const view = businessFlowView(elements, bucId, undefined, []);
+  return Object.fromEntries(
+    (view?.cards ?? []).map((card) => [card.element.id, card.position]),
   );
 }

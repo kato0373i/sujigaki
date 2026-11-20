@@ -2,6 +2,7 @@ import { elementId } from "@sujigaki/domain";
 import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
 import {
+  autoPositions,
   businessFlowView,
   COLUMN_WIDTH,
   LANE_HEIGHT,
@@ -146,5 +147,50 @@ describe("FR-020 業務フローの図", () => {
   it("業務フローでない要素や、ない要素は null を返す", () => {
     expect(businessFlowView(elements, "a1", undefined, [])).toBeNull();
     expect(businessFlowView(elements, "none", undefined, [])).toBeNull();
+  });
+});
+
+describe("#111 カードを重ねない配置", () => {
+  const unordered = ["b1", "b2", "b3"].map((id) =>
+    elementSnapshot(id, "activity", { name: `活動${id}` }),
+  );
+  const flat = elementSnapshot("buc2", "buc", {
+    relations: unordered.map((a) => relationTo(a, "buc")),
+  });
+  const xs = (view: ReturnType<typeof businessFlowView>) =>
+    view?.cards.map((c) => [c.element.id, c.position.x]);
+
+  it("流れの順のない活動も、同じレーンで右へずらして重ねない", () => {
+    expect(
+      xs(businessFlowView([...unordered, flat], "buc2", undefined, [])),
+    ).toEqual([
+      ["b1", 0],
+      ["b2", COLUMN_WIDTH],
+      ["b3", 2 * COLUMN_WIDTH],
+    ]);
+  });
+
+  it("保存した位置の列を避けて、ほかの活動を置く", () => {
+    const layout = {
+      bucId: elementId("buc2"),
+      version: 1,
+      updatedAt: null,
+      positions: { [elementId("b2")]: { x: 0, y: 0 } },
+    };
+    expect(
+      xs(businessFlowView([...unordered, flat], "buc2", layout, [])),
+    ).toEqual([
+      ["b1", COLUMN_WIDTH],
+      ["b2", 0],
+      ["b3", 2 * COLUMN_WIDTH],
+    ]);
+  });
+
+  it("自動で並べ直す位置は、保存した位置を使わない", () => {
+    expect(autoPositions([...unordered, flat], "buc2")).toEqual({
+      b1: { x: 0, y: 0 },
+      b2: { x: COLUMN_WIDTH, y: 0 },
+      b3: { x: 2 * COLUMN_WIDTH, y: 0 },
+    });
   });
 });
