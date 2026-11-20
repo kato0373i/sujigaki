@@ -108,8 +108,13 @@ test.describe("P-01 要素の詳細パネル", () => {
   }) => {
     const panel = await openActivity(page, "申込を承認する", "buc-application");
     const relations = panel.getByRole("region", { name: "つながり" });
-    await expect(relations).toContainText("前の活動 研修に申し込む");
-    await expect(relations).toContainText("次の活動 受講案内を送る");
+    // つながりは種類ごとにまとめ、見出しに件数を添える（#160）
+    await expect(
+      relations.locator(".relation-group", { hasText: "前の活動" }),
+    ).toContainText("研修に申し込む");
+    await expect(
+      relations.locator(".relation-group", { hasText: "次の活動" }),
+    ).toContainText("受講案内を送る");
     await relations.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${screenshots}/p-01-direction.png` });
   });

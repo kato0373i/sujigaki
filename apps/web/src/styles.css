@@ -1493,6 +1493,42 @@ button.badge {
   white-space: nowrap;
 }
 
+/* 情報の項目は表で編集する（#154） */
+.items-table {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.items-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.items-head {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 2px 4px;
+}
+
+.items-cell {
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.items-table input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
 /* 外れるつながりは、気づかずに反映しないよう目立たせる（#146） */
 .diff-row table.diff-table tr.diff-removal th,
 .diff-row table.diff-table tr.diff-removal td {
@@ -1548,4 +1584,33 @@ button.badge {
   margin-top: 4px;
   color: var(--accent);
   text-decoration: none;
+}
+
+/* つながりを種類ごとにまとめる（#160） */
+.relation-group {
+  margin-bottom: 8px;
+}
+
+.relation-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.relation-group-head .count {
+  border-radius: 8px;
+  padding: 0 6px;
+  background: #eaeef2;
+  font-weight: 400;
+}
+
+.relations .relation-group ul {
+  margin-left: 8px;
+}
+
+.relations li.relation-group {
+  display: block;
 }

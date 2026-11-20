@@ -31,6 +31,7 @@ import { ActorPicker } from "./ActorPicker.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { ConflictDialog } from "./ConflictDialog.tsx";
 import { DeliberationSection } from "./DeliberationSection.tsx";
+import { ItemsTable } from "./ItemsTable.tsx";
 import { LinksSection } from "./LinksSection.tsx";
 import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
@@ -255,15 +256,10 @@ export function ElementPanel({
           const value = draft.attributes[f.key] ?? "";
           return (
             <div key={f.key} className="field">
-              <label htmlFor={id}>
+              <label htmlFor={id} id={`${id}-label`}>
                 {f.label}
                 {f.input === "lines" && (
                   <span className="muted">（1行に1つ）</span>
-                )}
-                {f.input === "items" && (
-                  <span className="muted">
-                    （1行に1つ。説明は「：」のあとに書く）
-                  </span>
                 )}
               </label>
               {f.input === "select" ? (
@@ -280,6 +276,13 @@ export function ElementPanel({
                     </option>
                   ))}
                 </select>
+              ) : f.input === "items" ? (
+                <ItemsTable
+                  id={id}
+                  value={value}
+                  disabled={!canEdit}
+                  onChange={(next) => setAttribute(f.key, next)}
+                />
               ) : f.input === "text" ? (
                 <input
                   id={id}

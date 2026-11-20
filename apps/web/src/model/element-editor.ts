@@ -61,18 +61,18 @@ export const ATTRIBUTE_FIELDS: Partial<
   variation: [field("values", "lines")],
 };
 
-interface Item {
+export interface Item {
   readonly name: string;
   readonly description?: string;
 }
 
 /** 情報の項目を、入力欄の1行にする */
-function itemLine(item: Item): string {
+export function itemLine(item: Item): string {
   return item.description ? `${item.name}：${item.description}` : item.name;
 }
 
 /** 入力欄の1行を情報の項目にする。説明は最初の「：」（半角の「:」も可）のあと */
-function parseItem(line: string): Item {
+export function parseItem(line: string): Item {
   const at = line.search(/[：:]/);
   if (at < 0) return { name: line };
   const name = line.slice(0, at).trim();
