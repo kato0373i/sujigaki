@@ -79,4 +79,52 @@ test.describe("FR-031 詳細パネルの問い", () => {
       saved.find((q) => q.body === "電話でも受け付けますか"),
     ).toMatchObject({ state: "withdrawn" });
   });
+
+  test("FR-032 問いをもとに決定を記録し、この要素に結び付ける", async ({
+    page,
+  }) => {
+    await page.goto("/#/");
+    await page
+      .getByRole("searchbox", { name: "要素を検索" })
+      .fill("窓口で受け付ける");
+    await page.getByRole("button", { name: "活動 窓口で受け付ける" }).click();
+    const panel = page.getByRole("complementary", { name: "要素の詳細" });
+
+    await panel.getByRole("button", { name: "＋ 決定を記録" }).click();
+    await panel
+      .getByLabel("もとにする問い（任意）")
+      .selectOption({ label: "受付の締め切りはいつですか" });
+    await expect(panel.getByLabel("何についての決定か")).toHaveValue(
+      "受付の締め切りはいつですか",
+    );
+    await expect(panel.getByLabel("結論")).toHaveValue("当日の正午");
+    await panel.getByLabel("理由").fill("窓口の締めの時刻に合わせる");
+    const result = await new AxeBuilder({ page }).include(".panel").analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await panel.getByLabel("理由").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${screenshots}/p-01-decision.png` });
+    await panel.getByRole("button", { name: "決定を記録する" }).click();
+
+    const decision = panel.locator(".decision");
+    await expect(decision).toContainText("決定 受付の締め切りはいつですか");
+    await expect(decision).toContainText("結論: 当日の正午");
+    const snapshot = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    const activity = snapshot.elements.find(
+      (e: { name: string }) => e.name === "窓口で受け付ける",
+    );
+    const question = snapshot.questions.find(
+      (q: { body: string }) => q.body === "受付の締め切りはいつですか",
+    );
+    expect(snapshot.decisions).toContainEqual(
+      expect.objectContaining({
+        topic: "受付の締め切りはいつですか",
+        conclusion: "当日の正午",
+        reason: "窓口の締めの時刻に合わせる",
+        questionId: question.id,
+        elementIds: [activity.id],
+      }),
+    );
+  });
 });

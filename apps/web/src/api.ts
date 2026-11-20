@@ -328,3 +328,21 @@ export function changeQuestionState(
     "問いの状態を変えられませんでした。",
   );
 }
+
+/** 決定を記録する。業務責任者以上が行える（FR-032） */
+export function recordDecision(
+  projectId: string,
+  decision: {
+    topic: string;
+    conclusion: string;
+    reason: string;
+    questionId: string | null;
+    elementIds: readonly string[];
+  },
+): Promise<DecisionSnapshot> {
+  return post(
+    `/api/projects/${projectId}/decisions`,
+    decision,
+    "決定を記録できませんでした。",
+  );
+}
