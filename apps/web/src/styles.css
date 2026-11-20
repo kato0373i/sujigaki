@@ -1533,3 +1533,10 @@ button.badge {
   background: var(--surface);
   border: 2px solid #57606a;
 }
+
+.assign-business {
+  margin-left: 8px;
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+}

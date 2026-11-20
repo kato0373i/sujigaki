@@ -34,6 +34,7 @@ export function BusinessList({
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [removing, setRemoving] = useState<ElementSnapshot | null>(null);
+  const businesses = rows.flatMap((r) => (r.business ? [r.business] : []));
 
   /** 作る操作をして、終わったら読み直す。失敗したら理由を出す */
   const attempt = async (task: () => Promise<unknown>) => {
@@ -132,6 +133,30 @@ export function BusinessList({
                       <a href={hrefOf({ screen: "flow", bucId: flow.id })}>
                         {flow.name}
                       </a>
+                      {canEdit && !row.business && (
+                        // 業務に属さない業務フローは、ここで業務に入れる（#149）
+                        <select
+                          className="assign-business"
+                          aria-label={`業務フロー「${flow.name}」を入れる業務`}
+                          value=""
+                          onChange={(e) => {
+                            const business = businesses.find(
+                              (b) => b.id === e.target.value,
+                            );
+                            if (business)
+                              void attempt(() =>
+                                addRelation(projectId, business, flow.id),
+                              );
+                          }}
+                        >
+                          <option value="">業務に入れる…</option>
+                          {businesses.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </li>
                   ))}
                 </ul>
