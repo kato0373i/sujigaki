@@ -25,6 +25,7 @@ import {
   resetsReview,
 } from "../model/element-editor.ts";
 import { connectedElements } from "../model/relation-editor.ts";
+import { stateModelOf } from "../model/state-diagram.ts";
 import { hrefOf } from "../route.ts";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { ConflictDialog } from "./ConflictDialog.tsx";
@@ -64,6 +65,8 @@ export function ElementPanel({
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftOf(element));
+  // 状態の流れと状態では、その状態の流れの状態遷移図へのリンクを出す（#129）
+  const stateModel = stateModelOf(element, snapshot.elements);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<{
     changes: ContentChanges;
@@ -164,6 +167,14 @@ export function ElementPanel({
       >
         連鎖ビューで開く
       </a>
+      {stateModel && (
+        <a
+          className="chain-link"
+          href={hrefOf({ screen: "states", modelId: stateModel })}
+        >
+          状態遷移図で開く
+        </a>
+      )}
       <div className="panel-tags">
         <ReviewStateMark state={element.reviewState} />
         {element.authorType !== "human" && (
