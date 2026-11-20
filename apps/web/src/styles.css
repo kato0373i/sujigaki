@@ -1254,3 +1254,14 @@ button.badge {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+.questions .decision {
+  display: grid;
+  gap: 2px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.record-decision {
+  margin-top: 8px;
+}

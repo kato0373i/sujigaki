@@ -1,6 +1,7 @@
 import {
   type Actor,
   can,
+  type DecisionSnapshot,
   type ElementSnapshot,
   QUESTION_STATE_LABELS,
   type QuestionSnapshot,
@@ -10,12 +11,19 @@ import {
   answerQuestion,
   askQuestion,
   changeQuestionState,
+  recordDecision,
   type Snapshot,
 } from "../api.ts";
+import {
+  type DecisionDraft,
+  draftFromQuestion,
+  EMPTY_DECISION,
+} from "../model/decision-draft.ts";
 import { questionActions } from "../model/question-actions.ts";
 
 /**
- * 詳細パネルの問いと決定記録（画面設計書 P-01）。問いを付け、回答・取り下げ・回答の取り消し・解決ができる（FR-031）
+ * 詳細パネルの問いと決定記録（画面設計書 P-01）。問いを付け、回答・取り下げ・回答の取り消し・解決ができる（FR-031）。
+ * 業務責任者以上は、決定を記録してこの要素に結び付けられる（FR-032）
  */
 export function DeliberationSection({
   projectId,
@@ -73,9 +81,7 @@ export function DeliberationSection({
           />
         ))}
         {decisions.map((d) => (
-          <li key={d.id}>
-            <span className="muted">決定</span> {d.topic}: {d.conclusion}
-          </li>
+          <DecisionItem key={d.id} decision={d} />
         ))}
       </ul>
       {can(actor, "askQuestion") && (
@@ -92,7 +98,125 @@ export function DeliberationSection({
           }
         />
       )}
+      {can(actor, "recordDecision") && (
+        <RecordDecision
+          questions={questions}
+          onRecord={(draft) =>
+            run(() =>
+              recordDecision(projectId, {
+                ...draft,
+                elementIds: [element.id],
+              }),
+            )
+          }
+        />
+      )}
     </section>
+  );
+}
+
+const decidedDate = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium" });
+
+function DecisionItem({ decision }: { decision: DecisionSnapshot }) {
+  return (
+    <li className="decision">
+      <div>
+        <span className="muted">決定</span> {decision.topic}
+      </div>
+      <div>結論: {decision.conclusion}</div>
+      <div className="muted">
+        理由: {decision.reason}（
+        {decidedDate.format(new Date(decision.decidedAt))}）
+      </div>
+    </li>
+  );
+}
+
+/** 「＋ 決定を記録」。この要素の問いを選ぶと、問いの文と回答を下書きとして入れる */
+function RecordDecision({
+  questions,
+  onRecord,
+}: {
+  questions: readonly QuestionSnapshot[];
+  onRecord: (draft: DecisionDraft) => Promise<boolean>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<DecisionDraft>(EMPTY_DECISION);
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)}>
+        ＋ 決定を記録
+      </button>
+    );
+  }
+  const filled =
+    draft.topic.trim() !== "" &&
+    draft.conclusion.trim() !== "" &&
+    draft.reason.trim() !== "";
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!filled) return;
+    if (await onRecord(draft)) {
+      setDraft(EMPTY_DECISION);
+      setOpen(false);
+    }
+  };
+  return (
+    <form className="record-decision" onSubmit={submit}>
+      {questions.length > 0 && (
+        <label className="field">
+          <span>もとにする問い（任意）</span>
+          <select
+            value={draft.questionId ?? ""}
+            onChange={(e) =>
+              setDraft(
+                draftFromQuestion(
+                  draft,
+                  questions.find((q) => q.id === e.target.value),
+                ),
+              )
+            }
+          >
+            <option value="">選ばない</option>
+            {questions.map((q) => (
+              <option key={q.id} value={q.id}>
+                {q.body}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="field">
+        <span>何についての決定か</span>
+        <input
+          value={draft.topic}
+          onChange={(e) => setDraft({ ...draft, topic: e.target.value })}
+        />
+      </label>
+      <label className="field">
+        <span>結論</span>
+        <input
+          value={draft.conclusion}
+          onChange={(e) => setDraft({ ...draft, conclusion: e.target.value })}
+        />
+      </label>
+      <label className="field">
+        <span>理由</span>
+        <textarea
+          rows={2}
+          value={draft.reason}
+          onChange={(e) => setDraft({ ...draft, reason: e.target.value })}
+        />
+      </label>
+      <div className="question-actions">
+        <button type="submit" disabled={!filled}>
+          決定を記録する
+        </button>
+        <button type="button" onClick={() => setOpen(false)}>
+          やめる
+        </button>
+      </div>
+    </form>
   );
 }
 
