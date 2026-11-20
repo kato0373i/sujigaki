@@ -37,22 +37,26 @@ async function attributesOf(page: Page, name: string) {
 test.describe.configure({ mode: "serial" });
 
 test.describe("FR-011 情報の項目と区分の値", () => {
-  test("情報の項目を1行に1つ書き、説明は「：」のあとに書く", async ({
-    page,
-  }) => {
+  test("#154 情報の項目を、項目名と説明の表で書く", async ({ page }) => {
     await page.goto("/#/");
     await open(page, "活動", "窓口で受け付ける");
     await createConnected(page, "受付票", "情報");
 
     const panel = await open(page, "情報", "受付票");
-    await panel.getByLabel(/^項目/).fill("受付日：窓口で受け付けた日\n氏名");
+    const items = panel.getByRole("group", { name: "項目" });
+    await items.getByRole("button", { name: "＋ 項目を追加" }).click();
+    await items.getByLabel("1行目の項目名").fill("受付日");
+    await items.getByLabel("1行目の説明").fill("窓口で受け付けた日");
+    await items.getByRole("button", { name: "＋ 項目を追加" }).click();
+    await items.getByLabel("2行目の項目名").fill("氏名");
     const result = await new AxeBuilder({ page }).include(".panel").analyze();
     expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     await page.screenshot({ path: `${screenshots}/p-01-items.png` });
     await panel.getByRole("button", { name: "保存" }).click();
-    await expect(panel.getByLabel(/^項目/)).toHaveValue(
-      "受付日：窓口で受け付けた日\n氏名",
+    await expect(items.getByLabel("1行目の説明")).toHaveValue(
+      "窓口で受け付けた日",
     );
+    await expect(items.getByLabel("2行目の項目名")).toHaveValue("氏名");
     expect(await attributesOf(page, "受付票")).toEqual({
       items: [
         { name: "受付日", description: "窓口で受け付けた日" },
