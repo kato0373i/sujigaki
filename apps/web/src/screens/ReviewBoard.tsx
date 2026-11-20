@@ -250,7 +250,14 @@ function QuestionItem({
           推奨案で回答: {question.recommendation}
         </button>
       )}
-      <div className="answer-row">
+      {/* Enter でも送れるよう、回答の欄をフォームにする（#115） */}
+      <form
+        className="answer-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (answer.trim() !== "") submit(answer);
+        }}
+      >
         <label htmlFor={inputId} className="visually-hidden">
           「{question.body}」への回答
         </label>
@@ -260,14 +267,10 @@ function QuestionItem({
           placeholder="回答を書く"
           onChange={(e) => setAnswer(e.target.value)}
         />
-        <button
-          type="button"
-          disabled={answer.trim() === ""}
-          onClick={() => submit(answer)}
-        >
+        <button type="submit" disabled={answer.trim() === ""}>
           回答する
         </button>
-      </div>
+      </form>
       {error && (
         <p className="error-inline" role="alert">
           {error}
