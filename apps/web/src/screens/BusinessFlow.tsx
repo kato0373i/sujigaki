@@ -11,8 +11,18 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
+  type ReactFlowInstance,
 } from "@xyflow/react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  type FormEvent,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ModeMark,
   ReviewStateMark,
@@ -26,6 +36,8 @@ import {
 } from "../model/business-flow.ts";
 
 const CARD_WIDTH = 190;
+/** クリックとダブルクリックを見分けるために待つミリ秒 */
+const DOUBLE_CLICK_MS = 250;
 const LANE_LABEL_WIDTH = 120;
 
 type LaneNode = Node<{ name: string; width: number }, "lane">;
@@ -57,7 +69,7 @@ function ActivityView({ data, selected }: NodeProps<ActivityNode>) {
           <ReviewStateMark state={card.element.reviewState} withText={false} />
         </span>
       </div>
-      <div className="activity-name">{card.element.name}</div>
+      <ActivityName card={card} />
       {card.usecases.length > 0 && (
         <div className="activity-usecases">{card.usecases.join("、")}</div>
       )}
@@ -72,6 +84,56 @@ function ActivityView({ data, selected }: NodeProps<ActivityNode>) {
       )}
       <Handle type="source" position={Position.Right} />
     </div>
+  );
+}
+
+/**
+ * カードの名前を直す操作。カードのデータに入れると、操作が変わるたびにカードを描き直して位置が戻るため、
+ * 変わらない関数をコンテキストで渡す。編集できないときは null
+ */
+const RenameContext = createContext<
+  ((elementId: string, name: string) => void) | null
+>(null);
+
+/** カードの名前。編集できるときは、ダブルクリックでその場の入力欄にする（US-001） */
+function ActivityName({ card }: { card: ActivityCard }) {
+  const rename = useContext(RenameContext);
+  const [draft, setDraft] = useState<string | null>(null);
+  const name = card.element.name;
+  if (draft === null) {
+    return (
+      // biome-ignore lint/a11y/noStaticElementInteractions: ダブルクリックはマウスでの近道で、キーボードでは詳細パネルの名前の欄で直す（画面設計書 S-04）
+      <div
+        className="activity-name"
+        onDoubleClick={(event) => {
+          if (!rename) return;
+          event.stopPropagation();
+          setDraft(name);
+        }}
+      >
+        {name}
+      </div>
+    );
+  }
+  const commit = () => {
+    const next = draft.trim();
+    setDraft(null);
+    if (next !== "" && next !== name) rename?.(card.element.id, next);
+  };
+  return (
+    <input
+      className="activity-name-input nodrag"
+      aria-label={`活動「${name}」の名前`}
+      value={draft}
+      // biome-ignore lint/a11y/noAutofocus: ダブルクリックで開いた入力欄に、そのまま入力できるようにする
+      autoFocus
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") setDraft(null);
+      }}
+      onBlur={commit}
+    />
   );
 }
 
@@ -92,6 +154,8 @@ export interface FlowEditing {
   readonly onMove: (elementId: string, x: number) => void;
   /** カードの端から別のカードへつないだ */
   readonly onConnect: (from: string, to: string) => void;
+  /** カードの名前をその場で直した（US-001） */
+  readonly onRename: (elementId: string, name: string) => void;
 }
 
 /**
@@ -135,6 +199,25 @@ export function BusinessFlow({
     return [...lanes, ...cards] as Node[];
   }, [view, selectedId, editable]);
   const [nodes, setNodes] = useState<Node[]>(initial);
+  // 詳細パネルを開け閉めすると図の幅が変わるため、表示の範囲を合わせ直す。
+  // 図を作り直すと、ダブルクリックの途中でカードが入れ替わり、名前を直せないためである
+  const [flow, setFlow] = useState<ReactFlowInstance | null>(null);
+  const panelOpen = selectedId !== null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: パネルを開け閉めしたときに合わせ直すため、panelOpen の変化で動かす
+  useEffect(() => {
+    if (!flow) return;
+    const timer = window.setTimeout(() => void flow.fitView(), 50);
+    return () => window.clearTimeout(timer);
+  }, [flow, panelOpen]);
+  // 編集できるときは、クリックでパネルを開くのを少し待つ。開くと図がずれ、ダブルクリックの2回目が別の場所に当たるためである
+  const clickTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(clickTimer.current), []);
+  const renameRef = useRef(editing?.onRename);
+  renameRef.current = editing?.onRename;
+  const rename = useCallback(
+    (elementId: string, name: string) => renameRef.current?.(elementId, name),
+    [],
+  );
   useEffect(() => setNodes(initial), [initial]);
 
   const edges: Edge[] = useMemo(
@@ -174,32 +257,46 @@ export function BusinessFlow({
         <p className="empty">活動がありません。活動を追加してください。</p>
       )}
       <div className="flow-canvas">
-        <ReactFlow
-          // 詳細パネルを開くと図の幅が変わるため、描き直して全体が入るように合わせる
-          key={selectedId === null ? "full" : "with-panel"}
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          fitView
-          onNodesChange={onNodesChange}
-          nodesConnectable={editing !== undefined}
-          onConnect={(connection: Connection) => {
-            if (connection.source !== connection.target) {
-              editing?.onConnect(connection.source, connection.target);
-            }
-          }}
-          onNodeDragStop={(_, node) => {
-            if (node.type === "activity")
-              editing?.onMove(node.id, node.position.x);
-          }}
-          onNodeClick={(_, node) => {
-            if (node.type === "activity") onSelect(node.id);
-          }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background />
-          <Controls showInteractive={false} />
-        </ReactFlow>
+        <RenameContext.Provider value={editable ? rename : null}>
+          <ReactFlow
+            nodes={nodes}
+            onInit={setFlow}
+            // ダブルクリックはカードの名前を直すのに使うため、図の拡大には使わない
+            zoomOnDoubleClick={false}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            fitView
+            onNodesChange={onNodesChange}
+            nodesConnectable={editing !== undefined}
+            onConnect={(connection: Connection) => {
+              if (connection.source !== connection.target) {
+                editing?.onConnect(connection.source, connection.target);
+              }
+            }}
+            onNodeDragStop={(_, node) => {
+              if (node.type === "activity")
+                editing?.onMove(node.id, node.position.x);
+            }}
+            onNodeClick={(event, node) => {
+              if (node.type !== "activity") return;
+              if (!editable) {
+                onSelect(node.id);
+                return;
+              }
+              window.clearTimeout(clickTimer.current);
+              // ダブルクリックの2回目なら、パネルを開かずに名前を直す
+              if (event.detail >= 2) return;
+              clickTimer.current = window.setTimeout(
+                () => onSelect(node.id),
+                DOUBLE_CLICK_MS,
+              );
+            }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        </RenameContext.Provider>
       </div>
     </section>
   );
