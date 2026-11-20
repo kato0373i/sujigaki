@@ -1,13 +1,14 @@
 import {
   type Actor,
   can,
+  ELEMENT_KIND_LABELS,
   type ElementSnapshot,
   REVIEW_STATE_LABELS,
   REVIEW_TRANSITIONS,
   type ReviewState,
   type Violation,
 } from "@sujigaki/domain";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   addRelation,
   answerQuestion,
@@ -244,6 +245,10 @@ function ElementList({
             onChange={() => onToggle(e.id)}
           />{" "}
           <ReviewStateMark state={e.reviewState} withText={false} />{" "}
+          {/* 名前の似た要素を見分けられるよう、種類を添える（#152） */}
+          <span className="muted kind-label">
+            {ELEMENT_KIND_LABELS[e.kind]}
+          </span>{" "}
           <button type="button" className="link" onClick={() => onSelect(e.id)}>
             {e.name}
           </button>
@@ -253,7 +258,10 @@ function ElementList({
   );
 }
 
-/** 未回答の問いを、要素ごとにまとめて出す。要素の名前は1回だけ出す */
+/**
+ * 未回答の問いを出す。空欄から作った問いは、問いの文ごとにまとめ、文は1回だけ出す（#152）。
+ * ほかの問いは要素ごとにまとめ、要素の名前は1回だけ出す
+ */
 function QuestionList({
   projectId,
   elements,
@@ -267,24 +275,46 @@ function QuestionList({
   onSelect: (elementId: string) => void;
   onChanged: () => void;
 }) {
+  const byBody = new Map<string, BoardQuestion[]>();
   const byElement = new Map<string, BoardQuestion[]>();
   for (const q of questions) {
-    byElement.set(q.element.id, [...(byElement.get(q.element.id) ?? []), q]);
+    const [map, key] = q.auto ? [byBody, q.body] : [byElement, q.element.id];
+    map.set(key, [...(map.get(key) ?? []), q]);
   }
+  const elementLink = (element: ElementSnapshot) => (
+    <button type="button" className="link" onClick={() => onSelect(element.id)}>
+      {element.name}
+    </button>
+  );
   return (
     <ul className="plain">
+      {[...byBody].map(([body, items]) => (
+        <li key={`body-${body}`} className="board-question-group">
+          <div className="question-body">
+            {body}
+            <span className="tag tag-auto">自動</span>
+            <span className="muted">（{items.length}件）</span>
+          </div>
+          <ul className="plain board-question-list">
+            {items.map((q) => (
+              <QuestionItem
+                key={q.key}
+                projectId={projectId}
+                elements={elements}
+                question={q}
+                heading={elementLink(q.element)}
+                onChanged={onChanged}
+              />
+            ))}
+          </ul>
+        </li>
+      ))}
       {[...byElement.values()].map((items) => {
         const element = items[0]?.element;
         if (!element) return null;
         return (
           <li key={element.id} className="board-question-group">
-            <button
-              type="button"
-              className="link"
-              onClick={() => onSelect(element.id)}
-            >
-              {element.name}
-            </button>
+            {elementLink(element)}
             <ul className="plain board-question-list">
               {items.map((q) => (
                 <QuestionItem
@@ -314,11 +344,14 @@ function QuestionItem({
   projectId,
   elements,
   question,
+  heading,
   onChanged,
 }: {
   projectId: string;
   elements: readonly ElementSnapshot[];
   question: BoardQuestion;
+  /** 問いの文の代わりに出す見出し。問いの文ごとにまとめたときは、要素の名前を出す */
+  heading?: ReactNode;
   onChanged: () => void;
 }) {
   const [answer, setAnswer] = useState("");
@@ -368,8 +401,12 @@ function QuestionItem({
   return (
     <li className="board-question">
       <div className="question-body">
-        {question.body}
-        {question.auto && <span className="tag tag-auto">自動</span>}
+        {heading ?? (
+          <>
+            {question.body}
+            {question.auto && <span className="tag tag-auto">自動</span>}
+          </>
+        )}
       </div>
       {question.recommendation && (
         <button type="button" onClick={() => submit(null)}>
