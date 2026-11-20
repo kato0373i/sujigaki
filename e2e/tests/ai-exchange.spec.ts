@@ -102,13 +102,16 @@ questions:
     const snapshot = await (
       await page.request.get("/api/projects/local/snapshot")
     ).json();
-    expect(
-      snapshot.elements.find((e: { id: string }) => e.id === "new-accounting"),
-    ).toMatchObject({
+    const accounting = snapshot.elements.find(
+      (e: { name: string }) => e.name === "経理担当",
+    );
+    expect(accounting).toMatchObject({
       authorType: "ai",
       source: "AI 提案",
       reviewState: "unreviewed",
     });
+    // 仮の ID は、取り込むときに付け替える（#110）
+    expect(accounting.id).not.toMatch(/^new-/);
     expect(
       snapshot.questions.find(
         (q: { body: string }) => q.body === "取り消しはいつまで受け付けますか",

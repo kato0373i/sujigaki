@@ -82,12 +82,15 @@ function unwrapCodeBlock(reply: string): string {
 
 /**
  * AI の返答を読む（設計書 5.7 節、FR-034）。要素は確認状態を未レビュー、作成者の種類を AI にする。
- * 今のモデルにある要素は、外部リンクと作成の情報を今のまま保つ。返答の形式に外部リンクがないためである
+ * 今のモデルにある要素は、外部リンクと作成の情報を今のまま保つ。返答の形式に外部リンクがないためである。
+ * new- で始まる ID と今のモデルにない ID の要素は新しい要素とし、newId で付けた ID に置き換える。
+ * AI は回をまたいで同じ仮の ID を使うため、仮の ID のまま残すと次の提案と重なるからである
  */
 export function readProposal(
   reply: string,
   current: readonly ElementSnapshot[],
   at: Date,
+  newId: () => string,
 ): ProposalResult {
   const parsed = parseYaml(unwrapCodeBlock(reply));
   if (!parsed.ok) return parsed;
@@ -140,12 +143,20 @@ export function readProposal(
 
   const now = at.toISOString();
   const existing = new Map(current.map((e) => [e.id as string, e]));
+  // 新しい要素の仮の ID を、ツールが付ける ID に置き換える
+  const renamed = new Map(
+    elements
+      .filter((e) => e.id.startsWith("new-") || !existing.has(e.id))
+      .map((e) => [e.id, newId()]),
+  );
+  const idOf = (id: string) => (renamed.get(id) ?? id) as ElementId;
   return {
     ok: true,
     elements: elements.map((e): ElementSnapshot => {
-      const before = existing.get(e.id);
+      const before = renamed.has(e.id) ? undefined : existing.get(e.id);
+      const id = idOf(e.id);
       return {
-        id: e.id as ElementId,
+        id,
         kind: e.kind,
         name: e.name,
         summary: e.summary ?? before?.summary ?? "",
@@ -160,9 +171,9 @@ export function readProposal(
         links: before?.links ?? [],
         relations: (e.relations ?? []).map(
           (r): Relation => ({
-            id: (r.id ?? `${e.id}-${r.type}-${r.to}`) as Relation["id"],
+            id: (r.id ?? `${id}-${r.type}-${idOf(r.to)}`) as Relation["id"],
             typeId: r.type,
-            to: r.to as ElementId,
+            to: idOf(r.to),
             toKind: (
               RELATION_TYPES.find((t) => t.id === r.type) ?? { to: e.kind }
             ).to,
@@ -175,7 +186,7 @@ export function readProposal(
       };
     }),
     questions: (result.data.questions ?? []).map((q) => ({
-      elementId: q.elementId as ElementId,
+      elementId: idOf(q.elementId),
       body: q.body,
       recommendation: q.recommendation ?? null,
     })),

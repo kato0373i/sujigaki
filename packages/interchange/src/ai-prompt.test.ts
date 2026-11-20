@@ -83,7 +83,12 @@ describe("FR-033 AI に渡すテキスト", () => {
       template: "draft",
     });
     const example = text.slice(text.indexOf("# 返答の形式"));
-    const result = readProposal(example, [], new Date("2026-11-20T00:00:00Z"));
+    const result = readProposal(
+      example,
+      [],
+      new Date("2026-11-20T00:00:00Z"),
+      () => "id1",
+    );
     expect(result.ok).toBe(true);
   });
 });

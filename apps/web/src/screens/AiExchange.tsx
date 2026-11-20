@@ -223,7 +223,12 @@ function ProposalTab({
 
   const review = () => {
     setMessage(null);
-    const read = readProposal(reply, snapshot.elements, new Date());
+    const read = readProposal(
+      reply,
+      snapshot.elements,
+      new Date(),
+      () => `ai-${crypto.randomUUID()}`,
+    );
     if (!read.ok) {
       setProposal({ state: "invalid", issues: read.issues });
       return;
