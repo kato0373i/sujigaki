@@ -29,6 +29,9 @@ test.describe("FR-024 確認ボード", () => {
       }),
     });
     await expect(blank.locator(".question-body").first()).toContainText("自動");
+    // 同じ文の問いは最初に3件まで出し、残りは押すと出す（#175）
+    await expect(blank.locator(".board-question")).toHaveCount(3);
+    await blank.getByRole("button", { name: /^ほか \d+ 件を出す$/ }).click();
     await expect(blank).toContainText("受講結果をまとめる");
     // 要素の一覧には種類を添える
     await expect(
@@ -56,6 +59,9 @@ test.describe("FR-024 確認ボード", () => {
     page,
   }) => {
     await page.goto("/#/board");
+    // 押すとボタンが消えるため、なくなるまで先頭を押す
+    const more = page.getByRole("button", { name: /^ほか \d+ 件を出す$/ });
+    while ((await more.count()) > 0) await more.first().click();
     const question = page
       .locator(".board-question-group", { hasText: "受講結果をまとめる" })
       .locator(".board-question", { hasText: "担当者は誰ですか" });
@@ -141,6 +147,9 @@ test.describe("#121 #122 確認ボードの見直し", () => {
         hasText: "この活動は手作業ですか、システムを使いますか",
       }),
     });
+    // 4件目より後ろにあれば、残りも出す（#175）
+    const more = group.getByRole("button", { name: /^ほか \d+ 件を出す$/ });
+    if ((await more.count()) > 0) await more.click();
     const question = group.locator(".board-question", {
       hasText: "窓口で受け付ける",
     });
@@ -155,5 +164,42 @@ test.describe("#121 #122 確認ボードの見直し", () => {
 
     await page.getByLabel("空欄から作った問いを出す").uncheck();
     await expect(page.locator(".tag-auto")).toHaveCount(0);
+  });
+});
+
+test.describe("#175 確認ボードの業務を畳む", () => {
+  test("業務を畳むと、列ごとの件数を見出しに出し、開き直すまで畳んだままにする", async ({
+    page,
+  }) => {
+    await page.goto("/#/board");
+    const training = page.getByRole("region", { name: "研修" });
+    const toggle = training
+      .getByRole("heading", { level: 2 })
+      .getByRole("button");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(training.locator(".board-columns")).toBeHidden();
+    await expect(training.getByRole("heading", { level: 2 })).toContainText(
+      /未回答の問い \d+/,
+    );
+    const result = await new AxeBuilder({ page }).analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await page.screenshot({ path: `${screenshots}/s-06-folded.png` });
+
+    await page.reload();
+    await expect(
+      page
+        .getByRole("region", { name: "研修" })
+        .getByRole("heading", { level: 2 })
+        .getByRole("button"),
+    ).toHaveAttribute("aria-expanded", "false");
+    await page
+      .getByRole("region", { name: "研修" })
+      .getByRole("heading", { level: 2 })
+      .getByRole("button")
+      .click();
+    await expect(
+      page.getByRole("region", { name: "研修" }).locator(".board-columns"),
+    ).toBeVisible();
   });
 });

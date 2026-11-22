@@ -25,7 +25,13 @@ import {
   type BoardQuestion,
   reviewBoardView,
 } from "../model/review-board.ts";
+import { readStoredSet, writeStoredSet } from "../stored-set.ts";
 import { undoable } from "../undo-store.ts";
+
+/** 畳んだ業務の一覧のキー（#175） */
+const CLOSED_KEY = "sujigaki.board.closed";
+/** 空欄から作った問いのまとまりで、最初に出す件数（#175） */
+const BLANK_PREVIEW = 3;
 
 /**
  * S-06 確認ボード（FR-024）。業務ごとに、要素を確認状態ごとに並べ、問いと検証の違反も同じ画面に出す
@@ -52,6 +58,17 @@ export function ReviewBoard({
   const [showBlank, setShowBlank] = useState(true);
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
+  const [closed, setClosed] = useState<ReadonlySet<string>>(
+    () => new Set(readStoredSet(CLOSED_KEY)),
+  );
+  const toggleGroup = (key: string) => {
+    const open = closed.has(key);
+    writeStoredSet(CLOSED_KEY, key, !open);
+    const next = new Set(closed);
+    if (open) next.delete(key);
+    else next.add(key);
+    setClosed(next);
+  };
   const groups = reviewBoardView(
     snapshot.elements,
     snapshot.questions,
@@ -159,14 +176,39 @@ export function ReviewBoard({
       )}
       {groups.map((group) => {
         const title = group.business?.name ?? "業務に属さない要素";
+        const key = group.business?.id ?? "none";
+        const open = !closed.has(key);
+        // 畳んでいても、列ごとの件数は見出しに出す（#175）
+        const summary = [
+          ...group.states.map(
+            ({ state, elements }) =>
+              `${REVIEW_STATE_LABELS[state]} ${elements.length}`,
+          ),
+          ...(filter === "mine" || filter === "all"
+            ? [`未回答の問い ${group.questions.length}`]
+            : []),
+          ...(filter === "fix" || filter === "all"
+            ? [`検証の違反 ${group.violations.length}`]
+            : []),
+        ].join("・");
         return (
-          <section
-            key={group.business?.id ?? "none"}
-            className="board-group"
-            aria-label={title}
-          >
-            <h2>{title}</h2>
-            <div className="board-columns">
+          <section key={key} className="board-group" aria-label={title}>
+            <h2>
+              <button
+                type="button"
+                className="section-toggle"
+                aria-expanded={open}
+                aria-controls={`board-${key}`}
+                onClick={() => toggleGroup(key)}
+              >
+                <span className="section-caret" aria-hidden="true">
+                  {open ? "▾" : "▸"}
+                </span>
+                {title}
+              </button>
+              {!open && <span className="section-summary">{summary}</span>}
+            </h2>
+            <div className="board-columns" id={`board-${key}`} hidden={!open}>
               {group.states.map(({ state, elements }) => (
                 <div key={state} className="board-column">
                   <h3>
@@ -289,25 +331,22 @@ function QuestionList({
   return (
     <ul className="plain">
       {[...byBody].map(([body, items]) => (
-        <li key={`body-${body}`} className="board-question-group">
-          <div className="question-body">
-            {body}
-            <span className="tag tag-auto">自動</span>
-            <span className="muted">（{items.length}件）</span>
-          </div>
-          <ul className="plain board-question-list">
-            {items.map((q) => (
-              <QuestionItem
-                key={q.key}
-                projectId={projectId}
-                elements={elements}
-                question={q}
-                heading={elementLink(q.element)}
-                onChanged={onChanged}
-              />
-            ))}
-          </ul>
-        </li>
+        <BlankQuestionGroup
+          key={`body-${body}`}
+          body={body}
+          count={items.length}
+        >
+          {items.map((q) => (
+            <QuestionItem
+              key={q.key}
+              projectId={projectId}
+              elements={elements}
+              question={q}
+              heading={elementLink(q.element)}
+              onChanged={onChanged}
+            />
+          ))}
+        </BlankQuestionGroup>
       ))}
       {[...byElement.values()].map((items) => {
         const element = items[0]?.element;
@@ -330,6 +369,42 @@ function QuestionList({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * 空欄から作った同じ文の問いのまとまり。最初は3件まで出し、残りは「ほか N 件を出す」で開く（#175）
+ */
+function BlankQuestionGroup({
+  body,
+  count,
+  children,
+}: {
+  body: string;
+  count: number;
+  children: ReactNode[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? children : children.slice(0, BLANK_PREVIEW);
+  const rest = count - shown.length;
+  return (
+    <li className="board-question-group">
+      <div className="question-body">
+        {body}
+        <span className="tag tag-auto">自動</span>
+        <span className="muted">（{count}件）</span>
+      </div>
+      <ul className="plain board-question-list">{shown}</ul>
+      {rest > 0 && (
+        <button
+          type="button"
+          className="link show-more"
+          onClick={() => setExpanded(true)}
+        >
+          ほか {rest} 件を出す
+        </button>
+      )}
+    </li>
   );
 }
 
