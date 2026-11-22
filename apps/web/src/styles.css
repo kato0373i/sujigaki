@@ -1823,3 +1823,103 @@ button.badge {
   --xy-controls-button-color: var(--text);
   --xy-controls-button-border-color: var(--line);
 }
+
+/* 幅が 1280px より狭いときは、詳細パネルを中央の上に重ねて開き、図の幅を残す（#171） */
+.menu-button {
+  display: none;
+}
+
+@media (max-width: 1279px) {
+  .app.with-panel {
+    grid-template-columns: 240px 1fr;
+  }
+
+  .panel {
+    position: fixed;
+    top: 48px;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    width: min(380px, 100vw);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* 幅が 768px より狭いときは、左のナビゲーションを畳み、「メニュー」で開く（#171） */
+@media (max-width: 767px) {
+  .app,
+  .app.with-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header {
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .menu-button {
+    display: inline-flex;
+    flex: none;
+    font: inherit;
+    padding: 3px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .project-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .search {
+    flex: 1;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .undo {
+    margin-left: 0;
+  }
+
+  .undo-label {
+    display: none;
+  }
+
+  .nav {
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    left: 0;
+    z-index: 16;
+    width: min(280px, 85vw);
+    visibility: hidden;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-md);
+  }
+
+  .app.nav-open .nav {
+    visibility: visible;
+    transform: none;
+  }
+
+  .screen {
+    padding: 12px;
+  }
+
+  .progress-text,
+  .counts li,
+  .add-form button {
+    white-space: nowrap;
+  }
+
+  .review-progress {
+    flex-wrap: wrap;
+  }
+}
