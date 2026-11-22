@@ -119,3 +119,58 @@ test.describe("P-01 要素の詳細パネル", () => {
     await page.screenshot({ path: `${screenshots}/p-01-direction.png` });
   });
 });
+
+test.describe("#172 #178 #179 詳細パネルの見やすさ", () => {
+  test("節を畳むと件数を見出しに出し、ほかの要素を開いても畳んだままにする", async ({
+    page,
+  }) => {
+    const panel = await openActivity(page, "研修に申し込む", "buc-application");
+    const relations = panel.getByRole("region", { name: "つながり" });
+    const toggle = relations.getByRole("button", {
+      name: "つながり",
+      exact: true,
+    });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(relations.locator(".relations")).toBeHidden();
+    await expect(relations.getByRole("heading")).toContainText(/\d+件/);
+
+    // 今の確認状態を、節の先頭に出す
+    await expect(panel.locator(".review-current")).toContainText("未レビュー");
+    await page.screenshot({ path: `${screenshots}/p-01-folded.png` });
+
+    const other = await openActivity(page, "申込を承認する", "buc-application");
+    await expect(
+      other
+        .getByRole("region", { name: "つながり" })
+        .getByRole("button", { name: "つながり", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await other.getByRole("button", { name: "つながり", exact: true }).click();
+    await expect(other.locator(".relations")).toBeVisible();
+  });
+
+  test("「外す」は行にマウスを乗せると出し、件数は2件以上の種類にだけ付ける。保存のボタンは下端に見える", async ({
+    page,
+  }) => {
+    const panel = await openActivity(page, "研修に申し込む", "buc-application");
+    const row = panel.locator(".relation-group li").first();
+    const remove = row.getByRole("button", { name: /とのつながりを外す$/ });
+    await expect(remove).toHaveCSS("opacity", "0");
+    await row.hover();
+    await expect(remove).toHaveCSS("opacity", "1");
+    for (const group of await panel.locator("li.relation-group").all()) {
+      const items = await group.locator("ul li").count();
+      await expect(group.locator(".count")).toHaveCount(items > 1 ? 1 : 0);
+    }
+
+    // 内容の節のいちばん上の欄を書いているときも、保存のボタンが見える
+    await panel.getByLabel("名前").focus();
+    const save = await panel
+      .getByRole("button", { name: "保存" })
+      .boundingBox();
+    const viewport = page.viewportSize();
+    expect(save && viewport && save.y + save.height <= viewport.height).toBe(
+      true,
+    );
+  });
+});
