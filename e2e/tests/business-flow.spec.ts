@@ -189,3 +189,19 @@ test.describe("#176 業務フローの凡例", () => {
     await page.screenshot({ path: `${screenshots}/s-04-legend.png` });
   });
 });
+
+test.describe("#174 業務フローのパンくず", () => {
+  test("見出しの上に、業務一覧と業務の名前を出し、業務一覧へ戻れる", async ({
+    page,
+  }) => {
+    await page.goto("/#/flows/buc-application");
+    const crumbs = page.getByRole("navigation", { name: "パンくずリスト" });
+    await expect(crumbs).toContainText("業務一覧");
+    await expect(crumbs).toContainText("研修");
+    await expect(crumbs.locator("[aria-current=page]")).toHaveText(
+      "研修の受講申込",
+    );
+    await crumbs.getByRole("link", { name: "業務一覧" }).click();
+    await expect(page.getByRole("heading", { name: "業務一覧" })).toBeVisible();
+  });
+});
