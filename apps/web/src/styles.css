@@ -2019,3 +2019,33 @@ button.badge {
     opacity: 1;
   }
 }
+
+/* 業務フローの凡例（#176） */
+.flow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-card {
+  display: inline-block;
+  width: 22px;
+  height: 14px;
+  background: var(--surface);
+}
+
+/* 全体を収めきれず、図の一部を出しているときの案内（#173） */
+.flow-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+}

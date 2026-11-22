@@ -9,8 +9,10 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
+  type ReactFlowInstance,
 } from "@xyflow/react";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import { FIT_OPTIONS, fitReadable } from "../components/flow-fit.ts";
 import { FLOW_ARIA_LABELS, nodeLabel } from "../components/flow-labels.ts";
 import { ReviewStateMark } from "../components/status.tsx";
 import {
@@ -76,6 +78,15 @@ export function StateDiagramScreen({
 }) {
   const models = stateModels(elements);
   const chosen = modelId ?? models[0]?.id ?? null;
+  const canvasRef = useRef<HTMLDivElement>(null);
+  // 全体を収めきれず、流れの始まりのまわりだけを出しているか（#173）
+  const [partial, setPartial] = useState(false);
+  const fit = (flow: ReactFlowInstance) => {
+    window.setTimeout(
+      () => void fitReadable(flow, canvasRef.current, null).then(setPartial),
+      50,
+    );
+  };
   const diagram = useMemo(
     () => (chosen ? stateDiagram(elements, chosen) : null),
     [elements, chosen],
@@ -173,6 +184,11 @@ export function StateDiagramScreen({
           状態の流れの詳細を開く
         </button>
       </div>
+      {partial && (
+        <p className="muted flow-hint" role="status">
+          図の一部を出しています。ドラッグで動かすか、左下の「全体を表示」で全体を見られます。
+        </p>
+      )}
       {diagram.nodes.length === 0 ? (
         <p className="empty">
           状態がありません。状態の流れの詳細パネルの「＋
@@ -181,6 +197,7 @@ export function StateDiagramScreen({
       ) : (
         <div
           className="flow-canvas"
+          ref={canvasRef}
           // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
           style={{
             flex: "0 1 auto",
@@ -200,9 +217,10 @@ export function StateDiagramScreen({
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            // 全体を収めると文字が読めないときは、読める倍率で一部を出す（#173）
             fitView
-            // 小さな図は少し大きく描き、文字を読みやすくする（#156）
-            fitViewOptions={{ maxZoom: 1.25, padding: 0.08 }}
+            onInit={(flow) => fit(flow)}
+            fitViewOptions={FIT_OPTIONS}
             nodesConnectable={false}
             onNodeClick={(_, node) => onSelect(node.id)}
             proOptions={{ hideAttribution: true }}

@@ -1,3 +1,4 @@
+import { REVIEW_STATES } from "@sujigaki/domain";
 import {
   applyNodeChanges,
   Background,
@@ -437,7 +438,36 @@ export function BusinessFlow({
           </ReactFlow>
         </RenameContext.Provider>
       </div>
+      <FlowLegend />
     </section>
+  );
+}
+
+/** 図の凡例（#176）。カードの枠の種類と、右上の確認状態の印の意味を出す */
+function FlowLegend() {
+  return (
+    <div className="flow-legend" role="group" aria-label="凡例">
+      <span className="legend-item">
+        <span className="legend-card activity-manual" aria-hidden="true" />
+        <ModeMark mode="manual" />
+        の活動
+      </span>
+      <span className="legend-item">
+        <span className="legend-card activity-system" aria-hidden="true" />
+        <ModeMark mode="system" />
+        の活動
+      </span>
+      <span className="legend-item">
+        <span className="legend-card activity-unknown" aria-hidden="true" />
+        区分が未設定
+      </span>
+      <span className="legend-item">
+        右上の印:
+        {REVIEW_STATES.map((state) => (
+          <ReviewStateMark key={state} state={state} />
+        ))}
+      </span>
+    </div>
   );
 }
 
