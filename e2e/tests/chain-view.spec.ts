@@ -83,3 +83,31 @@ test.describe("FR-021 連鎖ビュー", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("#173 図の文字を読める大きさに保つ", () => {
+  test("全体を収めると文字が読めないときは、読める倍率で起点のまわりを出し、そのことを案内する", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 900, height: 520 });
+    await page.goto("/#/chain/screen-notice");
+    await page.getByLabel("前後").selectOption("4");
+    await expect(page.getByRole("status")).toContainText(
+      "図の一部を出しています",
+    );
+    const scale = await page
+      .locator(".react-flow__viewport")
+      .evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).a);
+    expect(scale).toBeGreaterThanOrEqual(0.85);
+    // 起点のカードは枠の中に見える
+    const canvas = await page.locator(".flow-canvas").boundingBox();
+    const origin = await page.locator(".chain-origin").boundingBox();
+    expect(origin && canvas).toBeTruthy();
+    if (origin && canvas) {
+      expect(origin.x).toBeGreaterThanOrEqual(canvas.x);
+      expect(origin.x + origin.width).toBeLessThanOrEqual(
+        canvas.x + canvas.width,
+      );
+    }
+    await page.screenshot({ path: `${screenshots}/s-05-readable.png` });
+  });
+});
