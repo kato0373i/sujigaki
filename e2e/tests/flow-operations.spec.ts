@@ -56,6 +56,7 @@ const created = [
   "係A",
   "申込を受け付ける",
   "申込を確かめる",
+  "申込を差し戻す",
 ];
 
 // 業務フローを作って編集するため、順に動かす。作った要素は最後に片付ける
@@ -113,6 +114,50 @@ test.describe("#147 #148 #149 業務フローの操作", () => {
     await expect(
       page.locator(".lane-name", { hasText: "担当者が未設定" }),
     ).toHaveCount(0);
+  });
+
+  test("#177 #181 選んだ活動の次に足し、活動を分ける目安は押して開く", async ({
+    page,
+  }) => {
+    const snapshot = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    const flow = snapshot.elements.find(
+      (e: { name: string }) => e.name === "操作の流れ",
+    );
+    await page.goto(`/#/flows/${flow.id}`);
+    const form = page.getByRole("form", { name: "活動を追加" });
+    // 目安は最初は畳んでおき、押すと開く
+    const hint = form.locator("details.hint");
+    await expect(hint).not.toHaveAttribute("open");
+    await hint.getByText("活動を分ける目安").click();
+    await expect(hint).toContainText("担当者や判断する人が変わる所");
+
+    // 途中の活動を選ぶと、その次に続ける
+    const cards = page.getByTestId("activity-card");
+    await cards.filter({ hasText: "申込を受け付ける" }).click();
+    await expect(
+      form.getByLabel("「申込を受け付ける」の次に続ける"),
+    ).toBeChecked();
+    await form.getByLabel("活動の名前").fill("申込を差し戻す");
+    await form.getByRole("button", { name: "＋ 活動を追加" }).click();
+    await expect(cards).toHaveCount(3);
+    await expect(page.locator(".react-flow__edge")).toHaveCount(2);
+    const after = await (
+      await page.request.get("/api/projects/local/snapshot")
+    ).json();
+    const byName = (name: string) =>
+      after.elements.find((e: { name: string }) => e.name === name);
+    const sendBack = byName("申込を差し戻す");
+    expect(
+      byName("申込を受け付ける").relations.some(
+        (r: { to: string }) => r.to === sendBack.id,
+      ),
+    ).toBe(true);
+    // 足したあとは、足した活動の次に続ける
+    await expect(
+      form.getByLabel("「申込を差し戻す」の次に続ける"),
+    ).toBeVisible();
   });
 
   test("業務に属さない業務フローを、業務一覧から業務に入れる", async ({
