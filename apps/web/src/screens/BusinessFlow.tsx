@@ -374,7 +374,11 @@ export function BusinessFlow({
       <h1>業務フロー: {view.buc.name}</h1>
       {editing && (
         <div className="flow-tools">
-          <AddActivityForm view={view} onAdd={editing.onAdd} />
+          <AddActivityForm
+            view={view}
+            selectedId={selectedId}
+            onAdd={editing.onAdd}
+          />
           <button
             type="button"
             className="relayout"
@@ -485,12 +489,12 @@ function FlowLegend() {
 }
 
 /**
- * 次に足す活動を続ける先。直前に足した活動があればそれを、なければ流れの最後の活動を選ぶ。
+ * 次に足す活動を続ける先。最後に選んだか足した活動があればそれを、なければ流れの最後の活動を選ぶ。
  * 流れの最後は、次の活動のない活動のうち、いちばん右のもの
  */
-function previousActivity(view: BusinessFlowView, lastAdded: string | null) {
-  const added = view.cards.find((c) => c.element.id === lastAdded);
-  if (added) return added.element;
+function previousActivity(view: BusinessFlowView, anchor: string | null) {
+  const anchored = view.cards.find((c) => c.element.id === anchor);
+  if (anchored) return anchored.element;
   const ends = view.cards.filter(
     (c) => !view.edges.some((e) => e.from === c.element.id),
   );
@@ -503,16 +507,25 @@ function previousActivity(view: BusinessFlowView, lastAdded: string | null) {
 
 function AddActivityForm({
   view,
+  selectedId,
   onAdd,
 }: {
   view: BusinessFlowView;
+  selectedId: string | null;
   onAdd: FlowEditing["onAdd"];
 }) {
   const lanes = view.lanes;
   // 足した活動を、直前の活動の次に続ける（#147）
   const [follow, setFollow] = useState(true);
-  const [lastAdded, setLastAdded] = useState<string | null>(null);
-  const previous = previousActivity(view, lastAdded);
+  // 続ける先。図で活動を選んだらその活動に、活動を足したら足した活動に移す（#177）
+  const [anchor, setAnchor] = useState<string | null>(null);
+  // 選び直したときだけ移す。足したあとの読み直しで、選んだままの活動に戻さないためである
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 選んだ活動が変わったときだけ動かすため、selectedId だけに依存させる
+  useEffect(() => {
+    if (selectedId && view.cards.some((c) => c.element.id === selectedId))
+      setAnchor(selectedId);
+  }, [selectedId]);
+  const previous = previousActivity(view, anchor);
   // レーンは担当者の ID で覚える。担当者が増えるとレーンの順が変わるため、番号では覚えない（#143）
   const [chosen, setChosen] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -541,7 +554,7 @@ function AddActivityForm({
         setName((current) => (current === "" ? submitted : current));
         return;
       }
-      setLastAdded(result.activityId);
+      setAnchor(result.activityId);
       if (newActor !== undefined) {
         // 作った担当者を選んだままにして、続けて足せるようにする（#143）
         setActorName("");
@@ -590,7 +603,11 @@ function AddActivityForm({
           「{previous.name}」の次に続ける
         </label>
       )}
-      <p className="hint">活動を分ける目安: {SPLIT_HINTS.join("、")}</p>
+      {/* 目安はいつも出すと入力欄のまわりが長くなるため、押して開く（#181） */}
+      <details className="hint">
+        <summary>活動を分ける目安</summary>
+        {SPLIT_HINTS.join("、")}
+      </details>
     </form>
   );
 }

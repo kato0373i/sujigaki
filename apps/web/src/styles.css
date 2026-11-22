@@ -878,6 +878,11 @@ button.link:hover {
   font-size: 12px;
 }
 
+.hint summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
 .relations li {
   display: flex;
   justify-content: space-between;
