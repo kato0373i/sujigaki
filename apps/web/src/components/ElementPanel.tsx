@@ -33,6 +33,7 @@ import { ConflictDialog } from "./ConflictDialog.tsx";
 import { DeliberationSection } from "./DeliberationSection.tsx";
 import { ItemsTable } from "./ItemsTable.tsx";
 import { LinksSection } from "./LinksSection.tsx";
+import { PanelSection } from "./PanelSection.tsx";
 import { RelationEditor } from "./RelationEditor.tsx";
 import { ReviewStateMark } from "./status.tsx";
 
@@ -177,14 +178,13 @@ export function ElementPanel({
           状態遷移図で開く
         </a>
       )}
-      <div className="panel-tags">
-        <ReviewStateMark state={element.reviewState} />
-        {element.authorType !== "human" && (
+      {element.authorType !== "human" && (
+        <div className="panel-tags">
           <span className={`tag tag-${element.authorType}`}>
             {AUTHOR_TAGS[element.authorType]}
           </span>
-        )}
-      </div>
+        </div>
+      )}
       {element.kind === "activity" && (
         // 担当者は活動の大事な項目なので、つながりより上で選び直せるようにする（#148）
         <ActorPicker
@@ -203,8 +203,11 @@ export function ElementPanel({
         </p>
       )}
 
-      <section aria-labelledby="review-heading">
-        <h3 id="review-heading">確認状態</h3>
+      <PanelSection id="review" title="確認状態">
+        {/* 今の状態を大きく出し、次の状態へ進めるボタンは控えめにする（#179） */}
+        <p className="review-current">
+          <ReviewStateMark state={element.reviewState} />
+        </p>
         <div className="review-actions">
           {REVIEW_TRANSITIONS.filter((t) => t.from === element.reviewState).map(
             (t) => {
@@ -224,10 +227,9 @@ export function ElementPanel({
             },
           )}
         </div>
-      </section>
+      </PanelSection>
 
-      <section aria-labelledby="content-heading">
-        <h3 id="content-heading">内容</h3>
+      <PanelSection id="content" title="内容">
         <label className="field">
           <span>名前</span>
           <input
@@ -316,7 +318,7 @@ export function ElementPanel({
             保存
           </button>
         </div>
-      </section>
+      </PanelSection>
 
       <RelationEditor
         projectId={projectId}
@@ -344,6 +346,7 @@ export function ElementPanel({
         onError={setError}
       />
 
+      {/* 削除の節はボタン1つなので畳まない */}
       <section aria-labelledby="delete-heading">
         <h3 id="delete-heading">削除</h3>
         <button

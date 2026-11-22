@@ -8,6 +8,7 @@ import {
   relationRows,
 } from "../model/relation-editor.ts";
 import { undoable } from "../undo-store.ts";
+import { PanelSection } from "./PanelSection.tsx";
 
 /**
  * 詳細パネルのつながり（画面設計書 P-01）。つながりを外し、「＋ つなぐ」でつなげる種類の要素だけを探してつなぐ。
@@ -59,8 +60,11 @@ export function RelationEditor({
   };
 
   return (
-    <section aria-labelledby="relations-heading">
-      <h3 id="relations-heading">つながり</h3>
+    <PanelSection
+      id="relations"
+      title="つながり"
+      summary={rows.length > 0 ? `${rows.length}件` : undefined}
+    >
       {rows.length === 0 ? (
         <p className="muted">つながりはありません。</p>
       ) : (
@@ -70,7 +74,10 @@ export function RelationEditor({
             <li key={label} className="relation-group">
               <div className="relation-group-head">
                 {label}
-                <span className="count">{items.length}</span>
+                {/* 件数は2件以上の種類にだけ付ける（#178） */}
+                {items.length > 1 && (
+                  <span className="count">{items.length}</span>
+                )}
               </div>
               <ul className="plain">
                 {items.map((row) => (
@@ -175,7 +182,7 @@ export function RelationEditor({
             ＋ つなぐ
           </button>
         ))}
-    </section>
+    </PanelSection>
   );
 }
 

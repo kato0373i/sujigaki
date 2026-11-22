@@ -1923,3 +1923,99 @@ button.badge {
     flex-wrap: wrap;
   }
 }
+
+/* 詳細パネルの節は、見出しのボタンで畳める（#172） */
+.panel h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.panel .section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+.section-caret {
+  display: inline-block;
+  width: 12px;
+  font-size: 11px;
+}
+
+.section-summary {
+  font-weight: 400;
+  font-size: 12px;
+}
+
+/* 項目を書いているあいだも、保存のボタンをパネルの下端に見せておく（#172） */
+.panel .save-row {
+  position: sticky;
+  bottom: -24px;
+  z-index: 1;
+  margin: 0 -16px;
+  padding: 10px 16px 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+/* 今の確認状態を大きく出し、次の状態へ進めるボタンは控えめにする（#179） */
+.review-current {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.review-current .review {
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.review-current .review-text {
+  font-size: 15px;
+}
+
+.review-current .review svg {
+  width: 20px;
+  height: 20px;
+}
+
+.panel .review-actions button {
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.panel .review-actions button:not(:disabled):hover {
+  color: var(--text);
+  border-color: var(--gray);
+}
+
+/* つながりの「外す」は、行にマウスを乗せたときやフォーカスしたときに出す（#178） */
+.panel .relations button.link.danger {
+  color: var(--muted);
+  opacity: 0;
+}
+
+.panel .relations li:hover > button.link.danger,
+.panel .relations button.link.danger:focus-visible {
+  opacity: 1;
+}
+
+.panel .relations button.link.danger:hover {
+  color: var(--red);
+}
+
+/* マウスのない端末では、いつも出しておく */
+@media (hover: none) {
+  .panel .relations button.link.danger {
+    opacity: 1;
+  }
+}
