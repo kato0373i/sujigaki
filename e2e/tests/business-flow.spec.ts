@@ -165,3 +165,27 @@ test.describe("#162 ダークモード", () => {
     await page.screenshot({ path: `${screenshots}/dark-flow.png` });
   });
 });
+
+test.describe("#176 業務フローの凡例", () => {
+  test("図の下に、カードの枠の種類と確認状態の印の意味を出す", async ({
+    page,
+  }) => {
+    await page.goto("/#/flows/buc-application");
+    const legend = page.getByRole("list", { name: "凡例" });
+    for (const text of [
+      "手作業",
+      "システム",
+      "区分が未設定",
+      "未レビュー",
+      "要確認",
+      "要修正",
+      "確認済み",
+    ])
+      await expect(legend).toContainText(text);
+    const result = await new AxeBuilder({ page })
+      .include(".flow-legend")
+      .analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await page.screenshot({ path: `${screenshots}/s-04-legend.png` });
+  });
+});

@@ -13,8 +13,10 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
+  type ReactFlowInstance,
 } from "@xyflow/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FIT_OPTIONS, fitReadable } from "../components/flow-fit.ts";
 import { FLOW_ARIA_LABELS, nodeLabel } from "../components/flow-labels.ts";
 import { ReviewStateMark } from "../components/status.tsx";
 import {
@@ -120,6 +122,16 @@ export function ChainViewScreen({
     [settings],
   );
   const visible = useMemo(() => new Set(settings.kinds), [settings.kinds]);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  // 全体を収めきれず、起点のまわりだけを出しているか（#173）
+  const [partial, setPartial] = useState(false);
+  const fit = (flow: ReactFlowInstance) => {
+    window.setTimeout(
+      () =>
+        void fitReadable(flow, canvasRef.current, originId).then(setPartial),
+      50,
+    );
+  };
   const view = useMemo(
     () => chainView(elements, originId, settings.depth, visible),
     [elements, originId, settings.depth, visible],
@@ -269,8 +281,14 @@ export function ChainViewScreen({
           件まで描いています）。段数を減らすか、表示する種類を絞ってください。
         </p>
       )}
+      {partial && (
+        <p className="muted flow-hint" role="status">
+          図の一部を出しています。ドラッグで動かすか、左下の「全体を表示」で全体を見られます。
+        </p>
+      )}
       <div
         className="flow-canvas"
+        ref={canvasRef}
         // 図が低いときは枠も低くし、上下に大きな余白を作らない（#156）
         style={{
           flex: "0 1 auto",
@@ -287,9 +305,10 @@ export function ChainViewScreen({
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          // 全体を収めると文字が読めないときは、読める倍率で一部を出す（#173）
           fitView
-          // 小さな図は少し大きく描き、文字を読みやすくする（#156）
-          fitViewOptions={{ maxZoom: 1.25, padding: 0.08 }}
+          onInit={(flow) => fit(flow)}
+          fitViewOptions={FIT_OPTIONS}
           nodesConnectable={false}
           onNodeClick={(_, node) => onSelect(node.id)}
           proOptions={{ hideAttribution: true }}
