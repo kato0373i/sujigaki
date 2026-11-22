@@ -53,6 +53,8 @@ test.describe("FR-011 情報の項目と区分の値", () => {
     expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
     await page.screenshot({ path: `${screenshots}/p-01-items.png` });
     await panel.getByRole("button", { name: "保存" }).click();
+    // 保存が終わり、書きかけがなくなってから読み直す
+    await expect(panel.getByRole("button", { name: "保存" })).toBeDisabled();
     await expect(items.getByLabel("1行目の説明")).toHaveValue(
       "窓口で受け付けた日",
     );
@@ -73,6 +75,7 @@ test.describe("FR-011 情報の項目と区分の値", () => {
     const panel = await open(page, "区分", "受付の方法");
     await panel.getByLabel(/^区分の値/).fill("窓口\n電話\nメール");
     await panel.getByRole("button", { name: "保存" }).click();
+    await expect(panel.getByRole("button", { name: "保存" })).toBeDisabled();
     await expect(panel.getByLabel(/^区分の値/)).toHaveValue(
       "窓口\n電話\nメール",
     );

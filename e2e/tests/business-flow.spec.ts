@@ -171,7 +171,7 @@ test.describe("#176 業務フローの凡例", () => {
     page,
   }) => {
     await page.goto("/#/flows/buc-application");
-    const legend = page.getByRole("group", { name: "凡例" });
+    const legend = page.getByRole("list", { name: "凡例" });
     for (const text of [
       "手作業",
       "システム",
