@@ -1,8 +1,11 @@
 import {
   type ElementSnapshot,
+  type QuestionSnapshot,
   REVIEW_STATES,
   type ReviewState,
+  type Violation,
 } from "@sujigaki/domain";
+import { reviewBoardView } from "./review-board.ts";
 
 export interface BusinessRow {
   /** 業務。どの業務にも属さない業務フローの行は null */
@@ -79,4 +82,36 @@ function countByState(elements: readonly ElementSnapshot[]) {
   >;
   for (const element of new Set(elements)) counts[element.reviewState] += 1;
   return counts;
+}
+
+/** プロジェクト全体の進み具合（#180） */
+export interface ProjectProgress {
+  /** 削除されていない要素の、確認状態ごとの数 */
+  readonly counts: Readonly<Record<ReviewState, number>>;
+  /** 未回答の問いの数。空欄から作った問いも数え、確認ボードの「未回答の問い」とそろえる */
+  readonly openQuestions: number;
+  /** 直すものの数。要修正の要素と、検証の違反を足す。確認ボードの「直すもの」とそろえる */
+  readonly toFix: number;
+}
+
+export function projectProgress(
+  elements: readonly ElementSnapshot[],
+  questions: readonly QuestionSnapshot[],
+  violations: readonly Violation[],
+): ProjectProgress {
+  const active = elements.filter((e) => e.deletedAt === null);
+  const counts = Object.fromEntries(
+    REVIEW_STATES.map((s) => [
+      s,
+      active.filter((e) => e.reviewState === s).length,
+    ]),
+  ) as Record<ReviewState, number>;
+  const groups = reviewBoardView(elements, questions, violations, "all", null);
+  return {
+    counts,
+    openQuestions: groups.reduce((sum, g) => sum + g.questions.length, 0),
+    toFix:
+      counts.needs_fix +
+      groups.reduce((sum, g) => sum + g.violations.length, 0),
+  };
 }

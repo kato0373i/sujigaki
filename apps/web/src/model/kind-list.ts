@@ -33,6 +33,50 @@ export function kindCounts(elements: readonly ElementSnapshot[]): KindCount[] {
   }));
 }
 
+/**
+ * 種類のまとまり（#182）。RDRA の4つの層（システム価値・外部環境・システム境界・システム）に当て、
+ * 画面では RDRA の用語を使わない名前で出す（NFR-016）
+ */
+export const KIND_GROUPS: readonly {
+  readonly label: string;
+  readonly kinds: readonly ElementKind[];
+}[] = [
+  {
+    label: "価値と関係者",
+    kinds: [
+      "requirement",
+      "actor",
+      "actorGroup",
+      "externalSystem",
+      "externalSystemGroup",
+    ],
+  },
+  {
+    label: "業務",
+    kinds: ["business", "buc", "activity", "condition", "variation"],
+  },
+  {
+    label: "システムとの境目",
+    kinds: ["usecase", "screen", "event", "timer"],
+  },
+  {
+    label: "情報と状態",
+    kinds: ["context", "information", "stateModel", "state"],
+  },
+];
+
+/** 種類ごとの数を、まとまりごとに分ける（#182） */
+export function kindGroups(elements: readonly ElementSnapshot[]) {
+  const counts = new Map(kindCounts(elements).map((c) => [c.kind, c]));
+  return KIND_GROUPS.map((group) => ({
+    label: group.label,
+    kinds: group.kinds.flatMap((kind) => {
+      const count = counts.get(kind);
+      return count ? [count] : [];
+    }),
+  }));
+}
+
 /** 種類を選ばずに開いたときの種類。要素のある最初の種類にし、要素がなければ最初の種類にする */
 export function defaultKind(elements: readonly ElementSnapshot[]): ElementKind {
   return (
