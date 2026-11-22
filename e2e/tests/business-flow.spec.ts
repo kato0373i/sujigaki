@@ -205,3 +205,24 @@ test.describe("#174 業務フローのパンくず", () => {
     await expect(page.getByRole("heading", { name: "業務一覧" })).toBeVisible();
   });
 });
+
+test.describe("#180 業務一覧の全体の進み具合", () => {
+  test("業務一覧の上に、全体の確認の進み具合と、未回答の問い・直すものの数を出す", async ({
+    page,
+  }) => {
+    await page.goto("/#/");
+    const overview = page.getByRole("region", { name: "全体の進み具合" });
+    await expect(overview).toContainText(/確認済み \d+ \/ \d+/);
+    await expect(overview).toContainText(/未回答の問い \d+ 件/);
+    await expect(overview).toContainText(/直すもの \d+ 件/);
+    const result = await new AxeBuilder({ page })
+      .include(".overview")
+      .analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await page.screenshot({ path: `${screenshots}/s-03-overview.png` });
+    await overview.getByRole("link", { name: "確認ボードで見る" }).click();
+    await expect(
+      page.getByRole("heading", { name: "確認ボード" }),
+    ).toBeVisible();
+  });
+});

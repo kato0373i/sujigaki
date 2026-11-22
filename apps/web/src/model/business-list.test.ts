@@ -1,6 +1,10 @@
-import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
+import {
+  elementSnapshot,
+  questionSnapshot,
+  relationTo,
+} from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
-import { businessListView } from "./business-list.ts";
+import { businessListView, projectProgress } from "./business-list.ts";
 
 describe("FR-010 業務一覧", () => {
   const act = elementSnapshot("a1", "activity", { reviewState: "approved" });
@@ -39,5 +43,39 @@ describe("FR-010 業務一覧", () => {
   it("削除済みの要素は出さない", () => {
     const deleted = { ...other, deletedAt: "2026-11-19T00:00:00.000Z" };
     expect(businessListView([deleted])).toEqual([]);
+  });
+});
+
+describe("#180 プロジェクト全体の進み具合", () => {
+  it("確認状態ごとの数と、未回答の問い・直すもの（要修正と検証の違反）の数を出す", () => {
+    const info = elementSnapshot("i1", "information", {
+      reviewState: "needs_fix",
+    });
+    const screen = elementSnapshot("s1", "screen", { reviewState: "approved" });
+    const removed = elementSnapshot("s2", "screen", {
+      deletedAt: "2026-11-01T00:00:00.000Z",
+    });
+    const progress = projectProgress(
+      [info, screen, removed],
+      [
+        questionSnapshot("i1", { body: "項目は何ですか" }),
+        questionSnapshot("s1", { body: "答えた問い", state: "answered" }),
+      ],
+      [
+        {
+          rule: "unusedScreen",
+          elementId: screen.id,
+          message: "どの操作からも使われていません",
+        },
+      ],
+    );
+    expect(progress.counts).toEqual({
+      unreviewed: 0,
+      needs_check: 0,
+      needs_fix: 1,
+      approved: 1,
+    });
+    expect(progress.openQuestions).toBe(1);
+    expect(progress.toFix).toBe(2);
   });
 });

@@ -6,7 +6,7 @@ import {
 import { type FormEvent, useState } from "react";
 import { createElement } from "../api.ts";
 import { ReviewStateMark } from "../components/status.tsx";
-import { kindCounts, kindListRows } from "../model/kind-list.ts";
+import { kindCounts, kindGroups, kindListRows } from "../model/kind-list.ts";
 import { hrefOf } from "../route.ts";
 
 /**
@@ -58,17 +58,27 @@ export function KindList({
     <section className="screen">
       <h1>要素の一覧</h1>
       <div className="kind-list">
+        {/* 種類は RDRA の層ごとにまとめて出す（#182） */}
         <ul className="kind-choices" aria-label="種類">
-          {counts.map((c) => (
-            <li key={c.kind}>
-              <a
-                href={hrefOf({ screen: "elements", kind: c.kind })}
-                aria-current={c.kind === kind ? "page" : undefined}
-                className={c.count === 0 ? "kind-empty" : undefined}
-              >
-                {c.label}
-                <span className="count">{c.count}</span>
-              </a>
+          {kindGroups(elements).map((group) => (
+            <li key={group.label} className="kind-group">
+              <span className="kind-group-label" id={`kind-${group.label}`}>
+                {group.label}
+              </span>
+              <ul aria-labelledby={`kind-${group.label}`}>
+                {group.kinds.map((c) => (
+                  <li key={c.kind}>
+                    <a
+                      href={hrefOf({ screen: "elements", kind: c.kind })}
+                      aria-current={c.kind === kind ? "page" : undefined}
+                      className={c.count === 0 ? "kind-empty" : undefined}
+                    >
+                      {c.label}
+                      <span className="count">{c.count}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

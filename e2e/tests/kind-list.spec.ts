@@ -80,3 +80,25 @@ test.describe("#128 要素の一覧", () => {
     expect(purged.status()).toBe(204);
   });
 });
+
+test.describe("#182 種類のまとまり", () => {
+  test("種類を、価値と関係者・業務・システムとの境目・情報と状態の見出しでまとめる", async ({
+    page,
+  }) => {
+    await page.goto("/#/elements");
+    const kinds = page.getByRole("list", { name: "種類" });
+    for (const [group, kind] of [
+      ["価値と関係者", "要求"],
+      ["業務", "活動"],
+      ["システムとの境目", "画面"],
+      ["情報と状態", "情報"],
+    ] as const) {
+      await expect(
+        kinds
+          .getByRole("list", { name: group, exact: true })
+          .getByRole("link", { name: new RegExp(`^${kind}`) }),
+      ).toBeVisible();
+    }
+    await page.screenshot({ path: `${screenshots}/s-13-groups.png` });
+  });
+});

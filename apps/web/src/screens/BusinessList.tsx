@@ -2,6 +2,7 @@ import {
   type ElementSnapshot,
   REVIEW_STATES,
   type ReviewState,
+  type Violation,
 } from "@sujigaki/domain";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import {
@@ -13,7 +14,7 @@ import {
 } from "../api.ts";
 import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { ReviewStateMark } from "../components/status.tsx";
-import type { BusinessRow } from "../model/business-list.ts";
+import { type BusinessRow, projectProgress } from "../model/business-list.ts";
 import { connectedElements } from "../model/relation-editor.ts";
 import { hrefOf } from "../route.ts";
 import { undoable } from "../undo-store.ts";
@@ -26,12 +27,14 @@ export function BusinessList({
   projectId,
   snapshot,
   rows,
+  violations,
   canEdit,
   onChanged,
 }: {
   projectId: string;
   snapshot: Snapshot;
   rows: readonly BusinessRow[];
+  violations: readonly Violation[];
   canEdit: boolean;
   onChanged: () => void;
 }) {
@@ -58,6 +61,9 @@ export function BusinessList({
   return (
     <section className="screen">
       <h1>業務一覧</h1>
+      {rows.length > 0 && (
+        <Overview snapshot={snapshot} violations={violations} />
+      )}
       {canEdit && (
         <AddForm
           label="新しい業務の名前"
@@ -222,6 +228,40 @@ const PROGRESS_ORDER: readonly ReviewState[] = [
   "needs_fix",
   "unreviewed",
 ];
+
+/**
+ * プロジェクト全体の進み具合（#180）。確認の進み具合と、未回答の問い・直すものの数を出し、確認ボードへ案内する
+ */
+function Overview({
+  snapshot,
+  violations,
+}: {
+  snapshot: Snapshot;
+  violations: readonly Violation[];
+}) {
+  const progress = projectProgress(
+    snapshot.elements,
+    snapshot.questions,
+    violations,
+  );
+  return (
+    <section className="overview" aria-label="全体の進み具合">
+      <h2>全体の進み具合</h2>
+      <ReviewProgress counts={progress.counts} />
+      <ul className="plain overview-counts">
+        <li>
+          未回答の問い <strong>{progress.openQuestions}</strong> 件
+        </li>
+        <li>
+          直すもの <strong>{progress.toFix}</strong> 件
+        </li>
+        <li>
+          <a href={hrefOf({ screen: "board" })}>確認ボードで見る</a>
+        </li>
+      </ul>
+    </section>
+  );
+}
 
 /**
  * 確認の進み具合（#159）。確認状態ごとの割合を帯で示し、確認済みの数と、0でない確認状態の数を文字でも出す（NFR-017）

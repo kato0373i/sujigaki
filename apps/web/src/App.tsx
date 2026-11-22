@@ -311,6 +311,7 @@ export function App() {
             projectId={LOCAL_PROJECT_ID}
             snapshot={snapshot}
             rows={rows}
+            violations={violations}
             canEdit={can(LOCAL_ACTOR, "editElement")}
             onChanged={reload}
           />

@@ -878,6 +878,11 @@ button.link:hover {
   font-size: 12px;
 }
 
+.hint summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
 .relations li {
   display: flex;
   justify-content: space-between;
@@ -2122,4 +2127,50 @@ button.badge {
 .show-more {
   margin: 4px 0 0 8px;
   font-size: 12px;
+}
+
+/* 業務一覧の全体の進み具合（#180） */
+.overview {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.screen .overview h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.overview .progress-bar {
+  width: 240px;
+}
+
+.overview-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* 要素の一覧の種類は、層ごとの見出しでまとめる（#182） */
+.kind-list .kind-choices ul {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.kind-group-label {
+  display: block;
+  margin: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.kind-choices a.kind-empty .count {
+  font-weight: 400;
 }

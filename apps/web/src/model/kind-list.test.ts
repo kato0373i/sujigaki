@@ -1,7 +1,13 @@
 import { ELEMENT_KINDS } from "@sujigaki/domain";
 import { elementSnapshot, relationTo } from "@sujigaki/domain/testing";
 import { describe, expect, it } from "vitest";
-import { defaultKind, kindCounts, kindListRows } from "./kind-list.ts";
+import {
+  defaultKind,
+  KIND_GROUPS,
+  kindCounts,
+  kindGroups,
+  kindListRows,
+} from "./kind-list.ts";
 
 const application = elementSnapshot("i1", "information", {
   name: "申込",
@@ -61,5 +67,27 @@ describe("#128 種類ごとの要素の一覧", () => {
       kindListRows(elements, "information", "invoice").map((r) => r.element.id),
     ).toEqual(["i3"]);
     expect(kindListRows(elements, "information", "古い")).toEqual([]);
+  });
+});
+
+describe("#182 種類のまとまり", () => {
+  it("どの種類も、ちょうど1つのまとまりに入る", () => {
+    const grouped = KIND_GROUPS.flatMap((g) => g.kinds);
+    expect([...grouped].sort()).toEqual([...ELEMENT_KINDS].sort());
+  });
+
+  it("まとまりごとに、種類と数を出す", () => {
+    const groups = kindGroups([elementSnapshot("r1", "requirement")]);
+    expect(groups.map((g) => g.label)).toEqual([
+      "価値と関係者",
+      "業務",
+      "システムとの境目",
+      "情報と状態",
+    ]);
+    expect(groups[0]?.kinds[0]).toEqual({
+      kind: "requirement",
+      label: "要求",
+      count: 1,
+    });
   });
 });
