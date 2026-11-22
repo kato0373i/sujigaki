@@ -12,6 +12,7 @@ describe("画面の場所", () => {
       "#/settings",
       "#/io",
       "#/flows/buc-1",
+      "#/chain",
       "#/chain/a-1",
       "#/elements",
       "#/elements/information",

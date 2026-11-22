@@ -27,6 +27,7 @@ import {
   VIEW_PRESETS,
   type ViewPreset,
 } from "../model/chain-view.ts";
+import { searchElements } from "../model/element-search.ts";
 import {
   choosePreset,
   loadViewSettings,
@@ -317,6 +318,59 @@ export function ChainViewScreen({
           <Controls showInteractive={false} />
         </ReactFlow>
       </div>
+    </section>
+  );
+}
+
+/**
+ * 起点を選ぶ前の連鎖ビュー（#174）。名前で探すか、業務から選んで起点にする
+ */
+export function ChainOriginPicker({
+  elements,
+}: {
+  elements: readonly ElementSnapshot[];
+}) {
+  const [query, setQuery] = useState("");
+  const text = query.trim();
+  const hits = searchElements(elements, query, 20);
+  const businesses = elements.filter(
+    (e) => e.kind === "business" && e.deletedAt === null,
+  );
+  const candidates =
+    text === ""
+      ? businesses.map((element) => ({
+          element,
+          kindLabel: ELEMENT_KIND_LABELS[element.kind],
+        }))
+      : hits;
+  return (
+    <section className="screen">
+      <h1>連鎖ビュー</h1>
+      <p className="muted">
+        起点にする要素を選ぶと、その要素から前後のつながりを描きます。
+      </p>
+      <input
+        type="search"
+        className="origin-search"
+        aria-label="起点にする要素を名前で探す"
+        placeholder="起点にする要素を名前で探す…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {text === "" && <h2 className="origin-heading">業務から始める</h2>}
+      {text !== "" && hits.length === 0 ? (
+        <p className="muted">「{text}」に当てはまる要素はありません。</p>
+      ) : (
+        <ul className="plain origin-list" aria-label="起点の候補">
+          {candidates.map(({ element, kindLabel }) => (
+            <li key={element.id}>
+              <a href={hrefOf({ screen: "chain", originId: element.id })}>
+                <span className="muted">{kindLabel}</span> {element.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
