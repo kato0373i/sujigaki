@@ -80,6 +80,19 @@ export function App() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+  // 幅が狭いときに、畳んだナビゲーションを開いているか（#171）。画面を移ったら閉じる
+  const [navOpen, setNavOpen] = useState(false);
+  const routeKey = JSON.stringify(route);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 画面を移ったときだけ閉じるため、routeKey に依存させる
+  useEffect(() => setNavOpen(false), [routeKey]);
+  useEffect(() => {
+    if (!navOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [navOpen]);
   /** 再読み込みで捨てた回数。詳細パネルを作り直して、保存していない内容を捨てる */
   const [discarded, setDiscarded] = useState(0);
 
@@ -129,8 +142,21 @@ export function App() {
   );
 
   return (
-    <div className={selected ? "app with-panel" : "app"}>
+    <div
+      className={["app", selected && "with-panel", navOpen && "nav-open"]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <header className="header">
+        <button
+          type="button"
+          className="menu-button"
+          aria-expanded={navOpen}
+          aria-controls="nav"
+          onClick={() => setNavOpen((open) => !open)}
+        >
+          メニュー
+        </button>
         <span className="project-name">
           {snapshot?.project.name ?? "sujigaki"}
         </span>
@@ -165,7 +191,7 @@ export function App() {
           />
         )}
       </header>
-      <nav className="nav" aria-label="業務">
+      <nav className="nav" id="nav" aria-label="業務">
         <a
           href={hrefOf({ screen: "businesses" })}
           className="nav-top"
