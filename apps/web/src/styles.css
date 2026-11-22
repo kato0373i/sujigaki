@@ -628,6 +628,10 @@ body {
 }
 
 .board-group h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
   font-size: 15px;
   margin: 0 0 8px;
 }
@@ -636,6 +640,11 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+/* 畳んだ業務の列は隠す（#175） */
+.board-columns[hidden] {
+  display: none;
 }
 
 .board-column h3 {
@@ -2091,4 +2100,26 @@ button.badge {
   display: grid;
   gap: 4px;
   margin-top: 8px;
+}
+
+/* 確認ボードの業務は、見出しのボタンで畳める（#175） */
+.board-group .section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.board-group .section-summary {
+  color: var(--muted);
+}
+
+.show-more {
+  margin: 4px 0 0 8px;
+  font-size: 12px;
 }
