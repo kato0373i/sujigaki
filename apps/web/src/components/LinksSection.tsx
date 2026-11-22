@@ -8,6 +8,7 @@ import {
 import { type FormEvent, useState } from "react";
 import { ApiProblem, updateElement } from "../api.ts";
 import { useFocusFirst } from "../focus.ts";
+import { PanelSection } from "./PanelSection.tsx";
 
 /**
  * 詳細パネルの外部リンク（画面設計書 P-01、FR-004）。追加と外す操作は押したときにすぐ保存し、確認状態は戻さない
@@ -42,8 +43,13 @@ export function LinksSection({
   };
 
   return (
-    <section aria-labelledby="links-heading">
-      <h3 id="links-heading">外部リンク</h3>
+    <PanelSection
+      id="links"
+      title="外部リンク"
+      summary={
+        element.links.length > 0 ? `${element.links.length}件` : undefined
+      }
+    >
       {element.links.length === 0 ? (
         <p className="muted">外部リンクはありません。</p>
       ) : (
@@ -75,7 +81,7 @@ export function LinksSection({
         </ul>
       )}
       {canEdit && <AddLink onAdd={(link) => save([...element.links, link])} />}
-    </section>
+    </PanelSection>
   );
 }
 

@@ -21,6 +21,7 @@ import {
   EMPTY_DECISION,
 } from "../model/decision-draft.ts";
 import { questionActions } from "../model/question-actions.ts";
+import { PanelSection } from "./PanelSection.tsx";
 
 /**
  * 詳細パネルの問いと決定記録（画面設計書 P-01）。問いを付け、回答・取り下げ・回答の取り消し・解決ができる（FR-031）。
@@ -62,8 +63,11 @@ export function DeliberationSection({
   };
 
   return (
-    <section aria-labelledby="deliberation-heading">
-      <h3 id="deliberation-heading">問いと決定記録</h3>
+    <PanelSection
+      id="deliberation"
+      title="問いと決定記録"
+      summary={summaryOf(questions, decisions.length)}
+    >
       {questions.length === 0 && decisions.length === 0 && (
         <p className="muted">問いと決定記録はありません。</p>
       )}
@@ -112,7 +116,7 @@ export function DeliberationSection({
           }
         />
       )}
-    </section>
+    </PanelSection>
   );
 }
 
@@ -363,4 +367,17 @@ function AskQuestion({
       </div>
     </form>
   );
+}
+
+/** 畳んだ見出しに添える要約。未回答の問いを先に数える（#172） */
+function summaryOf(
+  questions: readonly QuestionSnapshot[],
+  decisions: number,
+): string | undefined {
+  const open = questions.filter((q) => q.state === "open").length;
+  const parts = [
+    open > 0 && `未回答 ${open}件`,
+    decisions > 0 && `決定 ${decisions}件`,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join("・") : undefined;
 }
