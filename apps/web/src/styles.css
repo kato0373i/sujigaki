@@ -2054,3 +2054,41 @@ button.badge {
   margin: 0 0 8px;
   font-size: 12px;
 }
+
+/* 業務フローのパンくず（#174） */
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.breadcrumb li + li::before {
+  content: "›";
+  margin-right: 4px;
+}
+
+/* 連鎖ビューの起点の選び方（#174） */
+.origin-search {
+  width: min(420px, 100%);
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.origin-heading {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.origin-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}

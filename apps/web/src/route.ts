@@ -15,7 +15,8 @@ export type Route =
   /** modelId が null なら、名前の順で最初の状態の流れを出す */
   | { readonly screen: "states"; readonly modelId: string | null }
   | { readonly screen: "flow"; readonly bucId: string }
-  | { readonly screen: "chain"; readonly originId: string };
+  /** originId が null なら、起点を選ぶところから始める（#174） */
+  | { readonly screen: "chain"; readonly originId: string | null };
 
 export function parseRoute(hash: string): Route {
   if (hash === "#/board") return { screen: "board" };
@@ -30,6 +31,7 @@ export function parseRoute(hash: string): Route {
   if (hash === "#/states") return { screen: "states", modelId: null };
   const model = /^#\/states\/([A-Za-z0-9_-]+)$/.exec(hash)?.[1];
   if (model) return { screen: "states", modelId: model };
+  if (hash === "#/chain") return { screen: "chain", originId: null };
   const chain = /^#\/chain\/([A-Za-z0-9_-]+)$/.exec(hash);
   if (chain?.[1]) return { screen: "chain", originId: chain[1] };
   const match = /^#\/flows\/([A-Za-z0-9_-]+)$/.exec(hash);
@@ -40,7 +42,8 @@ export function parseRoute(hash: string): Route {
 
 export function hrefOf(route: Route): string {
   if (route.screen === "flow") return `#/flows/${route.bucId}`;
-  if (route.screen === "chain") return `#/chain/${route.originId}`;
+  if (route.screen === "chain")
+    return route.originId ? `#/chain/${route.originId}` : "#/chain";
   if (route.screen === "elements")
     return route.kind ? `#/elements/${route.kind}` : "#/elements";
   if (route.screen === "states")

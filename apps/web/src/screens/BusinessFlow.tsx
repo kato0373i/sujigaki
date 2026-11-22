@@ -1,4 +1,4 @@
-import { REVIEW_STATES } from "@sujigaki/domain";
+import { type ElementSnapshot, REVIEW_STATES } from "@sujigaki/domain";
 import {
   applyNodeChanges,
   Background,
@@ -37,6 +37,7 @@ import {
   COLUMN_WIDTH,
   LANE_HEIGHT,
 } from "../model/business-flow.ts";
+import { hrefOf } from "../route.ts";
 
 const CARD_WIDTH = 190;
 /**
@@ -248,11 +249,14 @@ export interface FlowEditing {
  */
 export function BusinessFlow({
   view,
+  business = null,
   selectedId,
   onSelect,
   editing,
 }: {
   view: BusinessFlowView;
+  /** 業務フローが属する業務。パンくずに出す（#174） */
+  business?: ElementSnapshot | null;
   selectedId: string | null;
   onSelect: (elementId: string) => void;
   editing?: FlowEditing;
@@ -358,6 +362,15 @@ export function BusinessFlow({
 
   return (
     <section className="screen screen-flow">
+      <nav className="breadcrumb" aria-label="パンくずリスト">
+        <ol>
+          <li>
+            <a href={hrefOf({ screen: "businesses" })}>業務一覧</a>
+          </li>
+          <li>{business?.name ?? "業務に属さない"}</li>
+          <li aria-current="page">{view.buc.name}</li>
+        </ol>
+      </nav>
       <h1>業務フロー: {view.buc.name}</h1>
       {editing && (
         <div className="flow-tools">

@@ -111,3 +111,35 @@ test.describe("#173 図の文字を読める大きさに保つ", () => {
     await page.screenshot({ path: `${screenshots}/s-05-readable.png` });
   });
 });
+
+test.describe("#174 ナビから開く", () => {
+  test("ナビの「連鎖ビュー」は起点を選ぶところから始め、探して選んだ要素を起点に開く", async ({
+    page,
+  }) => {
+    await page.goto("/#/");
+    await page
+      .getByRole("navigation", { name: "業務" })
+      .getByRole("link", { name: "連鎖ビュー" })
+      .click();
+    await expect(page).toHaveURL(/#\/chain$/);
+    const candidates = page.getByRole("list", { name: "起点の候補" });
+    // 探す前は、業務を候補に出す
+    await expect(candidates).toContainText("研修");
+    const result = await new AxeBuilder({ page }).include(".screen").analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    await page.screenshot({ path: `${screenshots}/s-05-origin.png` });
+
+    await page.getByLabel("起点にする要素を名前で探す").fill("受講案内の画面");
+    await candidates.getByRole("link", { name: /受講案内の画面/ }).click();
+    await expect(
+      page.getByRole("heading", { name: "連鎖ビュー: 画面「受講案内の画面」" }),
+    ).toBeVisible();
+
+    // ナビの「状態遷移図」から開ける
+    await page
+      .getByRole("navigation", { name: "業務" })
+      .getByRole("link", { name: "状態遷移図" })
+      .click();
+    await expect(page).toHaveURL(/#\/states$/);
+  });
+});

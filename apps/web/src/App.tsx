@@ -1,4 +1,9 @@
-import { type Actor, can, validateModel } from "@sujigaki/domain";
+import {
+  type Actor,
+  can,
+  type ElementSnapshot,
+  validateModel,
+} from "@sujigaki/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addRelation,
@@ -26,7 +31,7 @@ import { hrefOf, useRoute } from "./route.ts";
 import { AiExchange } from "./screens/AiExchange.tsx";
 import { BusinessFlow, type FlowEditing } from "./screens/BusinessFlow.tsx";
 import { BusinessList } from "./screens/BusinessList.tsx";
-import { ChainViewScreen } from "./screens/ChainView.tsx";
+import { ChainOriginPicker, ChainViewScreen } from "./screens/ChainView.tsx";
 import { DeletedElements } from "./screens/DeletedElements.tsx";
 import { ImportExport } from "./screens/ImportExport.tsx";
 import { KindList } from "./screens/KindList.tsx";
@@ -121,7 +126,8 @@ export function App() {
     route.screen === "trace" ||
     route.screen === "elements" ||
     route.screen === "states" ||
-    route.screen === "chain";
+    // 起点を選ぶ前の連鎖ビューでは、検索で選んだ要素を起点に開く（#174）
+    (route.screen === "chain" && route.originId !== null);
   const selected = showsPanel
     ? snapshot?.elements.find(
         (e) => e.id === selectedId && e.deletedAt === null,
@@ -220,6 +226,21 @@ export function App() {
         >
           要素の一覧
         </a>
+        {/* 連鎖ビューと状態遷移図も、ナビから開けるようにする（#174） */}
+        <a
+          href={hrefOf({ screen: "chain", originId: null })}
+          className="nav-top"
+          aria-current={route.screen === "chain" ? "page" : undefined}
+        >
+          連鎖ビュー
+        </a>
+        <a
+          href={hrefOf({ screen: "states", modelId: null })}
+          className="nav-top"
+          aria-current={route.screen === "states" ? "page" : undefined}
+        >
+          状態遷移図
+        </a>
         <a
           href={hrefOf({ screen: "ai" })}
           className="nav-top"
@@ -305,7 +326,10 @@ export function App() {
             onChanged={reload}
           />
         )}
-        {snapshot && route.screen === "chain" && (
+        {snapshot && route.screen === "chain" && route.originId === null && (
+          <ChainOriginPicker elements={snapshot.elements} />
+        )}
+        {snapshot && route.screen === "chain" && route.originId !== null && (
           <ChainViewScreen
             elements={snapshot.elements}
             originId={route.originId}
@@ -373,6 +397,10 @@ export function App() {
           <FlowScreen
             snapshot={snapshot}
             bucId={route.bucId}
+            business={
+              rows.find((row) => row.flows.some((f) => f.id === route.bucId))
+                ?.business ?? null
+            }
             violations={violations}
             selectedId={selectedId}
             onSelect={select}
@@ -415,6 +443,7 @@ export function App() {
 function FlowScreen({
   snapshot,
   bucId,
+  business,
   violations,
   selectedId,
   onSelect,
@@ -422,6 +451,7 @@ function FlowScreen({
 }: {
   snapshot: Snapshot;
   bucId: string;
+  business: ElementSnapshot | null;
   violations: ReturnType<typeof validateModel>;
   selectedId: string | null;
   onSelect: (elementId: string) => void;
@@ -530,6 +560,7 @@ function FlowScreen({
       )}
       <BusinessFlow
         view={view}
+        business={business}
         selectedId={selectedId}
         onSelect={onSelect}
         {...(editing && { editing })}
